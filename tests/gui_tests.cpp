@@ -941,6 +941,7 @@ int main() {
     fs::create_directories(home);
     fs::create_directories(state);
     set_environment("HOME", home);
+    set_environment("USERPROFILE", home);  // the home on Windows
 
     slint::testing::init();
     auto ui = AppWindow::create();

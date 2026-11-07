@@ -10,6 +10,7 @@
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <system_error>
 
 #ifdef _WIN32
 #include <process.h>

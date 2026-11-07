@@ -17,6 +17,10 @@ if(MSVC)
 else()
     set(resend_warnings -Wall -Wextra -Wpedantic)
 endif()
+if(WIN32)
+    # windows.h without its min and max macros and its rarely used parts.
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
 
 # Translations, built into the programs.
 set(resend_languages it)

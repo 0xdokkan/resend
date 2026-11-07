@@ -1,6 +1,7 @@
 #include "sim/routing.hpp"
 
 #include <algorithm>
+#include <cstddef>
 
 namespace netsim {
 

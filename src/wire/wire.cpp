@@ -3,6 +3,7 @@
 #include "core/text.hpp"
 
 #include <array>
+#include <ios>
 #include <utility>
 
 namespace netsim::wire {

@@ -10,6 +10,7 @@
 #include <iterator>
 #include <optional>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 

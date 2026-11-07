@@ -7,8 +7,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <exception>
 #include <iterator>
 #include <map>
+#include <ratio>
 #include <sstream>
 #include <utility>
 

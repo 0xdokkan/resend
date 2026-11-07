@@ -1,7 +1,9 @@
 #include "scenario/scenario.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <set>
+#include <utility>
 
 namespace netsim {
 namespace {

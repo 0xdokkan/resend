@@ -1,6 +1,8 @@
 #include "core/address.hpp"
 
 #include <charconv>
+#include <cstddef>
+#include <system_error>
 
 namespace netsim {
 

@@ -9,6 +9,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <fstream>
+#include <ios>
 #include <iterator>
 #include <system_error>
 
