@@ -200,11 +200,41 @@ class Network:
             run("ip", "-n", name, "link", "set", interface, "address", config["mac"])
             if config.get("ipv4"):
                 run("ip", "-n", name, "addr", "add", config["ipv4"], "dev", interface)
+        if self.port_up(device_id, port, cable_up):
+            run("ip", "-n", name, "link", "set", interface, "up")
+
+    def port_up(self, device_id, port, cable_up):
+        device = self.devices[device_id]
         up = cable_up and device.get("powered", True)
         if device["kind"] != "switch":
             up = up and device["ports"][port - 1].get("up", True)
-        if up:
-            run("ip", "-n", name, "link", "set", interface, "up")
+        return up
+
+    def wait_until_ready(self, timeout=10.0):
+        """Linux brings links up in the background: waits until every cable
+        that should carry has a carrier at both ends, and every switch port
+        on one forwards."""
+        expected = []
+        for link in self.scenario["links"]:
+            ends = (link["a"], link["b"])
+            if all(self.port_up(end["device"], end["port"], link.get("up", True)) for end in ends):
+                expected += [(end["device"], end["port"]) for end in ends]
+        deadline = time.monotonic() + timeout
+        while waiting := [end for end in expected if not self.ready(*end)]:
+            if time.monotonic() > deadline:
+                names = ", ".join(f"{self.devices[device]['name']} port {port}" for device, port in waiting)
+                raise SetupError(f"no carrier after {timeout:g} s: {names}")
+            time.sleep(0.05)
+
+    def ready(self, device_id, port):
+        name, interface = self.names[device_id], f"p{port}"
+        link = json.loads(run("ip", "-n", name, "-j", "link", "show", interface, capture=True))
+        if not link or "LOWER_UP" not in link[0].get("flags", []):
+            return False
+        if self.devices[device_id]["kind"] != "switch":
+            return True
+        state = json.loads(run("bridge", "-n", name, "-j", "link", "show", "dev", interface, capture=True) or "[]")
+        return bool(state) and state[0].get("state") == "forwarding"
 
     def host(self, name):
         for device in self.scenario["devices"]:
@@ -230,14 +260,20 @@ def linux_run(case, scenario, folder):
     captures = {}
     try:
         network.build()
+        network.wait_until_ready()
         dumps = []
         for link in scenario["links"]:
             end = link["a"]
             path = os.path.join(folder, f"linux-{link['id']}.pcap")
             dump = subprocess.Popen(["ip", "netns", "exec", network.namespace(end["device"]), "tcpdump", "-i",
-                                     f"p{end['port']}", "-w", path, "-U", "-n", "-s", "0", "-Z", "root"],
+                                     f"p{end['port']}", "-w", path, "-U", "--immediate-mode", "-n", "-s", "2048",
+                                     "-B", "8192", "-Z", "root"],
                                     stderr=subprocess.PIPE, text=True)
-            # tcpdump says when it is listening.
+            # Immediate mode: without it, libpcap may hold packets for up to a
+            # second, and those still held when tcpdump stops are lost. Its
+            # ring has a slot per packet as large as the snapshot length, so a
+            # short one keeps the bursts of a routing loop. tcpdump says when
+            # it is listening.
             said = []
             while not said or ("listening" not in said[-1] and said[-1]):
                 said.append(dump.stderr.readline())
@@ -330,7 +366,7 @@ def main():
     parser.add_argument("--keep", help="keep the captures in this directory")
     parser.add_argument("--only", help="run only the cases whose name contains this")
     arguments = parser.parse_args()
-    for tool in ("ip", "tcpdump", "ping", "unshare"):
+    for tool in ("ip", "bridge", "tcpdump", "ping", "unshare"):
         if not shutil.which(tool):
             print(f"{tool} not found", file=sys.stderr)
             return 2

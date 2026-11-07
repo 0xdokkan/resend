@@ -353,7 +353,6 @@ void random_run(std::uint64_t seed, Hash& hash, Tally& tally) {
         }
         if (i > 0 && rng.chance(4, 5)) edit::connect(scenario, id, DeviceId{static_cast<std::uint32_t>(rng.between(1, i))});
     }
-    constexpr netsim::SimTime delays[] = {1us, 100us, 1ms, 10ms, 15ms};
     for (auto& cable : scenario.links) {
         cable.delay = delays[rng.below(std::size(delays))];
         cable.up = !rng.chance(1, 12);

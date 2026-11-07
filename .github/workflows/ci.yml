@@ -16,7 +16,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build g++ libfontconfig1 libfreetype6 libgbm1 libinput10 libxkbcommon0 tcpdump
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: .deps
           key: slint-sdk-${{ hashFiles('scripts/fetch-slint.sh') }}
@@ -27,7 +27,14 @@ jobs:
       - name: Test (engine, CLI and GUI without a display)
         run: ctest --test-dir build --output-on-failure
       - name: Compare with Linux (network namespaces, tcpdump)
-        run: sudo python3 scripts/compare-linux.py build/resend-cli
+        run: sudo python3 scripts/compare-linux.py build/resend-cli --keep linux-captures
+      - name: Keep the captures of a failed comparison
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-captures
+          path: linux-captures
+          if-no-files-found: ignore
 
   linux-sanitizers:
     runs-on: ubuntu-24.04

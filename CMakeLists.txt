@@ -12,8 +12,13 @@ set(RESEND_SLINT_COMPILATION_UNITS 4 CACHE STRING
     "Number of C++ files generated from ui/app.slint, compiled in parallel")
 
 if(MSVC)
-    # /utf-8: sources and string literals are UTF-8 whatever the system code page.
-    set(resend_warnings /W4 /utf-8)
+    set(resend_warnings /W4)
+    # Sources and string literals are UTF-8 whatever the system code page, and
+    # the conforming preprocessor passes raw string literals through macros.
+    add_compile_options(/utf-8 /Zc:preprocessor)
+    # getenv() is deprecated by the CRT for the pointer it returns; every
+    # value read is copied at once.
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 else()
     set(resend_warnings -Wall -Wextra -Wpedantic)
 endif()

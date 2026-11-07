@@ -80,6 +80,7 @@ bool edit_marker(const netsim::EditEntry& entry, Marker& marker) {
     return std::visit(
         [&](const auto& edit) {
             using T = std::decay_t<decltype(edit)>;
+            bool shown = true;
             if constexpr (std::is_same_v<T, netsim::SetPowered>) marker.text = "⏻ " + (edit.powered ? tr("powered on") : tr("powered off"));
             else if constexpr (std::is_same_v<T, netsim::SetAddress>) marker.text = "IP " + (edit.address ? edit.address->to_string() : tr("none"));
             else if constexpr (std::is_same_v<T, netsim::SetGateway>) marker.text = tr("gateway {0}", {edit.gateway ? edit.gateway->to_string() : tr("none")});
@@ -90,8 +91,8 @@ bool edit_marker(const netsim::EditEntry& entry, Marker& marker) {
             else if constexpr (std::is_same_v<T, netsim::SetAgeing>) marker.text = tr("ageing {0}", {netsim::format_duration(edit.ageing)});
             else if constexpr (std::is_same_v<T, netsim::AddDevice>) marker.text = tr("added");
             else if constexpr (std::is_same_v<T, netsim::RestoreDevice>) marker.text = tr("restored");
-            else return false;
-            return true;
+            else shown = false;
+            return shown;
         },
         entry.edit);
 }
