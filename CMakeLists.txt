@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(resend VERSION 0.1.2 LANGUAGES CXX)
+project(resend VERSION 0.1.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,7 +23,8 @@ add_library(resend_core
     src/scenario/scenario.cpp src/scenario/edit.cpp src/scenario/scenario_json.cpp
     src/sim/simulation.cpp src/sim/medium.cpp src/sim/arp.cpp src/sim/ping_app.cpp
     src/sim/host.cpp src/sim/bridge.cpp
-    src/explain/explain.cpp)
+    src/explain/explain.cpp
+    src/wire/wire.cpp)
 target_include_directories(resend_core PUBLIC src)
 target_compile_options(resend_core PRIVATE ${resend_warnings})
 
@@ -52,6 +53,14 @@ if(BUILD_TESTING)
     target_compile_options(resend-sim-tests PRIVATE ${resend_warnings})
     target_compile_definitions(resend-sim-tests PRIVATE RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples")
     add_test(NAME simulation COMMAND resend-sim-tests)
+    add_executable(resend-live-tests tests/live_tests.cpp)
+    target_link_libraries(resend-live-tests PRIVATE resend_core)
+    target_compile_options(resend-live-tests PRIVATE ${resend_warnings})
+    add_test(NAME live-network COMMAND resend-live-tests)
+    add_executable(resend-wire-tests tests/wire_tests.cpp)
+    target_link_libraries(resend-wire-tests PRIVATE resend_core)
+    target_compile_options(resend-wire-tests PRIVATE ${resend_warnings})
+    add_test(NAME wire-format COMMAND resend-wire-tests)
     add_executable(resend-regression-tests tests/regression_tests.cpp)
     target_link_libraries(resend-regression-tests PRIVATE resend_core)
     target_compile_options(resend-regression-tests PRIVATE ${resend_warnings})
@@ -74,8 +83,28 @@ if(BUILD_TESTING)
     add_test(NAME cli-scenario-ping-fails COMMAND resend-cli --scenario ${examples}/unplugged.json --ping PC-A 192.168.1.20)
     add_test(NAME cli-unknown-host COMMAND resend-cli --ping Nobody 192.168.1.20)
     add_test(NAME cli-missing-file COMMAND resend-cli --scenario ${examples}/missing.json)
+    add_test(NAME cli-ping-count COMMAND resend-cli --count 3 --interval 200ms --timeout 500ms)
+    add_test(NAME cli-cable-down-in-flight COMMAND resend-cli --at 15ms --link-down 2)
+    add_test(NAME cli-power-off-destination COMMAND resend-cli --count 2 --at 500ms --power-off PC-B)
+    add_test(NAME cli-stale-address COMMAND resend-cli --count 2 --at 500ms --set-ip PC-B 192.168.1.21/24)
+    add_test(NAME cli-switch-loop COMMAND resend-cli --scenario ${examples}/switch-loop.json --ping PC-A 192.168.1.20)
+    add_test(NAME cli-switch-loop-broken COMMAND resend-cli --scenario ${examples}/switch-loop.json --link-down 5
+        --ping PC-A 192.168.1.20)
+    add_test(NAME cli-invalid-count COMMAND resend-cli --count 0)
+    add_test(NAME cli-unknown-cable COMMAND resend-cli --link-down 9)
     set_tests_properties(cli-ping-disconnected cli-ping-no-route cli-invalid-address
-        cli-scenario-ping-fails cli-unknown-host cli-missing-file PROPERTIES WILL_FAIL TRUE)
+        cli-scenario-ping-fails cli-unknown-host cli-missing-file cli-cable-down-in-flight
+        cli-invalid-count cli-unknown-cable PROPERTIES WILL_FAIL TRUE)
+    # A regular expression to match replaces the exit status.
+    set_tests_properties(cli-ping-count PROPERTIES PASS_REGULAR_EXPRESSION "3 packets transmitted, 3 received")
+    set_tests_properties(cli-power-off-destination PROPERTIES PASS_REGULAR_EXPRESSION "2 packets transmitted, 1 received")
+    set_tests_properties(cli-stale-address PROPERTIES PASS_REGULAR_EXPRESSION "icmp_seq=1 ttl=64.*icmp_seq=2 lost: no Echo Reply")
+    set_tests_properties(cli-switch-loop PROPERTIES PASS_REGULAR_EXPRESSION "Storm protection: the simulator stopped 3 frames")
+    # Wireshark's expert system checks the captures; skipped without tshark.
+    find_program(TSHARK tshark)
+    add_test(NAME pcap-wireshark-expert COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:resend-cli> -DTSHARK=${TSHARK}
+        -DEXAMPLES=${examples} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/captures -P ${PROJECT_SOURCE_DIR}/tests/pcap_expert.cmake)
+    set_tests_properties(pcap-wireshark-expert PROPERTIES SKIP_REGULAR_EXPRESSION "SKIPPED")
 endif()
 
 if(RESEND_BUILD_GUI)

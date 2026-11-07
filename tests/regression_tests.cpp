@@ -19,8 +19,9 @@
 namespace {
 using netsim::format_ms;
 
-std::string name_of(const netsim::Scenario& scenario, netsim::DeviceId id) {
-    const auto* device = scenario.device(id);
+std::string name_of(const netsim::Simulation& simulation, netsim::DeviceId id) {
+    if (id.value == 0) return "network";
+    const auto* device = simulation.known_device(id);
     return device ? device->name : "device " + std::to_string(id.value);
 }
 template<class T>
@@ -37,37 +38,44 @@ std::string frame_text(const netsim::EthernetFrame& frame) {
         const auto& packet = *frame.ipv4();
         out << "  IPv4 " << packet.src.to_string() << " > " << packet.dst.to_string() << " ttl " << int{packet.ttl} << " id "
             << packet.identification << " proto " << int{packet.protocol} << "  ICMP type " << int{packet.icmp.type} << " code "
-            << int{packet.icmp.code} << " identifier " << packet.icmp.identifier << " sequence " << packet.icmp.sequence;
+            << int{packet.icmp.code} << " identifier " << packet.icmp.identifier << " sequence " << packet.icmp.sequence
+            << " data " << packet.icmp.data_size;
     }
     return out.str();
 }
 
 std::string run(const regression::Case& item) {
-    const auto scenario = item.build();
-    netsim::Simulation simulation(scenario);
+    netsim::Simulation simulation(item.build());
     netsim::explain::Explainer explainer;
+    regression::Driver driver{simulation, explainer};
     std::ostringstream out;
     out << "# " << item.name << '\n';
+    if (item.script) {
+        item.script(driver);
+        driver.finish();
+    }
     for (const auto& ping : item.pings) {
-        netsim::Problem problem{};
-        const auto id = simulation.start_ping(netsim::DeviceId{ping.source}, *netsim::Ipv4Address::parse(ping.destination), problem);
-        CHECK(id.has_value());
-        for (int count = 0; simulation.pending(); ++count) {
-            CHECK(simulation.step());
-            explainer.update(simulation);
-            CHECK(count < 10'000);
-        }
+        driver.ping(ping.source, ping.destination.c_str());
+        driver.finish();
     }
 
+    if (!simulation.edits().empty()) out << "\n## edits\n";
+    for (const auto& entry : simulation.edits()) out << format_ms(entry.time) << "  edit " << entry.edit.index() << '\n';
+
     out << "\n## pings\n";
-    for (const auto& status : simulation.pings())
-        out << status.id.value << "  " << name_of(scenario, status.source) << " > " << status.destination.to_string() << "  "
+    for (const auto& status : simulation.pings()) {
+        out << status.id.value << "  " << name_of(simulation, status.source) << " > " << status.destination.to_string() << "  "
             << (status.state == netsim::PingState::Succeeded ? "succeeded" : "failed") << ' '
             << netsim::explain::name(status.reason) << "  " << format_ms(status.started) << " .. " << format_ms(status.finished) << '\n';
+        for (const auto& echo : status.echoes)
+            out << "  seq " << echo.sequence << "  " << (echo.state == netsim::EchoState::Replied ? "replied" : "lost") << ' '
+                << netsim::explain::name(echo.reason) << "  " << format_ms(echo.sent) << " .. " << format_ms(echo.finished)
+                << "  record " << echo.record << '\n';
+    }
 
     out << "\n## records\n";
     for (const auto& record : simulation.trace().records()) {
-        out << format_ms(record.time) << "  #" << record.seq << " e" << record.episode << "  " << name_of(scenario, record.device)
+        out << format_ms(record.time) << "  #" << record.seq << " e" << record.episode << "  " << name_of(simulation, record.device)
             << " port " << (record.port ? std::to_string(*record.port + 1) : "-") << "  " << netsim::explain::name(record.kind);
         if (record.reason != netsim::Reason::None) out << ' ' << netsim::explain::name(record.reason);
         out << "  link " << id_text(record.link) << " frame " << id_text(record.pdu) << " value " << record.value << '\n';
@@ -79,13 +87,15 @@ std::string run(const regression::Case& item) {
 
     out << "\n## transmissions\n";
     for (const auto& sent : simulation.trace().transmissions())
-        out << "frame " << sent.pdu.value << " link " << sent.link.value << "  " << name_of(scenario, sent.from) << " port "
-            << sent.from_port + 1 << " > " << name_of(scenario, sent.to) << " port " << sent.to_port + 1 << "  "
-            << format_ms(sent.start) << " .. " << format_ms(sent.arrival) << "  record " << sent.record << '\n';
+        out << "frame " << sent.pdu.value << " link " << sent.link.value << "  " << name_of(simulation, sent.from) << " port "
+            << sent.from_port + 1 << " > " << name_of(simulation, sent.to) << " port " << sent.to_port + 1 << "  "
+            << format_ms(sent.start) << " .. " << format_ms(sent.arrival) << "  record " << sent.record
+            << (sent.stopped ? "  stopped" : "") << '\n';
 
     out << "\n## events\n";
     for (const auto& event : explainer.events()) {
-        out << format_ms(event.time) << "  [" << event.protocol << "] " << event.summary << "  (" << (event.success ? "ok" : "failed")
+        out << format_ms(event.time) << "  [" << event.protocol << "] " << event.summary << "  ("
+            << (event.simulator ? "simulator" : event.success ? "ok" : "failed")
             << ", from " << id_text(event.from) << " to " << id_text(event.to) << " link " << id_text(event.link) << " frame "
             << id_text(event.pdu) << ")\n";
         std::istringstream lines(event.detail);

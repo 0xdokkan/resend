@@ -2,10 +2,12 @@
 
 ## pings
 1  PC-A > 10.0.0.1  failed NoRoute  0.000 ms .. 0.000 ms
+  seq 1  lost NoRoute  0.000 ms .. 0.000 ms  record 1
 
 ## records
 0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
-0.000 ms  #1 e1  PC-A port -  PingFailed NoRoute  link - frame - value 1
+0.000 ms  #1 e1  PC-A port -  PingLost NoRoute  link - frame - value 1
+0.000 ms  #2 e1  PC-A port -  PingFailed NoRoute  link - frame - value 1
 
 ## frames
 

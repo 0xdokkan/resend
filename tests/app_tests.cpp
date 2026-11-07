@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <map>
 #include <string>
 
 namespace {
@@ -295,6 +296,106 @@ void scene_decisions() {
     CHECK(scene.markers.size() == 2 && scene.markers[0].text == "ARP timeout" && scene.markers[1].text == "× ping: no ARP reply");
 }
 
+void scene_with_live_changes() {
+    // The cable to PC-B disabled while the ARP request is on it: the frame
+    // stops where it arrives.
+    auto engine = sample_ping();
+    PlaybackController playback(engine);
+    playback.seek(15ms);
+    CHECK(engine.apply(netsim::SetLinkUp{netsim::LinkId{2}, false}) == netsim::Problem::None);
+    playback.seek(20ms);
+    auto scene = resend::build_scene(engine.scenario(), engine, playback);
+    CHECK(scene.packets.empty());
+    CHECK(scene.markers.size() == 1 && scene.markers[0].text == "× link down" && scene.markers[0].device == 2);
+
+    // A device edit leaves a chip of its own on the device.
+    CHECK(engine.apply(netsim::SetPowered{netsim::DeviceId{2}, false}) == netsim::Problem::None);
+    scene = resend::build_scene(engine.scenario(), engine, playback);
+    CHECK(scene.markers.back().text == "⏻ powered off" && scene.markers.back().tone == resend::Tone::Edit);
+    CHECK(engine.apply(netsim::SetAddress{{netsim::DeviceId{2}, 0}, *netsim::Ipv4Prefix::parse("192.168.1.21/24")}) ==
+          netsim::Problem::None);
+    scene = resend::build_scene(engine.scenario(), engine, playback);
+    CHECK(scene.markers.back().text == "IP 192.168.1.21/24");
+    // A cable edit leaves none: the cable shows its state.
+    const auto before = scene.markers.size();
+    CHECK(engine.apply(netsim::SetLinkUp{netsim::LinkId{2}, true}) == netsim::Problem::None);
+    CHECK(resend::build_scene(engine.scenario(), engine, playback).markers.size() == before);
+
+    // A removed PC: frames to it disappear with its card.
+    auto removed = sample_ping();
+    PlaybackController watch(removed);
+    watch.seek(15ms);
+    CHECK(removed.apply(netsim::RemoveDevice{netsim::DeviceId{2}}) == netsim::Problem::None);
+    CHECK(resend::build_scene(removed.scenario(), removed, watch).packets.empty());
+}
+
+void scene_of_a_storm() {
+    // Three switches in a ring: the guard's chip, then nothing on the cables.
+    netsim::Scenario ring;
+    for (int i = 0; i < 3; ++i) CHECK(netsim::edit::add_device(ring, netsim::DeviceKind::Switch, 200 * i, 300) == netsim::Problem::None);
+    netsim::DeviceId pc{};
+    CHECK(netsim::edit::add_device(ring, netsim::DeviceKind::Host, 0, 0, &pc) == netsim::Problem::None);
+    CHECK(netsim::edit::connect(ring, pc, netsim::DeviceId{1}) == netsim::Problem::None);
+    CHECK(netsim::edit::connect(ring, netsim::DeviceId{1}, netsim::DeviceId{2}) == netsim::Problem::None);
+    CHECK(netsim::edit::connect(ring, netsim::DeviceId{2}, netsim::DeviceId{3}) == netsim::Problem::None);
+    CHECK(netsim::edit::connect(ring, netsim::DeviceId{3}, netsim::DeviceId{1}) == netsim::Problem::None);
+    for (auto& cable : ring.links) cable.delay = 1ms;  // many decisions within a chip's life
+    netsim::Simulation engine(ring);
+    netsim::Problem problem{};
+    CHECK(engine.start_ping(pc, *netsim::Ipv4Address::parse("192.168.1.99"), problem).has_value());
+    PlaybackController playback(engine);
+    // At 4 ms both copies of the broadcast come back to Switch-1 at once,
+    // one from each side of the ring: each flood sends two copies, like the
+    // first one at 1 ms.
+    playback.seek(4ms);
+    const auto early = resend::build_scene(engine.scenario(), engine, playback);
+    CHECK(std::count_if(early.markers.begin(), early.markers.end(), [](const auto& marker) {
+              return marker.device == 1 && marker.text == "flood ×2";
+          }) == 3);
+    playback.set_reduced_motion(true);  // a step is then immediate
+    const auto& records = engine.trace().records();
+    while (std::none_of(records.begin(), records.end(), [](const auto& record) { return record.kind == netsim::TraceKind::SimulatorGuard; }))
+        playback.step();
+    const auto guard = std::find_if(records.begin(), records.end(), [](const auto& record) { return record.kind == netsim::TraceKind::SimulatorGuard; });
+    CHECK(playback.now() == guard->time);
+    const auto scene = resend::build_scene(engine.scenario(), engine, playback);
+    CHECK(std::any_of(scene.markers.begin(), scene.markers.end(), [](const auto& marker) {
+        return marker.text == "⚠ storm stopped" && marker.tone == resend::Tone::Guard;
+    }));
+    CHECK(std::none_of(scene.packets.begin(), scene.packets.end(), [&](const auto& packet) {
+        return packet.pdu == static_cast<int>(guard->pdu->value);
+    }));
+    // The storm leaves many decisions; each card shows its latest few.
+    std::map<int, int> chips;
+    for (const auto& marker : scene.markers) {
+        CHECK(marker.stack < resend::max_chips);
+        ++chips[marker.device];
+    }
+    CHECK(std::any_of(chips.begin(), chips.end(), [](const auto& item) { return item.second == resend::max_chips; }));
+}
+
+void scene_of_a_long_ping() {
+    // A ping of several requests: a chip per reply, then the tally.
+    netsim::Simulation engine(netsim::sample_lan());
+    netsim::Problem problem{};
+    CHECK(engine.start_ping(netsim::DeviceId{1}, *netsim::Ipv4Address::parse("192.168.1.20"), problem, {.count = 3}).has_value());
+    PlaybackController playback(engine);
+    playback.seek(1040ms);
+    auto scene = resend::build_scene(engine.scenario(), engine, playback);
+    CHECK(scene.markers.size() == 1 && scene.markers[0].text == "✓ reply 2" && scene.markers[0].device == 1);
+    playback.seek(2040ms);
+    scene = resend::build_scene(engine.scenario(), engine, playback);
+    CHECK(scene.markers.size() == 2 && scene.markers[0].text == "✓ reply 3" && scene.markers[1].text == "✓ ping 3/3");
+
+    // A reply after its request timed out.
+    netsim::Simulation late(netsim::sample_lan());
+    CHECK(late.start_ping(netsim::DeviceId{1}, *netsim::Ipv4Address::parse("192.168.1.20"), problem, {.timeout = 10ms}).has_value());
+    PlaybackController watch(late);
+    watch.seek(80ms);
+    scene = resend::build_scene(late.scenario(), late, watch);
+    CHECK(std::any_of(scene.markers.begin(), scene.markers.end(), [](const auto& marker) { return marker.text == "× reply too late"; }));
+}
+
 void frame_layers() {
     auto engine = sample_ping();
     finish(engine);
@@ -308,8 +409,8 @@ void frame_layers() {
     CHECK(resend::describe_layers(pdus[2]) ==
           "Ethernet II · dst 02:00:00:00:00:02 · src 02:00:00:00:00:01 · type 0x0800 (IPv4)\n"
           "IPv4 · 192.168.1.10 → 192.168.1.20 · TTL 64 · id 1 · protocol 1 (ICMP)\n"
-          "ICMP · type 8 Echo Request · code 0 · identifier 1 · sequence 1");
-    CHECK(resend::describe_layers(pdus[3]).ends_with("ICMP · type 0 Echo Reply · code 0 · identifier 1 · sequence 1"));
+          "ICMP · type 8 Echo Request · code 0 · identifier 1 · sequence 1 · 56 data bytes");
+    CHECK(resend::describe_layers(pdus[3]).ends_with("ICMP · type 0 Echo Reply · code 0 · identifier 1 · sequence 1 · 56 data bytes"));
     CHECK(resend::packet_label(netsim::PduKind::EchoReply) == "Echo rep");
 }
 } // namespace
@@ -325,6 +426,9 @@ int main() {
     cable_geometry();
     scene_at_fifteen_ms();
     scene_decisions();
+    scene_with_live_changes();
+    scene_of_a_storm();
+    scene_of_a_long_ping();
     frame_layers();
     std::cout << "App tests passed: " << test::checks << " checks.\n";
 }

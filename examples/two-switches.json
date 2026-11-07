@@ -56,7 +56,8 @@
       "name": "Switch-1",
       "powered": true,
       "x": 200,
-      "y": 200
+      "y": 200,
+      "ageing": "300s"
     },
     {
       "id": 5,
@@ -64,7 +65,8 @@
       "name": "Switch-2",
       "powered": true,
       "x": 420,
-      "y": 200
+      "y": 200,
+      "ageing": "300s"
     }
   ],
   "links": [

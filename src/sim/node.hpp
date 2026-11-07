@@ -15,6 +15,12 @@ struct Arrival {
     PduId pdu{};
 };
 
+enum class Transmit : std::uint8_t {
+    Sent,
+    NoCarrier,  // nothing recorded: the caller says what it means
+    Stopped,    // the storm guard stopped this frame
+};
+
 // What a node may do to the rest of the simulation, always at the current
 // time and on behalf of its own device.
 class Context {
@@ -28,24 +34,35 @@ public:
     PduId archive(const EthernetFrame& frame) { return simulation_.trace_.archive(frame); }
 
     // Puts the frame on the cable plugged into `port`, recording FrameSent
-    // and the transmission. False, with nothing recorded, when the port has
-    // no carrier: no cable, cable down, a port disabled at either end, or
-    // this device powered off.
-    bool transmit(std::uint8_t port, PduId pdu, std::uint32_t value = 0);
+    // and the transmission. Without carrier (no cable, cable down, a port
+    // disabled at either end, this device powered off) nothing is recorded.
+    Transmit transmit(std::uint8_t port, PduId pdu, std::uint32_t value = 0);
 
     TimerHandle schedule(SimTime delay, TimerKind kind, std::uint64_t key);
     bool cancel(TimerHandle& handle) { return simulation_.scheduler_.cancel(handle); }
 
-    // Appends a record at this device. `note` fills in the arrival's port,
-    // cable and frame, for the decisions a node takes about it.
-    void record(TraceRecord record);
+    // Appends a record at this device and returns its seq. `note` fills in
+    // the arrival's port, cable and frame, for the decisions a node takes
+    // about it.
+    std::uint64_t record(TraceRecord record);
     void note(const Arrival& arrival, TraceKind kind, Reason reason = Reason::None);
 
+    // Pings. A host's ping application reports here what happens to each
+    // request; a ping ends when the last of its requests has an outcome.
     PingStatus& ping(PingId id) { return simulation_.pings_.at(id.value - 1); }
-    // Records the end of a ping and updates its status.
-    void finish_ping(PingId id, PingState state, Reason reason, const Arrival* arrival = nullptr);
+    // The next request of a ping, sent now. The first one starts the ping.
+    EchoStatus& next_echo(PingId id);
+    void echo_replied(PingId id, std::uint16_t sequence, const Arrival* arrival);
+    void echo_lost(PingId id, std::uint16_t sequence, Reason reason, std::optional<PduId> request = std::nullopt);
+    // Ends a ping at once: its waiting requests are lost for `reason`.
+    void abort_ping(PingId id, Reason reason);
 
 private:
+    void lose(PingId id, std::uint16_t sequence, Reason reason, std::optional<PduId> request);
+    // Ends the ping once every request has an outcome, or at once when it
+    // is aborted.
+    void settle(PingId id, std::optional<Reason> abort);
+
     Simulation& simulation_;
     DeviceId device_;
 };
@@ -55,8 +72,8 @@ public:
     virtual ~Node() = default;
     virtual void receive(Context& context, const Arrival& arrival) = 0;
     virtual void timer(Context& context, const Timer& timer) = 0;
-    virtual std::vector<ArpCacheEntry> arp_cache() const { return {}; }
-    virtual std::vector<MacTableEntry> mac_table() const { return {}; }
+    virtual std::vector<ArpCacheEntry> arp_cache(SimTime) const { return {}; }
+    virtual std::vector<MacTableEntry> mac_table(SimTime, const DeviceConfig&) const { return {}; }
 };
 
 std::unique_ptr<Node> make_host();

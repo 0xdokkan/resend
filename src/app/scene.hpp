@@ -39,7 +39,9 @@ struct Segment {
 Segment cable_between(const Box& a, const Box& b, float gap = 5);
 Point lerp(Point a, Point b, float t);
 
-enum class Tone { Learn, Forward, Muted, Wait, Drop, Success };
+// Edit: a change made while the simulation runs. Guard: the simulator
+// stepped in, which is never network behaviour.
+enum class Tone { Learn, Forward, Muted, Wait, Drop, Success, Edit, Guard };
 
 struct PacketSprite {
     std::size_t transmission = 0;  // index in the trace's transmissions
@@ -70,6 +72,8 @@ struct Scene {
 constexpr netsim::SimTime marker_life = std::chrono::milliseconds(8);
 constexpr netsim::SimTime marker_fade = std::chrono::milliseconds(5);
 constexpr netsim::SimTime activity_life = std::chrono::milliseconds(4);
+// A card shows at most this many chips, the most recent: a storm leaves dozens.
+constexpr int max_chips = 5;
 
 // `layout` gives positions and names: the scenario being edited, which the
 // simulation was built from; cards may have moved since.

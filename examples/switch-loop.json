@@ -1,0 +1,133 @@
+{
+  "format": "resend-scenario",
+  "version": 1,
+  "title": "Switch loop",
+  "notes": "Three switches joined in a ring. An Ethernet frame has no TTL, so PC-A's broadcast ARP request goes round the ring both ways for ever, and the switches keep learning PC-A's MAC on the wrong ports. resend stops each storm with a guard of its own; real networks prevent loops with spanning tree (STP), not implemented yet. Disable one cable of the ring and ping again.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "host",
+      "name": "PC-A",
+      "powered": true,
+      "x": 40,
+      "y": 120,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:01",
+          "up": true,
+          "ipv4": "192.168.1.10/24"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "host",
+      "name": "PC-B",
+      "powered": true,
+      "x": 620,
+      "y": 120,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:02",
+          "up": true,
+          "ipv4": "192.168.1.20/24"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "switch",
+      "name": "Switch-1",
+      "powered": true,
+      "x": 200,
+      "y": 120,
+      "ageing": "300s"
+    },
+    {
+      "id": 4,
+      "kind": "switch",
+      "name": "Switch-2",
+      "powered": true,
+      "x": 440,
+      "y": 120,
+      "ageing": "300s"
+    },
+    {
+      "id": 5,
+      "kind": "switch",
+      "name": "Switch-3",
+      "powered": true,
+      "x": 320,
+      "y": 420,
+      "ageing": "300s"
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 1,
+        "port": 1
+      },
+      "b": {
+        "device": 3,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 2,
+        "port": 1
+      },
+      "b": {
+        "device": 4,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 3,
+      "a": {
+        "device": 3,
+        "port": 7
+      },
+      "b": {
+        "device": 4,
+        "port": 8
+      },
+      "delay": "2ms",
+      "up": true
+    },
+    {
+      "id": 4,
+      "a": {
+        "device": 4,
+        "port": 7
+      },
+      "b": {
+        "device": 5,
+        "port": 8
+      },
+      "delay": "2ms",
+      "up": true
+    },
+    {
+      "id": 5,
+      "a": {
+        "device": 5,
+        "port": 7
+      },
+      "b": {
+        "device": 3,
+        "port": 8
+      },
+      "delay": "2ms",
+      "up": true
+    }
+  ]
+}

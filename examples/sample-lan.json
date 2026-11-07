@@ -41,7 +41,8 @@
       "name": "Switch-01",
       "powered": true,
       "x": 310,
-      "y": 280
+      "y": 280,
+      "ageing": "300s"
     }
   ],
   "links": [

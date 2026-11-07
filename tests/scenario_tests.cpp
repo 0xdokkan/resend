@@ -159,14 +159,16 @@ void validation_rules() {
     CHECK(broken([](Scenario& s) { s.links[1].delay = 10s; }).empty());
     CHECK(has(broken([](Scenario& s) { s.links.push_back({LinkId{3}, {DeviceId{3}, 4}, {DeviceId{3}, 5}}); }),
               Problem::SameDevice));
-    // A second cable between the switch and a third switch closes no loop;
-    // a cable back to the first switch does, even while it is down.
-    CHECK(has(broken([](Scenario& s) {
+    // Ethernet loops are accepted: the storm guard deals with them.
+    CHECK(broken([](Scenario& s) {
               s.devices.push_back({DeviceId{4}, DeviceKind::Switch, "Switch-02", true, netsim::default_ports(DeviceKind::Switch, DeviceId{4})});
               s.links.push_back({LinkId{3}, {DeviceId{3}, 6}, {DeviceId{4}, 0}});
-              s.links.push_back({LinkId{4}, {DeviceId{4}, 1}, {DeviceId{3}, 7}, 10ms, false});
-          }),
-              Problem::LoopNotSupported, "Switch-02 port 2 — Switch-01 port 8"));
+              s.links.push_back({LinkId{4}, {DeviceId{4}, 1}, {DeviceId{3}, 7}});
+          }).empty());
+    CHECK(has(broken([](Scenario& s) { s.devices[2].mac_ageing = 9s; }), Problem::InvalidAgeing, "Switch-01"));
+    CHECK(has(broken([](Scenario& s) { s.devices[2].mac_ageing = 1'000'001s; }), Problem::InvalidAgeing));
+    CHECK(broken([](Scenario& s) { s.devices[2].mac_ageing = 10s; }).empty());
+    CHECK(broken([](Scenario& s) { s.devices[0].mac_ageing = 1s; }).empty());  // hosts have no MAC table
     CHECK(has(broken([](Scenario& s) {
               for (std::uint32_t id = 4; id <= 101; ++id)
                   s.devices.push_back({DeviceId{id}, DeviceKind::Switch, "S" + std::to_string(id), true,
@@ -205,7 +207,7 @@ void edits() {
     const auto before = scenario;
     // Every refused edit leaves the scenario as it was.
     CHECK(edit::connect(scenario, a, c) == Problem::NoFreePort);
-    CHECK(edit::connect(scenario, a, b) == Problem::LoopNotSupported);
+    CHECK(edit::connect(scenario, a, b) == Problem::NoFreePort);
     CHECK(edit::connect(scenario, a, a) == Problem::SameDevice);
     CHECK(edit::connect(scenario, a, DeviceId{42}) == Problem::NoSuchDevice);
     CHECK(edit::connect(scenario, {a, 0}, {sw, 2}) == Problem::PortInUse);
@@ -233,13 +235,13 @@ void edits() {
     CHECK(edit::move(scenario, sw, -5, 7) == Problem::None && scenario.device(sw)->x == -5);
     CHECK(netsim::validate(scenario).empty());
 
-    // A loop is refused whatever the state of the cables in it.
+    // Loops are allowed: two cables between two switches.
     DeviceId sw2{};
     CHECK(edit::add_device(scenario, DeviceKind::Switch, 0, 0, &sw2) == Problem::None);
     CHECK(edit::connect(scenario, sw, sw2) == Problem::None);
-    CHECK(edit::connect(scenario, sw2, sw) == Problem::LoopNotSupported);
-    CHECK(edit::joined(scenario, a, sw2) && !edit::joined(scenario, a, DeviceId{42}));
-    CHECK(edit::free_port(scenario, sw) == 3 && !edit::free_port(scenario, a));
+    CHECK(edit::connect(scenario, sw2, sw) == Problem::None);
+    CHECK(netsim::validate(scenario).empty());
+    CHECK(edit::free_port(scenario, sw) == 4 && !edit::free_port(scenario, a));
 
     // Removing a device removes its cables; ids are never reused.
     CHECK(edit::remove_device(scenario, sw) == Problem::None);
@@ -253,6 +255,75 @@ void edits() {
     for (int i = 0; i < 100; ++i) CHECK(edit::add_device(full, DeviceKind::Switch, 0, 0) == Problem::None);
     CHECK(edit::add_device(full, DeviceKind::Host, 0, 0) == Problem::TooManyDevices);
     CHECK(full.devices.size() == 100);
+}
+
+// Adds a switch and returns its id.
+DeviceId sw2_of(Scenario& scenario) {
+    DeviceId id{};
+    CHECK(netsim::edit::add_device(scenario, DeviceKind::Switch, 0, 0, &id) == Problem::None);
+    return id;
+}
+
+void edit_values() {
+    // The edits a running simulation takes, made on a scenario.
+    namespace edit = netsim::edit;
+    using netsim::PortRef;
+    auto scenario = netsim::sample_lan();
+    const DeviceId a{1}, b{2}, sw{3};
+    const auto before = scenario;
+    const auto refused = [&](const netsim::Edit& change, Problem expected) {
+        CHECK(edit::apply(scenario, change) == expected);
+        CHECK(scenario == before);
+    };
+    refused(netsim::SetLinkUp{LinkId{9}, false}, Problem::NoSuchLink);
+    refused(netsim::SetDelay{LinkId{1}, 0ns}, Problem::InvalidDelay);
+    refused(netsim::SetDelay{LinkId{1}, 11s}, Problem::InvalidDelay);
+    refused(netsim::SetPortUp{PortRef{sw, 8}, false}, Problem::NoSuchPort);
+    refused(netsim::SetPortUp{PortRef{DeviceId{9}, 0}, false}, Problem::NoSuchDevice);
+    refused(netsim::SetAddress{PortRef{sw, 0}, *netsim::Ipv4Prefix::parse("10.0.0.1/8")}, Problem::NotAHost);
+    refused(netsim::SetAddress{PortRef{a, 0}, *netsim::Ipv4Prefix::parse("10.0.0.0/8")}, Problem::InvalidHostAddress);
+    refused(netsim::SetAddress{PortRef{a, 0}, netsim::Ipv4Prefix(*netsim::Ipv4Address::parse("10.0.0.1"), 0)}, Problem::InvalidPrefix);
+    refused(netsim::SetAgeing{a, 60s}, Problem::NotASwitch);
+    refused(netsim::SetAgeing{sw, 5s}, Problem::InvalidAgeing);
+    refused(netsim::Connect{PortRef{a, 0}, PortRef{sw, 2}}, Problem::PortInUse);
+    refused(netsim::Connect{PortRef{sw, 2}, PortRef{sw, 3}}, Problem::SameDevice);
+    refused(netsim::Connect{PortRef{sw, 2}, PortRef{DeviceId{9}, 0}}, Problem::NoSuchDevice);
+    refused(netsim::Replug{LinkId{1}, PortRef{sw, 5}, PortRef{sw, 6}}, Problem::NoSuchPort);  // not an end of cable 1
+    refused(netsim::Replug{LinkId{1}, PortRef{sw, 0}, PortRef{sw, 1}}, Problem::PortInUse);
+    refused(netsim::Replug{LinkId{1}, PortRef{sw, 0}, PortRef{a, 0}}, Problem::PortInUse);
+    refused(netsim::Replug{LinkId{1}, PortRef{sw, 0}, PortRef{sw, 8}}, Problem::NoSuchPort);
+    refused(netsim::Disconnect{LinkId{9}}, Problem::NoSuchLink);
+    refused(netsim::RemoveDevice{DeviceId{9}}, Problem::NoSuchDevice);
+    refused(netsim::AddDevice{DeviceKind::Host, 0, 0, sw}, Problem::DuplicateDeviceId);
+    refused(netsim::AddDevice{DeviceKind::Host, 0, 0, DeviceId{0}}, Problem::InvalidDeviceId);
+    {
+        auto other = scenario;
+        const auto sw2 = sw2_of(other);
+        CHECK(edit::apply(other, netsim::Connect{PortRef{sw, 6}, PortRef{sw2, 1}, 1ms, LinkId{2}}) == Problem::DuplicateLinkId);
+        CHECK(edit::apply(other, netsim::Connect{PortRef{sw, 6}, PortRef{sw2, 1}, 1ms, LinkId{0}}) == Problem::InvalidLinkId);
+    }
+
+    CHECK(edit::apply(scenario, netsim::Replug{LinkId{1}, PortRef{sw, 0}, PortRef{sw, 5}}) == Problem::None);
+    CHECK((scenario.link(LinkId{1})->a == PortRef{a, 0} && scenario.link(LinkId{1})->b == PortRef{sw, 5}));
+    CHECK(edit::apply(scenario, netsim::Replug{LinkId{1}, PortRef{sw, 5}, PortRef{sw, 5}}) == Problem::None);
+    CHECK(edit::apply(scenario, netsim::SetPortUp{PortRef{sw, 5}, false}) == Problem::None && !scenario.device(sw)->ports[5].admin_up);
+    CHECK(edit::apply(scenario, netsim::SetDelay{LinkId{2}, 3ms}) == Problem::None && scenario.link(LinkId{2})->delay == 3ms);
+    CHECK(edit::apply(scenario, netsim::SetAgeing{sw, 10s}) == Problem::None && scenario.device(sw)->mac_ageing == 10s);
+    CHECK(edit::apply(scenario, netsim::SetAddress{PortRef{b, 0}, *netsim::Ipv4Prefix::parse("192.168.1.21/24")}) == Problem::None);
+    CHECK(scenario.device(b)->ports[0].ipv4->to_string() == "192.168.1.21/24");
+    CHECK(edit::apply(scenario, netsim::MoveDevice{a, 5'000'000, -5'000'000}) == Problem::None);
+    CHECK(scenario.device(a)->x == netsim::max_coordinate && scenario.device(a)->y == -netsim::max_coordinate);
+    CHECK(edit::apply(scenario, netsim::Connect{PortRef{sw, 7}, PortRef{sw2_of(scenario), 0}, 2ms}) == Problem::None);
+    CHECK(scenario.links.back().id == LinkId{3} && scenario.links.back().delay == 2ms);
+    // An id can be given, as a running simulation does.
+    CHECK(edit::apply(scenario, netsim::AddDevice{DeviceKind::Host, 0, 0, DeviceId{40}}) == Problem::None);
+    CHECK(scenario.devices.back().id == DeviceId{40} && scenario.devices.back().name == "PC-40");
+    CHECK(edit::apply(scenario, netsim::Connect{PortRef{DeviceId{40}, 0}, PortRef{sw, 6}, 1ms, LinkId{30}}) == Problem::None);
+    CHECK(scenario.links.back().id == LinkId{30});
+    CHECK(netsim::validate(scenario).empty());
+
+    CHECK(netsim::affects_network(netsim::SetLinkUp{}) && netsim::affects_network(netsim::AddDevice{}));
+    CHECK(!netsim::affects_network(netsim::Rename{}) && !netsim::affects_network(netsim::MoveDevice{}));
 }
 
 void scenario_files() {
@@ -285,11 +356,13 @@ void scenario_files() {
     custom.devices[2].ports[5].admin_up = false;
     custom.devices[2].ports[6].mac = *netsim::MacAddress::parse("0a:bb:cc:dd:ee:ff");
     custom.devices[1].ports[0].ipv4 = netsim::Ipv4Prefix::parse("10.1.2.3/31");
+    custom.devices[2].mac_ageing = 45s;
     custom.links[0].delay = 1500us;
     custom.links[1].up = false;
     const auto text = netsim::scenario_to_json(custom);
     CHECK(netsim::scenario_from_json(text, error) == custom);
     CHECK(text.find("\"delay\": \"1500us\"") != std::string::npos);
+    CHECK(text.find("\"ageing\": \"45s\"") != std::string::npos);
     // Switch ports are listed only when one differs from the default.
     CHECK(netsim::scenario_to_json(netsim::sample_lan()).find("02:10:00:00:00:03") == std::string::npos);
     CHECK(text.find("02:10:00:00:00:03") != std::string::npos);
@@ -304,6 +377,7 @@ void scenario_files() {
     CHECK(minimal->devices[0].powered && minimal->devices[0].x == 0);
     CHECK(minimal->devices[0].ports[0].mac == netsim::default_mac(DeviceKind::Host, DeviceId{1}, 0));
     CHECK(minimal->links[0].b.port == 2 && minimal->links[0].delay == 10ms && minimal->links[0].up);
+    CHECK(minimal->devices[1].mac_ageing == 300s);
     CHECK(netsim::validate(*minimal).empty());
 }
 
@@ -349,6 +423,12 @@ void scenario_file_errors() {
           "devices[0].id: expected a whole number from 1 to 4294967295");
     CHECK(failure(head + R"("devices": [{"id": 1, "kind": "host", "name": "A", "powered": 1}], "links": []})") ==
           "devices[0].powered: expected true or false");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "host", "name": "A", "ageing": "300s"}], "links": []})") ==
+          "devices[0].ageing: only switches have an ageing time");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "switch", "name": "S", "ageing": 300}], "links": []})") ==
+          "devices[0].ageing: expected a string");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "switch", "name": "S", "ageing": "5 min"}], "links": []})") ==
+          "devices[0].ageing: expected a duration such as 300s");
     CHECK(failure(head + R"("devices": [{"id": 1, "kind": "host", "name": "A", "ports": [{}, {}]}], "links": []})") ==
           "devices[0].ports: a host has 1 port");
     CHECK(failure(head + R"("devices": [{"id": 1, "kind": "host", "name": "A", "ports": [{"ipv4": "10.0.0.1"}]}], "links": []})") ==
@@ -376,6 +456,7 @@ int main() {
     random_numbers();
     validation_rules();
     edits();
+    edit_values();
     scenario_files();
     documented_examples();
     scenario_file_errors();

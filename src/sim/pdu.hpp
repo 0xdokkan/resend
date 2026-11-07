@@ -33,6 +33,10 @@ struct IcmpMessage {
     std::uint8_t code = 0;
     std::uint16_t identifier = 0;  // Echo: which ping
     std::uint16_t sequence = 0;    // Echo: which request of that ping
+    // Echo: bytes of data after the header. Their content is not modelled:
+    // the wire module fills them with 0x00, 0x01, ... as ping does, and a
+    // reply carries the same data as its request (RFC 792).
+    std::uint16_t data_size = 0;
     bool operator==(const IcmpMessage&) const = default;
 };
 
@@ -40,9 +44,13 @@ namespace ip_protocol {
 constexpr std::uint8_t icmp = 1;
 } // namespace ip_protocol
 
+// The TTL of datagrams a host sends, as in Linux and macOS (RFC 1700's
+// recommended default).
+constexpr std::uint8_t default_ttl = 64;
+
 struct Ipv4Packet {
     Ipv4Address src, dst;
-    std::uint8_t ttl = 64;
+    std::uint8_t ttl = default_ttl;
     std::uint8_t protocol = ip_protocol::icmp;
     std::uint16_t identification = 0;
     IcmpMessage icmp;  // the only payload modelled so far

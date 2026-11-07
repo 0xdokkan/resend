@@ -2,10 +2,12 @@
 
 ## pings
 1  PC-1 > 192.168.1.10  succeeded None  0.000 ms .. 0.000 ms
+  seq 1  replied None  0.000 ms .. 0.000 ms  record 1
 
 ## records
 0.000 ms  #0 e1  PC-1 port -  PingStarted  link - frame - value 1
-0.000 ms  #1 e1  PC-1 port -  PingSucceeded  link - frame - value 1
+0.000 ms  #1 e1  PC-1 port -  PingReply  link - frame - value 1
+0.000 ms  #2 e1  PC-1 port -  PingSucceeded  link - frame - value 1
 
 ## frames
 

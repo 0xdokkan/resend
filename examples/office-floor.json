@@ -11,7 +11,8 @@
       "name": "Switch-East",
       "powered": true,
       "x": 200,
-      "y": 250
+      "y": 250,
+      "ageing": "300s"
     },
     {
       "id": 2,
@@ -20,6 +21,7 @@
       "powered": true,
       "x": 520,
       "y": 250,
+      "ageing": "300s",
       "ports": [
         {
           "mac": "02:10:00:00:00:02",

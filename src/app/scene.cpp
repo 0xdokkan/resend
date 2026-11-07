@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <type_traits>
+#include <variant>
 
 namespace resend {
 namespace {
@@ -42,7 +44,8 @@ std::string drop_text(Reason reason) {
     case Reason::ArpForOtherHost: return "× not my IP";
     case Reason::Ipv4NotForUs: return "× not my IP";
     case Reason::NoRoute: return "× no route back";
-    case Reason::NotModelled: return "× not modelled";
+    case Reason::ArpQueueFull: return "× ARP queue full";
+    case Reason::UnmatchedReply: return "× reply too late";
     default: return "× dropped";
     }
 }
@@ -52,13 +55,33 @@ std::string ping_failure_text(Reason reason) {
     case Reason::ArpUnresolved: return "× ping: no ARP reply";
     case Reason::EchoTimeout: return "× ping: timed out";
     case Reason::NoRoute: return "× ping: no route";
+    case Reason::DeviceDown: return "× ping: PC off";
+    case Reason::ArpQueueFull: return "× ping: ARP queue full";
     default: return "× ping failed";
     }
 }
 
+// The chip an edit leaves on its device; cables show their state themselves.
+bool edit_marker(const netsim::EditEntry& entry, Marker& marker) {
+    marker.tone = Tone::Edit;
+    return std::visit(
+        [&](const auto& edit) {
+            using T = std::decay_t<decltype(edit)>;
+            if constexpr (std::is_same_v<T, netsim::SetPowered>) marker.text = edit.powered ? "⏻ powered on" : "⏻ powered off";
+            else if constexpr (std::is_same_v<T, netsim::SetAddress>) marker.text = "IP " + edit.address.to_string();
+            else if constexpr (std::is_same_v<T, netsim::SetPortUp>) marker.text = port_name(edit.port.port) + (edit.up ? " enabled" : " disabled");
+            else if constexpr (std::is_same_v<T, netsim::SetAgeing>) marker.text = "ageing " + netsim::format_duration(edit.ageing);
+            else if constexpr (std::is_same_v<T, netsim::AddDevice>) marker.text = "added";
+            else return false;
+            return true;
+        },
+        entry.edit);
+}
+
 // The marker a record leaves on its device, if any. `index` is the record's
 // position, used to look at the records that follow it at the same instant.
-bool marker_for(const netsim::Scenario& layout, const netsim::Trace& trace, std::size_t index, Marker& marker) {
+bool marker_for(const netsim::Scenario& layout, const netsim::Simulation& simulation, std::size_t index, Marker& marker) {
+    const auto& trace = simulation.trace();
     const auto& records = trace.records();
     const TraceRecord& record = records[index];
     marker.device = static_cast<int>(record.device.value);
@@ -66,7 +89,7 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Trace& trace, std:
     const auto following = [&](auto&& visit) {
         for (std::size_t next = index + 1; next < records.size(); ++next) {
             const auto& other = records[next];
-            if (other.time != record.time || other.device != record.device || other.pdu != record.pdu) break;
+            if (other.episode != record.episode || other.device != record.device || other.pdu != record.pdu) break;
             visit(other);
         }
     };
@@ -111,13 +134,46 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Trace& trace, std:
         marker.text = "ARP timeout";
         marker.tone = Tone::Wait;
         return true;
-    case TraceKind::PingSucceeded:
-        marker.text = "✓ ping reply";
+    case TraceKind::PingSucceeded: {
+        const auto* ping = simulation.ping(netsim::PingId{record.value});
+        marker.text = ping && ping->options.count > 1
+            ? "✓ ping " + std::to_string(ping->replies()) + "/" + std::to_string(ping->echoes.size()) : "✓ ping reply";
         marker.tone = Tone::Success;
         return true;
+    }
     case TraceKind::PingFailed:
         marker.text = ping_failure_text(record.reason);
         marker.tone = Tone::Drop;
+        return true;
+    case TraceKind::PingReply:
+    case TraceKind::PingLost: {
+        // A single request has the ping's own chip.
+        const auto* ping = simulation.ping(netsim::PingId{record.value});
+        if (!ping || ping->options.count == 1) return false;
+        const auto echo = std::find_if(ping->echoes.begin(), ping->echoes.end(), [&](const auto& item) { return item.record == record.seq; });
+        const auto number = echo == ping->echoes.end() ? std::string("?") : std::to_string(echo->sequence);
+        const bool reply = record.kind == TraceKind::PingReply;
+        marker.text = reply ? "✓ reply " + number : "× request " + number + " lost";
+        marker.tone = reply ? Tone::Success : Tone::Drop;
+        return true;
+    }
+    case TraceKind::ArpEntryExpired:
+        marker.text = "ARP entry expired";
+        marker.tone = Tone::Wait;
+        return true;
+    case TraceKind::MacEntryAged:
+        marker.text = "entry aged out";
+        marker.tone = Tone::Wait;
+        return true;
+    case TraceKind::DatagramDropped:
+        marker.text = "× reply discarded";
+        marker.tone = Tone::Drop;
+        return true;
+    case TraceKind::EditApplied:
+        return record.device.value != 0 && edit_marker(simulation.edits().at(record.value), marker);
+    case TraceKind::SimulatorGuard:
+        marker.text = "⚠ storm stopped";
+        marker.tone = Tone::Guard;
         return true;
     case TraceKind::FrameSent:
     case TraceKind::FrameReceived:
@@ -193,7 +249,8 @@ std::string describe_layers(const netsim::EthernetFrame& frame) {
         : message.type == netsim::icmp::time_exceeded ? " Time Exceeded" : "";
     text += "\nICMP · type " + std::to_string(message.type) + name + " · code " + std::to_string(message.code);
     if (message.type == netsim::icmp::echo_request || message.type == netsim::icmp::echo_reply)
-        text += " · identifier " + std::to_string(message.identifier) + " · sequence " + std::to_string(message.sequence);
+        text += " · identifier " + std::to_string(message.identifier) + " · sequence " + std::to_string(message.sequence) +
+            " · " + std::to_string(message.data_size) + " data bytes";
     return text;
 }
 
@@ -240,7 +297,7 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
              record.kind == TraceKind::FrameDropped))
             activity[static_cast<int>(record.device.value)] |= 1U << *record.port;
         Marker marker;
-        if (!marker_for(layout, trace, index, marker)) continue;
+        if (!marker_for(layout, simulation, index, marker)) continue;
         outcome_shown |= record.kind == TraceKind::PingSucceeded || record.kind == TraceKind::PingFailed;
         if (age > marker_fade) {
             const auto fading = static_cast<float>((age - marker_fade).count()) /
@@ -255,7 +312,7 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
         if (record.kind == TraceKind::FrameSent) break;
         if (record.kind == TraceKind::PingSucceeded || record.kind == TraceKind::PingFailed) {
             Marker marker;
-            if (marker_for(layout, trace, back - 1, marker)) markers.push_back(std::move(marker));
+            if (marker_for(layout, simulation, back - 1, marker)) markers.push_back(std::move(marker));
             break;
         }
     }
@@ -268,6 +325,7 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
         const auto* device = layout.device(netsim::DeviceId{static_cast<std::uint32_t>(marker.device)});
         if (!device) continue;
         marker.stack = --remaining[marker.device];
+        if (marker.stack >= max_chips) continue;
         const auto card = card_box(*device);
         marker.anchor = {card.x + card_width / 2, card.y};
         scene.markers.push_back(std::move(marker));

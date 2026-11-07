@@ -2,6 +2,7 @@
 
 ## pings
 1  PC-A > 192.168.1.20  failed ArpUnresolved  0.000 ms .. 3000.000 ms
+  seq 1  lost ArpUnresolved  0.000 ms .. 3000.000 ms  record 14
 
 ## records
 0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
@@ -18,7 +19,8 @@
 2010.000 ms  #11 e6  Switch-01 port 1  FrameReceived  link 1 frame 2 value 0
 2010.000 ms  #12 e6  Switch-01 port 1  FrameFlooded  link 1 frame 2 value 0
 3000.000 ms  #13 e7  PC-A port 1  ArpTimeout  link - frame - value 3
-3000.000 ms  #14 e7  PC-A port -  PingFailed ArpUnresolved  link - frame - value 1
+3000.000 ms  #14 e7  PC-A port -  PingLost ArpUnresolved  link - frame - value 1
+3000.000 ms  #15 e7  PC-A port -  PingFailed ArpUnresolved  link - frame - value 1
 
 ## frames
 0  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 192.168.1.10 target 00:00:00:00:00:00 192.168.1.20
@@ -39,7 +41,7 @@ frame 2 link 1  PC-A port 1 > Switch-01 port 1  2000.000 ms .. 2010.000 ms  reco
     ARP: 192.168.1.10 → 192.168.1.20
     ARP Request; ingress port 1.
     Learned source MAC 02:00:00:00:00:01 on port 1.
-    Flooded to every active port except the ingress port (0).
+    To be flooded, but no other port has an active cable.
 1000.000 ms  [ARP] No ARP reply · retrying  (ok, from 1 to - link - frame -)
     One simulated second has passed. The PC repeats the ARP request.
 1000.000 ms  [ARP] PC-A · who has 192.168.1.20?  (ok, from 1 to - link - frame 1)
@@ -49,7 +51,7 @@ frame 2 link 1  PC-A port 1 > Switch-01 port 1  2000.000 ms .. 2010.000 ms  reco
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.20
     ARP Request; ingress port 1.
-    Flooded to every active port except the ingress port (0).
+    To be flooded, but no other port has an active cable.
 2000.000 ms  [ARP] No ARP reply · retrying  (ok, from 1 to - link - frame -)
     One simulated second has passed. The PC repeats the ARP request.
 2000.000 ms  [ARP] PC-A · who has 192.168.1.20?  (ok, from 1 to - link - frame 2)
@@ -59,6 +61,6 @@ frame 2 link 1  PC-A port 1 > Switch-01 port 1  2000.000 ms .. 2010.000 ms  reco
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.20
     ARP Request; ingress port 1.
-    Flooded to every active port except the ingress port (0).
+    To be flooded, but no other port has an active cable.
 3000.000 ms  [ARP] Ping failed · ARP resolution timed out  (failed, from 1 to - link - frame -)
     No reply after three ARP requests. Check the address, the cables and that the devices are on. No ICMP was sent.

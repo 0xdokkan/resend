@@ -2,7 +2,9 @@
 
 ## pings
 1  PC-A > 192.168.1.99  failed ArpUnresolved  0.000 ms .. 3000.000 ms
+  seq 1  lost ArpUnresolved  0.000 ms .. 3000.000 ms  record 23
 2  PC-A > 192.168.1.20  succeeded None  3000.000 ms .. 3080.000 ms
+  seq 1  replied None  3000.000 ms .. 3080.000 ms  record 49
 
 ## records
 0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
@@ -28,32 +30,34 @@
 2020.000 ms  #20 e9  PC-B port 1  FrameReceived  link 2 frame 2 value 0
 2020.000 ms  #21 e9  PC-B port 1  FrameDropped ArpForOtherHost  link 2 frame 2 value 0
 3000.000 ms  #22 e10  PC-A port 1  ArpTimeout  link - frame - value 3
-3000.000 ms  #23 e10  PC-A port -  PingFailed ArpUnresolved  link - frame - value 1
-3000.000 ms  #24 e11  PC-A port -  PingStarted  link - frame - value 2
-3000.000 ms  #25 e11  PC-A port 1  FrameSent  link 1 frame 3 value 1
-3010.000 ms  #26 e12  Switch-01 port 1  FrameReceived  link 1 frame 3 value 0
-3010.000 ms  #27 e12  Switch-01 port 1  FrameFlooded  link 1 frame 3 value 0
-3010.000 ms  #28 e12  Switch-01 port 2  FrameSent  link 2 frame 3 value 0
-3020.000 ms  #29 e13  PC-B port 1  FrameReceived  link 2 frame 3 value 0
-3020.000 ms  #30 e13  PC-B port 1  ArpCacheUpdated  link 2 frame 3 value 0
-3020.000 ms  #31 e13  PC-B port 1  FrameSent  link 2 frame 4 value 0
-3030.000 ms  #32 e14  Switch-01 port 2  FrameReceived  link 2 frame 4 value 0
-3030.000 ms  #33 e14  Switch-01 port 2  MacLearned  link 2 frame 4 value 0
-3030.000 ms  #34 e14  Switch-01 port 2  FrameForwarded  link 2 frame 4 value 0
-3030.000 ms  #35 e14  Switch-01 port 1  FrameSent  link 1 frame 4 value 0
-3040.000 ms  #36 e15  PC-A port 1  FrameReceived  link 1 frame 4 value 0
-3040.000 ms  #37 e15  PC-A port 1  ArpCacheUpdated  link 1 frame 4 value 0
-3040.000 ms  #38 e15  PC-A port 1  FrameSent  link 1 frame 5 value 0
-3050.000 ms  #39 e16  Switch-01 port 1  FrameReceived  link 1 frame 5 value 0
-3050.000 ms  #40 e16  Switch-01 port 1  FrameForwarded  link 1 frame 5 value 0
-3050.000 ms  #41 e16  Switch-01 port 2  FrameSent  link 2 frame 5 value 0
-3060.000 ms  #42 e17  PC-B port 1  FrameReceived  link 2 frame 5 value 0
-3060.000 ms  #43 e17  PC-B port 1  FrameSent  link 2 frame 6 value 0
-3070.000 ms  #44 e18  Switch-01 port 2  FrameReceived  link 2 frame 6 value 0
-3070.000 ms  #45 e18  Switch-01 port 2  FrameForwarded  link 2 frame 6 value 0
-3070.000 ms  #46 e18  Switch-01 port 1  FrameSent  link 1 frame 6 value 0
-3080.000 ms  #47 e19  PC-A port 1  FrameReceived  link 1 frame 6 value 0
-3080.000 ms  #48 e19  PC-A port 1  PingSucceeded  link 1 frame 6 value 2
+3000.000 ms  #23 e10  PC-A port -  PingLost ArpUnresolved  link - frame - value 1
+3000.000 ms  #24 e10  PC-A port -  PingFailed ArpUnresolved  link - frame - value 1
+3000.000 ms  #25 e11  PC-A port -  PingStarted  link - frame - value 2
+3000.000 ms  #26 e11  PC-A port 1  FrameSent  link 1 frame 3 value 1
+3010.000 ms  #27 e12  Switch-01 port 1  FrameReceived  link 1 frame 3 value 0
+3010.000 ms  #28 e12  Switch-01 port 1  FrameFlooded  link 1 frame 3 value 0
+3010.000 ms  #29 e12  Switch-01 port 2  FrameSent  link 2 frame 3 value 0
+3020.000 ms  #30 e13  PC-B port 1  FrameReceived  link 2 frame 3 value 0
+3020.000 ms  #31 e13  PC-B port 1  ArpCacheUpdated  link 2 frame 3 value 0
+3020.000 ms  #32 e13  PC-B port 1  FrameSent  link 2 frame 4 value 0
+3030.000 ms  #33 e14  Switch-01 port 2  FrameReceived  link 2 frame 4 value 0
+3030.000 ms  #34 e14  Switch-01 port 2  MacLearned  link 2 frame 4 value 0
+3030.000 ms  #35 e14  Switch-01 port 2  FrameForwarded  link 2 frame 4 value 0
+3030.000 ms  #36 e14  Switch-01 port 1  FrameSent  link 1 frame 4 value 0
+3040.000 ms  #37 e15  PC-A port 1  FrameReceived  link 1 frame 4 value 0
+3040.000 ms  #38 e15  PC-A port 1  ArpCacheUpdated  link 1 frame 4 value 0
+3040.000 ms  #39 e15  PC-A port 1  FrameSent  link 1 frame 5 value 0
+3050.000 ms  #40 e16  Switch-01 port 1  FrameReceived  link 1 frame 5 value 0
+3050.000 ms  #41 e16  Switch-01 port 1  FrameForwarded  link 1 frame 5 value 0
+3050.000 ms  #42 e16  Switch-01 port 2  FrameSent  link 2 frame 5 value 0
+3060.000 ms  #43 e17  PC-B port 1  FrameReceived  link 2 frame 5 value 0
+3060.000 ms  #44 e17  PC-B port 1  FrameSent  link 2 frame 6 value 0
+3070.000 ms  #45 e18  Switch-01 port 2  FrameReceived  link 2 frame 6 value 0
+3070.000 ms  #46 e18  Switch-01 port 2  FrameForwarded  link 2 frame 6 value 0
+3070.000 ms  #47 e18  Switch-01 port 1  FrameSent  link 1 frame 6 value 0
+3080.000 ms  #48 e19  PC-A port 1  FrameReceived  link 1 frame 6 value 0
+3080.000 ms  #49 e19  PC-A port 1  PingReply  link 1 frame 6 value 2
+3080.000 ms  #50 e19  PC-A port -  PingSucceeded  link - frame - value 2
 
 ## frames
 0  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 192.168.1.10 target 00:00:00:00:00:00 192.168.1.99
@@ -61,8 +65,8 @@
 2  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 192.168.1.10 target 00:00:00:00:00:00 192.168.1.99
 3  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 192.168.1.10 target 00:00:00:00:00:00 192.168.1.20
 4  02:00:00:00:00:02 > 02:00:00:00:00:01  ARP reply sender 02:00:00:00:00:02 192.168.1.20 target 02:00:00:00:00:01 192.168.1.10
-5  02:00:00:00:00:01 > 02:00:00:00:00:02  IPv4 192.168.1.10 > 192.168.1.20 ttl 64 id 1 proto 1  ICMP type 8 code 0 identifier 2 sequence 1
-6  02:00:00:00:00:02 > 02:00:00:00:00:01  IPv4 192.168.1.20 > 192.168.1.10 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 2 sequence 1
+5  02:00:00:00:00:01 > 02:00:00:00:00:02  IPv4 192.168.1.10 > 192.168.1.20 ttl 64 id 1 proto 1  ICMP type 8 code 0 identifier 2 sequence 1 data 56
+6  02:00:00:00:00:02 > 02:00:00:00:00:01  IPv4 192.168.1.20 > 192.168.1.10 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 2 sequence 1 data 56
 
 ## transmissions
 frame 0 link 1  PC-A port 1 > Switch-01 port 1  0.000 ms .. 10.000 ms  record 1
@@ -71,14 +75,14 @@ frame 1 link 1  PC-A port 1 > Switch-01 port 1  1000.000 ms .. 1010.000 ms  reco
 frame 1 link 2  Switch-01 port 2 > PC-B port 1  1010.000 ms .. 1020.000 ms  record 12
 frame 2 link 1  PC-A port 1 > Switch-01 port 1  2000.000 ms .. 2010.000 ms  record 16
 frame 2 link 2  Switch-01 port 2 > PC-B port 1  2010.000 ms .. 2020.000 ms  record 19
-frame 3 link 1  PC-A port 1 > Switch-01 port 1  3000.000 ms .. 3010.000 ms  record 25
-frame 3 link 2  Switch-01 port 2 > PC-B port 1  3010.000 ms .. 3020.000 ms  record 28
-frame 4 link 2  PC-B port 1 > Switch-01 port 2  3020.000 ms .. 3030.000 ms  record 31
-frame 4 link 1  Switch-01 port 1 > PC-A port 1  3030.000 ms .. 3040.000 ms  record 35
-frame 5 link 1  PC-A port 1 > Switch-01 port 1  3040.000 ms .. 3050.000 ms  record 38
-frame 5 link 2  Switch-01 port 2 > PC-B port 1  3050.000 ms .. 3060.000 ms  record 41
-frame 6 link 2  PC-B port 1 > Switch-01 port 2  3060.000 ms .. 3070.000 ms  record 43
-frame 6 link 1  Switch-01 port 1 > PC-A port 1  3070.000 ms .. 3080.000 ms  record 46
+frame 3 link 1  PC-A port 1 > Switch-01 port 1  3000.000 ms .. 3010.000 ms  record 26
+frame 3 link 2  Switch-01 port 2 > PC-B port 1  3010.000 ms .. 3020.000 ms  record 29
+frame 4 link 2  PC-B port 1 > Switch-01 port 2  3020.000 ms .. 3030.000 ms  record 32
+frame 4 link 1  Switch-01 port 1 > PC-A port 1  3030.000 ms .. 3040.000 ms  record 36
+frame 5 link 1  PC-A port 1 > Switch-01 port 1  3040.000 ms .. 3050.000 ms  record 39
+frame 5 link 2  Switch-01 port 2 > PC-B port 1  3050.000 ms .. 3060.000 ms  record 42
+frame 6 link 2  PC-B port 1 > Switch-01 port 2  3060.000 ms .. 3070.000 ms  record 44
+frame 6 link 1  Switch-01 port 1 > PC-A port 1  3070.000 ms .. 3080.000 ms  record 47
 
 ## events
 0.000 ms  [ARP] PC-A · who has 192.168.1.99?  (ok, from 1 to - link - frame 0)
@@ -89,7 +93,7 @@ frame 6 link 1  Switch-01 port 1 > PC-A port 1  3070.000 ms .. 3080.000 ms  reco
     ARP: 192.168.1.10 → 192.168.1.99
     ARP Request; ingress port 1.
     Learned source MAC 02:00:00:00:00:01 on port 1.
-    Flooded to every active port except the ingress port (1).
+    Flooded to every active port except the ingress port: 1 copy.
 20.000 ms  [ARP] Switch-01 → PC-B · ARP Request  (ok, from 3 to 2 link 2 frame 0)
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.99
@@ -104,7 +108,7 @@ frame 6 link 1  Switch-01 port 1 > PC-A port 1  3070.000 ms .. 3080.000 ms  reco
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.99
     ARP Request; ingress port 1.
-    Flooded to every active port except the ingress port (1).
+    Flooded to every active port except the ingress port: 1 copy.
 1020.000 ms  [ARP] Switch-01 → PC-B · ARP Request  (ok, from 3 to 2 link 2 frame 1)
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.99
@@ -119,7 +123,7 @@ frame 6 link 1  Switch-01 port 1 > PC-A port 1  3070.000 ms .. 3080.000 ms  reco
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.99
     ARP Request; ingress port 1.
-    Flooded to every active port except the ingress port (1).
+    Flooded to every active port except the ingress port: 1 copy.
 2020.000 ms  [ARP] Switch-01 → PC-B · ARP Request  (ok, from 3 to 2 link 2 frame 2)
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.99
@@ -134,7 +138,7 @@ frame 6 link 1  Switch-01 port 1 > PC-A port 1  3070.000 ms .. 3080.000 ms  reco
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.20
     ARP Request; ingress port 1.
-    Flooded to every active port except the ingress port (1).
+    Flooded to every active port except the ingress port: 1 copy.
 3020.000 ms  [ARP] Switch-01 → PC-B · ARP Request  (ok, from 3 to 2 link 2 frame 3)
     Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
     ARP: 192.168.1.10 → 192.168.1.20
@@ -172,4 +176,4 @@ frame 6 link 1  Switch-01 port 1 > PC-A port 1  3070.000 ms .. 3080.000 ms  reco
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
     IPv4: 192.168.1.20 → 192.168.1.10
     Echo Reply; ingress port 1.
-    Echo Reply matching the current ping. The destination is reachable.
+    Echo Reply matching the current ping. The destination is reachable. Round trip: 80.000 ms.

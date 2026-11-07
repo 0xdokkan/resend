@@ -9,6 +9,7 @@
 #include <optional>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace netsim {
 
@@ -56,6 +57,23 @@ public:
         }
         handle = {};
         return erased;
+    }
+
+    // Removes every pending entry whose payload matches, and returns their
+    // payloads in the order they would have run.
+    template<class Predicate>
+    std::vector<Payload> remove_if(Predicate matches) {
+        std::vector<Payload> removed;
+        for (auto it = queue_.begin(); it != queue_.end();) {
+            if (!matches(std::as_const(it->second))) {
+                ++it;
+                continue;
+            }
+            times_.erase(it->first.id);
+            removed.push_back(std::move(it->second));
+            it = queue_.erase(it);
+        }
+        return removed;
     }
 
     // Removes the next pending entry and advances the clock to its time.

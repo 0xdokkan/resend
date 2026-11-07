@@ -18,30 +18,29 @@ public:
             return;
         }
         if (const auto* packet = frame.arp()) {
-            const auto ready = arp_.receive(context, nic_, arrival, *packet);
-            for (const auto& outgoing : ready) leave(context, outgoing, *arp_.lookup(packet->sender_ip));
+            const auto sender = packet->sender_mac;
+            for (auto& outgoing : arp_.receive(context, nic_, arrival, *packet)) leave(context, std::move(outgoing), sender);
         } else {
             receive_ipv4(context, arrival, *frame.ipv4());
         }
     }
 
     void timer(Context& context, const Timer& timer) override {
-        const PingId ping{static_cast<std::uint32_t>(timer.key)};
         switch (timer.kind) {
-        case TimerKind::PingStart:
-            start_ping(context, ping);
+        case TimerKind::PingSend:
+            send_request(context, PingId{static_cast<std::uint32_t>(timer.key)});
             break;
         case TimerKind::ArpRetry:
             for (const auto& outgoing : arp_.retry(context, nic_, Arp::timer_address(timer.key)))
-                if (outgoing.ping) context.finish_ping(*outgoing.ping, PingState::Failed, Reason::ArpUnresolved);
+                discard(context, outgoing, Reason::ArpUnresolved);
             break;
         case TimerKind::EchoTimeout:
-            pings_.timeout(context, ping);
+            pings_.timeout(context, timer.key);
             break;
         }
     }
 
-    std::vector<ArpCacheEntry> arp_cache() const override { return arp_.entries(); }
+    std::vector<ArpCacheEntry> arp_cache(SimTime now) const override { return arp_.entries(now); }
 
 private:
     void receive_ipv4(Context& context, const Arrival& arrival, const Ipv4Packet& packet) {
@@ -53,7 +52,7 @@ private:
         if (packet.protocol != ip_protocol::icmp) return;
         const auto& message = packet.icmp;
         if (message.type == icmp::echo_reply) {
-            pings_.reply(context, arrival, packet.src, message);
+            if (!pings_.reply(context, arrival, packet.src, message)) context.note(arrival, TraceKind::FrameDropped, Reason::UnmatchedReply);
             return;
         }
         if (message.type != icmp::echo_request) return;
@@ -61,39 +60,43 @@ private:
             context.note(arrival, TraceKind::FrameDropped, Reason::NoRoute);
             return;
         }
-        // The sender was learned from the ARP exchange that preceded its
-        // request. Resolving it here instead is not modelled yet.
-        const auto next_hop = arp_.lookup(packet.src);
-        if (!next_hop) {
-            context.note(arrival, TraceKind::FrameDropped, Reason::NotModelled);
-            return;
-        }
-        const IcmpMessage reply{icmp::echo_reply, 0, message.identifier, message.sequence};
-        leave(context, {Ipv4Packet{self.address(), packet.src, 64, ip_protocol::icmp, 0, reply}, std::nullopt}, *next_hop);
+        const IcmpMessage reply{icmp::echo_reply, 0, message.identifier, message.sequence, message.data_size};
+        route(context, {Ipv4Packet{self.address(), packet.src, default_ttl, ip_protocol::icmp, 0, reply}, std::nullopt});
     }
 
-    void start_ping(Context& context, PingId id) {
-        context.record({.kind = TraceKind::PingStarted, .value = id.value});
+    void send_request(Context& context, PingId id) {
         const auto self = nic_.address(context);
-        const auto destination = context.ping(id).destination;
+        auto outgoing = pings_.request(context, id, self.address());
+        const auto sequence = outgoing.packet.icmp.sequence;
+        const auto destination = outgoing.packet.dst;
         if (destination == self.address()) {
-            context.finish_ping(id, PingState::Succeeded, Reason::None);
-            return;
+            context.echo_replied(id, sequence, nullptr);
+        } else if (!self.contains(destination)) {
+            context.echo_lost(id, sequence, Reason::NoRoute);
+        } else {
+            route(context, std::move(outgoing));
         }
-        if (!self.contains(destination)) {
-            context.finish_ping(id, PingState::Failed, Reason::NoRoute);
-            return;
-        }
-        Outgoing outgoing{Ipv4Packet{self.address(), destination, 64, ip_protocol::icmp, 0, PingApp::request(id)}, id};
-        if (const auto next_hop = arp_.lookup(destination)) leave(context, outgoing, *next_hop);
-        else arp_.resolve(context, nic_, destination, std::move(outgoing));
+    }
+
+    // Sends a datagram to a host of the subnet, resolving it first if needed.
+    void route(Context& context, Outgoing outgoing) {
+        const auto next_hop = outgoing.packet.dst;
+        if (const auto mac = arp_.lookup(context, nic_, next_hop)) leave(context, std::move(outgoing), *mac);
+        else if (const auto dropped = arp_.resolve(context, nic_, next_hop, std::move(outgoing))) discard(context, *dropped, Reason::ArpQueueFull);
+    }
+
+    // A datagram that cannot leave: a ping request is lost, anything else
+    // is recorded as dropped.
+    void discard(Context& context, const Outgoing& outgoing, Reason reason) {
+        if (outgoing.ping) context.echo_lost(*outgoing.ping, outgoing.packet.icmp.sequence, reason);
+        else context.record({.kind = TraceKind::DatagramDropped, .reason = reason, .port = nic_.port, .value = outgoing.packet.dst.bits()});
     }
 
     // Datagrams are numbered as they leave, so the numbers have no gaps.
     void leave(Context& context, Outgoing outgoing, MacAddress next_hop) {
         outgoing.packet.identification = ++identification_;
-        nic_.send(context, {next_hop, nic_.mac(context), outgoing.packet});
-        if (outgoing.ping) pings_.sent(context, *outgoing.ping);
+        const auto pdu = nic_.send(context, {next_hop, nic_.mac(context), outgoing.packet});
+        if (outgoing.ping) pings_.sent(context, *outgoing.ping, outgoing.packet.icmp.sequence, pdu);
     }
 
     Nic nic_{0};

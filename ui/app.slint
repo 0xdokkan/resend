@@ -43,6 +43,8 @@ global Theme {
     out property <color> blue: #82b8fb;
     out property <color> amber: #f1c47b;
     out property <color> red: #f58f8f;
+    // The simulator's own interventions, never network behaviour.
+    out property <color> violet: #c6a8f8;
 }
 
 component Action inherits Rectangle {
@@ -180,6 +182,8 @@ export component AppWindow inherits Window {
     in-out property <string> edit-ip;
     in-out property <string> edit-prefix;
     in-out property <string> target-ip: "192.168.1.20";
+    // Echo Requests per ping.
+    in-out property <string> ping-count: "1";
     // True while the animation plays, including a step in progress.
     in property <bool> running;
     in property <bool> has-pending;
@@ -534,13 +538,15 @@ export component AppWindow inherits Window {
                     for marker in root.markers: Rectangle {
                         property <color> tint: marker.tone == "learn" ? Theme.blue : marker.tone == "forward" ? Theme.mint
                             : marker.tone == "wait" ? Theme.amber : marker.tone == "drop" ? Theme.red
-                            : marker.tone == "success" ? Theme.mint : Theme.muted;
+                            : marker.tone == "success" ? Theme.mint : marker.tone == "edit" ? Theme.blue
+                            : marker.tone == "guard" ? Theme.violet : Theme.muted;
                         x: marker.x * root.zoom * 1px + root.pan-x - self.width / 2;
                         y: marker.y * root.zoom * 1px + root.pan-y - 24px - marker.stack * 22px;
                         width: marker-text.preferred-width + 14px; height: 19px;
                         border-radius: 5px;
                         opacity: marker.opacity;
-                        background: marker.tone == "success" ? #1d4a3c : marker.tone == "drop" ? #4a2228 : #142131;
+                        background: marker.tone == "success" ? #1d4a3c : marker.tone == "drop" ? #4a2228
+                            : marker.tone == "guard" ? #2f2346 : #142131;
                         border-width: 1px; border-color: self.tint;
                         marker-text := Text { text: marker.text; color: marker.tone == "muted" ? Theme.muted : Theme.ink; font-size: 10px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
                     }
@@ -581,6 +587,8 @@ export component AppWindow inherits Window {
                         padding: 12px; spacing: 8px;
                         Text { text: "PING"; color: Theme.mint; font-weight: 600; font-size: 10px; vertical-alignment: center; }
                         LineEdit { width: 144px; text <=> root.target-ip; placeholder-text: "Destination IPv4"; accessible-label: "Destination IPv4"; }
+                        Text { text: "×"; color: Theme.muted; font-size: 11px; vertical-alignment: center; }
+                        LineEdit { width: 52px; text <=> root.ping-count; placeholder-text: "1"; accessible-label: "Echo Requests per ping"; }
                         Action { text: "Send"; primary: true; enabled: root.selected-kind == "host"; clicked => { root.ping(); } }
                         Rectangle { horizontal-stretch: 1; }
                         Action { text: root.speed-label; accessible-text: "Playback speed"; width: 48px; clicked => { root.cycle-speed(); } }
@@ -687,7 +695,7 @@ export component AppWindow inherits Window {
                                     HorizontalLayout {
                                         padding-left: 12px; padding-right: 12px; spacing: 12px;
                                         Text { text: trace.time; color: Theme.muted; font-size: 10px; width: 73px; vertical-alignment: center; }
-                                        Text { text: trace.protocol; color: trace.protocol == "ARP" ? Theme.amber : trace.protocol == "ICMP" ? Theme.mint : Theme.blue; font-size: 10px; font-weight: 600; width: 60px; vertical-alignment: center; }
+                                        Text { text: trace.protocol; color: trace.protocol == "ARP" ? Theme.amber : trace.protocol == "ICMP" ? Theme.mint : trace.protocol == "SIMULATOR" ? Theme.violet : Theme.blue; font-size: 10px; font-weight: 600; width: 68px; vertical-alignment: center; }
                                         Text { text: trace.summary; color: Theme.ink; font-size: 11px; overflow: elide; vertical-alignment: center; }
                                     }
                                 }
@@ -712,7 +720,10 @@ export component AppWindow inherits Window {
                     horizontal-stretch: 42; min-width: 320px; preferred-width: 320px;
                     VerticalLayout {
                         padding: 20px; spacing: 10px;
-                        Caption { text: root.event-protocol == "" ? "SEE WHY" : "INSIDE THE PACKET  /  " + root.event-protocol; }
+                        Caption {
+                            text: root.event-protocol == "" ? "SEE WHY" : root.event-protocol == "EDIT" ? "A CHANGE TO THE NETWORK"
+                                : root.event-protocol == "SIMULATOR" ? "THE SIMULATOR STEPPED IN" : "INSIDE THE PACKET  /  " + root.event-protocol;
+                        }
                         Text { text: root.event-title == "" ? "Every step has an explanation." : root.event-title; color: Theme.ink; font-size: 16px; font-weight: 600; wrap: word-wrap; }
                         ScrollView {
                             vertical-stretch: 1;

@@ -1,16 +1,55 @@
 #pragma once
 
-// The prototype's behaviour, kept as regression cases: each network and
-// its pings were checked against the prototype's engine, record by record
-// and text by text, before that engine was removed.
+// Regression cases. The first fourteen are the prototype's behaviour: each
+// network and its pings were checked against the prototype's engine, record
+// by record and text by text, before that engine was removed. The others
+// cover what came after, with scripts that change the network as it runs.
 #include "check.hpp"
+#include "explain/explain.hpp"
 #include "scenario/edit.hpp"
+#include "sim/simulation.hpp"
 
+#include <chrono>
 #include <functional>
 #include <string>
 #include <vector>
 
 namespace regression {
+using namespace std::chrono_literals;
+
+// Runs a simulation for a script, explaining after every step as the
+// interface does.
+struct Driver {
+    netsim::Simulation& simulation;
+    netsim::explain::Explainer& explainer;
+
+    netsim::PingId ping(std::uint32_t source, const char* destination, netsim::PingOptions options = {}) {
+        netsim::Problem problem{};
+        const auto id = simulation.start_ping(netsim::DeviceId{source}, *netsim::Ipv4Address::parse(destination), problem, options);
+        CHECK(id.has_value());
+        return id.value_or(netsim::PingId{});
+    }
+    // Every event due up to `time`, then the clock moves there.
+    void until(netsim::SimTime time) {
+        for (int count = 0; simulation.next_event_time() && *simulation.next_event_time() <= time; ++count) {
+            CHECK(simulation.step());
+            explainer.update(simulation);
+            CHECK(count < 100'000);
+        }
+        simulation.run_until(time);
+    }
+    void apply(const netsim::Edit& edit) {
+        CHECK(simulation.apply(edit) == netsim::Problem::None);
+        explainer.update(simulation);
+    }
+    void finish() {
+        for (int count = 0; simulation.pending(); ++count) {
+            CHECK(simulation.step());
+            explainer.update(simulation);
+            CHECK(count < 100'000);
+        }
+    }
+};
 
 struct Ping {
     std::uint32_t source;
@@ -21,6 +60,7 @@ struct Case {
     const char* name;
     std::function<netsim::Scenario()> build;
     std::vector<Ping> pings;  // one after the other, each run to the end
+    std::function<void(Driver&)> script = {};  // runs first, then to the end
 };
 
 inline netsim::DeviceId add(netsim::Scenario& scenario, netsim::DeviceKind kind) {
@@ -32,6 +72,13 @@ inline void connect(netsim::Scenario& scenario, std::uint32_t a, std::uint32_t b
     CHECK(netsim::edit::connect(scenario, netsim::DeviceId{a}, netsim::DeviceId{b}) == netsim::Problem::None);
 }
 inline netsim::Scenario sample() { return netsim::sample_lan(); }
+// A switch (id 1) with `hosts` PCs (ids 2, 3, ...) on its first ports.
+inline netsim::Scenario star(int hosts) {
+    netsim::Scenario scenario;
+    add(scenario, netsim::DeviceKind::Switch);
+    for (int i = 0; i < hosts; ++i) connect(scenario, 1, add(scenario, netsim::DeviceKind::Host).value);
+    return scenario;
+}
 
 inline std::vector<Case> cases() {
     using netsim::DeviceKind;
@@ -135,6 +182,87 @@ inline std::vector<Case> cases() {
              return s;
          },
          {{2, "192.168.1.18"}, {9, "192.168.1.11"}, {5, "192.168.1.16"}, {3, "192.168.1.16"}}},
+
+        {"15-cable-down-in-flight", "a cable disabled while a frame is on it, enabled again", sample, {},
+         [](Driver& run) {
+             run.ping(1, "192.168.1.20");
+             run.until(15ms);
+             run.apply(netsim::SetLinkUp{netsim::LinkId{2}, false});
+             run.until(2500ms);
+             run.apply(netsim::SetLinkUp{netsim::LinkId{2}, true});
+         }},
+        {"16-power-off-mid-ping", "the source powered off during a ping of three requests", sample, {},
+         [](Driver& run) {
+             run.ping(1, "192.168.1.20", {.count = 3});
+             run.until(1020ms);
+             run.apply(netsim::SetPowered{netsim::DeviceId{1}, false});
+             run.until(1500ms);
+             run.apply(netsim::SetPowered{netsim::DeviceId{1}, true});
+         }},
+        {"17-stale-arp", "an address moves to another PC: the stale ARP entry, then its expiry",
+         [] { return star(3); }, {},
+         [](Driver& run) {
+             // PC-2 (.11) learns PC-3 (.12); then .12 moves to PC-4.
+             run.ping(2, "192.168.1.12");
+             run.until(1s);
+             run.apply(netsim::SetAddress{{netsim::DeviceId{3}, 0}, *netsim::Ipv4Prefix::parse("192.168.1.99/24")});
+             run.apply(netsim::SetAddress{{netsim::DeviceId{4}, 0}, *netsim::Ipv4Prefix::parse("192.168.1.12/24")});
+             run.ping(2, "192.168.1.12");
+             run.until(61s);
+             run.ping(2, "192.168.1.12");
+         }},
+        {"18-cable-moved", "a cable moved to another switch port: the stale MAC entry, then its ageing",
+         [] {
+             auto s = star(2);
+             s.devices[0].mac_ageing = 10s;
+             return s;
+         },
+         {},
+         [](Driver& run) {
+             // PC-3's cable moves from switch port 2 to port 5.
+             run.ping(2, "192.168.1.12");
+             run.until(1s);
+             run.apply(netsim::Replug{netsim::LinkId{2}, {netsim::DeviceId{1}, 1}, {netsim::DeviceId{1}, 4}});
+             run.ping(2, "192.168.1.12");
+             run.until(15s);
+             run.ping(2, "192.168.1.12");
+         }},
+        {"19-switch-loop", "three switches in a ring: the storm guard",
+         [] {
+             netsim::Scenario s;
+             for (int i = 0; i < 3; ++i) add(s, DeviceKind::Switch);
+             connect(s, 1, 2);
+             connect(s, 2, 3);
+             CHECK(edit::connect(s, netsim::PortRef{netsim::DeviceId{3}, 1}, netsim::PortRef{netsim::DeviceId{1}, 1}) == Problem::None);
+             connect(s, 1, add(s, DeviceKind::Host).value);
+             connect(s, 2, add(s, DeviceKind::Host).value);
+             return s;
+         },
+         {{4, "192.168.1.14"}}},
+        {"20-ping-count", "four requests, one lost on a cable disabled for a moment", sample, {},
+         [](Driver& run) {
+             run.ping(1, "192.168.1.20", {.count = 4});
+             run.until(1015ms);
+             run.apply(netsim::SetLinkUp{netsim::LinkId{2}, false});
+             run.until(1500ms);
+             run.apply(netsim::SetLinkUp{netsim::LinkId{2}, true});
+         }},
+        {"21-arp-queue-full", "requests for an address nobody has, faster than ARP gives up", sample, {},
+         [](Driver& run) { run.ping(1, "192.168.1.99", {.count = 5, .interval = 200ms}); }},
+        {"22-reply-resolves-sender", "a rebooted PC resolves the sender before replying", sample, {},
+         [](Driver& run) {
+             run.ping(1, "192.168.1.20");
+             run.until(1s);
+             run.apply(netsim::SetPowered{netsim::DeviceId{2}, false});
+             run.apply(netsim::SetPowered{netsim::DeviceId{2}, true});
+             run.ping(1, "192.168.1.20");
+         }},
+        {"23-remove-device-in-flight", "the destination removed while the request travels", sample, {},
+         [](Driver& run) {
+             run.ping(1, "192.168.1.20");
+             run.until(15ms);
+             run.apply(netsim::RemoveDevice{netsim::DeviceId{2}});
+         }},
     };
 }
 

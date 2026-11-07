@@ -2,6 +2,7 @@
 
 ## pings
 1  PC-A > 192.168.1.20  failed ArpUnresolved  0.000 ms .. 3000.000 ms
+  seq 1  lost ArpUnresolved  0.000 ms .. 3000.000 ms  record 7
 
 ## records
 0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
@@ -11,7 +12,8 @@
 2000.000 ms  #4 e3  PC-A port 1  ArpTimeout  link - frame - value 2
 2000.000 ms  #5 e3  PC-A port 1  FrameDropped NoCarrier  link - frame 2 value 3
 3000.000 ms  #6 e4  PC-A port 1  ArpTimeout  link - frame - value 3
-3000.000 ms  #7 e4  PC-A port -  PingFailed ArpUnresolved  link - frame - value 1
+3000.000 ms  #7 e4  PC-A port -  PingLost ArpUnresolved  link - frame - value 1
+3000.000 ms  #8 e4  PC-A port -  PingFailed ArpUnresolved  link - frame - value 1
 
 ## frames
 0  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 192.168.1.10 target 00:00:00:00:00:00 192.168.1.20

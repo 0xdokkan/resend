@@ -106,6 +106,7 @@ std::string scenario_to_json(const Scenario& scenario) {
         item.set("powered", device.powered);
         item.set("x", device.x);
         item.set("y", device.y);
+        if (device.kind == DeviceKind::Switch) item.set("ageing", format_duration(device.mac_ageing));
         bool all_default = true;
         for (std::size_t i = 0; i < device.ports.size(); ++i) all_default = all_default && default_port(device, i);
         // Switch ports are written only when one differs from the default.
@@ -178,20 +179,33 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
     for (std::size_t index = 0; index < devices->array_items()->size(); ++index) {
         const auto& item = (*devices->array_items())[index];
         const auto path = "devices[" + std::to_string(index) + "]";
-        if (!read.object(item, path) || !read.only(item, path, {"id", "kind", "name", "powered", "x", "y", "ports"}))
+        if (!read.object(item, path) || !read.only(item, path, {"id", "kind", "name", "powered", "x", "y", "ageing", "ports"}))
             return finish();
         DeviceConfig device;
         std::int64_t id = 0, x = 0, y = 0;
-        std::string kind;
+        std::string kind, ageing;
         if (!read.number(item, "id", path, 1, std::numeric_limits<std::uint32_t>::max(), id) ||
             !read.text(item, "kind", path, kind) || !read.text(item, "name", path, device.name) ||
             !read.flag(item, "powered", path, device.powered) ||
-            !read.number(item, "x", path, -1'000'000, 1'000'000, x, false) ||
-            !read.number(item, "y", path, -1'000'000, 1'000'000, y, false))
+            !read.number(item, "x", path, -max_coordinate, max_coordinate, x, false) ||
+            !read.number(item, "y", path, -max_coordinate, max_coordinate, y, false) ||
+            !read.text(item, "ageing", path, ageing, false))
             return finish();
         if (kind != "host" && kind != "switch") {
             read.fail(path + ".kind", "expected \"host\" or \"switch\"");
             return finish();
+        }
+        if (item.find("ageing")) {
+            const auto parsed = parse_duration(ageing);
+            if (kind != "switch") {
+                read.fail(path + ".ageing", "only switches have an ageing time");
+                return finish();
+            }
+            if (!parsed) {
+                read.fail(path + ".ageing", "expected a duration such as 300s");
+                return finish();
+            }
+            device.mac_ageing = *parsed;
         }
         device.id = DeviceId{static_cast<std::uint32_t>(id)};
         device.kind = kind == "host" ? DeviceKind::Host : DeviceKind::Switch;

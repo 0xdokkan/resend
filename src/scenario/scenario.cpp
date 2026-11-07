@@ -1,7 +1,6 @@
 #include "scenario/scenario.hpp"
 
 #include <algorithm>
-#include <map>
 #include <set>
 
 namespace netsim {
@@ -88,6 +87,8 @@ std::vector<Issue> validate(const Scenario& scenario) {
             report(Problem::WrongPortCount, who);
             continue;
         }
+        if (device.kind == DeviceKind::Switch && (device.mac_ageing < min_mac_ageing || device.mac_ageing > max_mac_ageing))
+            report(Problem::InvalidAgeing, who);
         for (const auto& port : device.ports) {
             if (device.kind == DeviceKind::Switch && port.ipv4) report(Problem::AddressOnSwitch, who);
             if (device.kind == DeviceKind::Host && !port.ipv4) report(Problem::MissingAddress, who);
@@ -118,22 +119,6 @@ std::vector<Issue> validate(const Scenario& scenario) {
             }
         }
         if (ends_valid && cable.a.device == cable.b.device) report(Problem::SameDevice, who);
-    }
-
-    // Until storm protection exists, every cable must join two separate
-    // groups of devices: a union-find over the cables in file order.
-    if (issues.empty()) {
-        std::map<DeviceId, DeviceId> parent;
-        const auto root = [&](DeviceId id) {
-            while (parent.contains(id) && parent[id] != id) id = parent[id];
-            return id;
-        };
-        for (const auto& device : scenario.devices) parent[device.id] = device.id;
-        for (const auto& cable : scenario.links) {
-            const auto a = root(cable.a.device), b = root(cable.b.device);
-            if (a == b) report(Problem::LoopNotSupported, port_text(scenario, cable.a) + " — " + port_text(scenario, cable.b));
-            else parent[a] = b;
-        }
     }
     return issues;
 }

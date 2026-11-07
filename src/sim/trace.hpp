@@ -23,31 +23,45 @@ enum class TraceKind : std::uint8_t {
     FrameFiltered,    // the learned port is the ingress port: nothing is sent
     ArpCacheUpdated,  // the receiver maps the ARP sender address to its MAC
     ArpTimeout,       // a retransmission interval passed without a reply
-    PingSucceeded,
-    PingFailed,
-    PingStarted,      // a host starts a ping; `value` is the ping's id
+    PingSucceeded,    // a ping ended with at least one reply
+    PingFailed,       // a ping ended without any reply; the reason is its first loss
+    PingStarted,      // a host starts a ping
+    PingReply,        // an Echo Reply answered one request of a ping
+    PingLost,         // one request of a ping got no reply; the reason says why
+    ArpEntryExpired,  // a host needed an ARP entry and found it expired
+    MacEntryAged,     // a switch found the destination's entry aged out: it floods
+    DatagramDropped,  // a datagram that is not a ping request could not leave the host
+    EditApplied,      // the network was edited while the simulation runs
+    SimulatorGuard,   // the simulator stopped a frame copied too many times: not network behaviour
 };
 
 enum class Reason : std::uint8_t {
     None,
-    LinkDown,         // the cable was disabled while the frame was on it
-    DeviceDown,       // the receiving device is powered off
+    LinkDown,         // the cable stopped carrying while the frame was on it
+    DeviceDown,       // the receiving device is off; for pings, the source went off or away
     NoCarrier,        // the sending port has no active cable
     NotForUs,         // destination MAC is neither the local MAC nor broadcast
     ArpForOtherHost,  // the ARP target address is not the local address
     Ipv4NotForUs,     // destination IPv4 address is not the local address
     NoRoute,          // destination outside the local subnet, and no routers yet
-    NotModelled,      // the case is outside what this version simulates
     ArpUnresolved,    // three ARP requests went unanswered
     EchoTimeout,      // no matching Echo Reply within the timeout
+    ArpQueueFull,     // newer datagrams for the same unresolved address took its place
+    UnmatchedReply,   // an Echo Reply no request is waiting for: it timed out or its ping ended
 };
 
 // `port` is zero-based. Switch decisions refer to the ingress port; the
 // FrameSent records that follow them name the egress ports.
 // `episode` groups the records produced by one scheduled event: a frame
-// arriving, a timer firing. `value` is a number whose meaning depends on the
-// kind: the attempt for ARP requests sent or dropped and for ArpTimeout, the
-// ping's id for PingStarted, PingSucceeded and PingFailed; 0 otherwise.
+// arriving, a timer firing, an edit. `value` is a number whose meaning
+// depends on the kind:
+// - the attempt, for ARP requests sent or dropped and for ArpTimeout;
+// - the ping's id, for every Ping* record;
+// - an IPv4 address (its 32 bits): the one whose entry expired for
+//   ArpEntryExpired, the datagram's destination for DatagramDropped;
+// - the edit's index in Simulation::edits(), for EditApplied;
+// - the number of times the frame was sent, for SimulatorGuard;
+// - 0 otherwise.
 struct TraceRecord {
     SimTime time{};
     std::uint64_t seq = 0;  // position in the trace
@@ -71,6 +85,9 @@ struct Transmission {
     std::uint8_t from_port = 0, to_port = 0;  // zero-based
     SimTime start{}, arrival{};
     std::uint64_t record = 0;  // seq of the FrameSent record
+    // Removed from the cable by the storm guard; `arrival` is then the time
+    // it was removed.
+    bool stopped = false;
     bool operator==(const Transmission&) const = default;
 };
 
@@ -78,7 +95,8 @@ struct Transmission {
 // once and shared by every record about it, including the copies a switch
 // floods, so a frame can be followed across the network by its id.
 // Archived frames never move: references to them stay valid.
-// Transmissions are kept in the order they start.
+// Transmissions are kept in the order they start; the storm guard may cut
+// one short, nothing else changes them.
 class Trace {
 public:
     PduId archive(const EthernetFrame& frame) {
@@ -91,6 +109,11 @@ public:
         records_.push_back(record);
     }
     void add(Transmission transmission) { transmissions_.push_back(transmission); }
+    void stop(std::size_t transmission, SimTime time) {
+        auto& item = transmissions_.at(transmission);
+        item.arrival = time;
+        item.stopped = true;
+    }
     void clear() {
         records_.clear();
         pdus_.clear();

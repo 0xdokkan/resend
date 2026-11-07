@@ -18,10 +18,11 @@ struct Nic {
         return frame.dst == mac(context) || frame.dst.is_broadcast();
     }
     // Sends a new frame from this port. Without carrier it is dropped here.
-    void send(Context& context, const EthernetFrame& frame, std::uint32_t value = 0) const {
+    PduId send(Context& context, const EthernetFrame& frame, std::uint32_t value = 0) const {
         const auto pdu = context.archive(frame);
-        if (!context.transmit(port, pdu, value))
+        if (context.transmit(port, pdu, value) == Transmit::NoCarrier)
             context.record({.kind = TraceKind::FrameDropped, .reason = Reason::NoCarrier, .port = port, .pdu = pdu, .value = value});
+        return pdu;
     }
 };
 

@@ -131,13 +131,19 @@ void invalid_input_keeps_configuration(const Ui& ui, const resend::AppController
 }
 
 void disabled_cable_breaks_ping(const Ui& ui, resend::AppController& app) {
+    // The network keeps running: the cable goes down at the current time,
+    // and PC-A still has PC-B's MAC from the last ping.
+    const auto now = app.simulation().now();
     press(ui, "Disable PC-B :1 — Switch-01 :2");
     CHECK(!app.scenario().link(LinkId{2})->up);
+    CHECK(app.simulation().edits().size() == 1 && app.simulation().edits()[0].time == now);
+    CHECK(std::string_view(ui->get_status_text()).ends_with("Applied at t = " + netsim::format_ms(now) + "."));
+    CHECK(exists(ui, "EDIT: Cable disabled · PC-B port 1 — Switch-01 port 2"));
     press(ui, "PC-A, 192.168.1.10/24");
     press(ui, "Send");
     run_to_end(ui, app);
     CHECK(!succeeded(app));
-    CHECK(exists(ui, "ARP: Ping failed · ARP resolution timed out"));
+    CHECK(exists(ui, "ICMP: Ping failed · reply timed out"));
 }
 
 void build_and_delete_device(const Ui& ui, const resend::AppController& app) {
@@ -267,6 +273,79 @@ void open_scenario_file(const Ui& ui, resend::AppController& app) {
     CHECK(succeeded(app));
 }
 
+void live_edits(const Ui& ui, resend::AppController& app) {
+    // Before anything happens, an edit simply gives another network.
+    press(ui, "Sample network");
+    press(ui, "Disable PC-B :1 — Switch-01 :2");
+    CHECK(!app.scenario().link(LinkId{2})->up && app.simulation().edits().empty() && ui->get_event_count() == 0);
+    press(ui, "Enable PC-B :1 — Switch-01 :2");
+    CHECK(app.scenario().link(LinkId{2})->up);
+
+    // While a ping runs, the edit happens at the instant on screen.
+    press(ui, "PC-A, 192.168.1.10/24");
+    press(ui, "Send");
+    app.seek(15ms);
+    press(ui, "PC-B, 192.168.1.20/24");
+    press(ui, "Power off");
+    CHECK(app.simulation().edits().size() == 1 && app.simulation().edits()[0].time == 15ms);
+    CHECK(std::string_view(ui->get_status_text()).ends_with("Applied at t = 15.000 ms."));
+    CHECK(exists(ui, "EDIT: PC-B powered off"));
+    CHECK(shown(ui, "⏻ powered off"));
+    app.seek(20ms);
+    CHECK(shown(ui, "× device off"));
+    play_to_end(ui, app);
+    CHECK(!succeeded(app));
+    // Its tables went with the power.
+    press(ui, "Power on");
+    CHECK(app.simulation().arp_cache(DeviceId{2}).empty());
+}
+
+void ping_count(const Ui& ui, resend::AppController& app) {
+    press(ui, "Sample network");
+    press(ui, "PC-A, 192.168.1.10/24");
+    type(ui, "Destination IPv4", "192.168.1.20");
+    for (const auto* refused : {"0", "1001", "3x"}) {
+        type(ui, "Echo Requests per ping", refused);
+        press(ui, "Send");
+        CHECK(app.simulation().pings().empty());
+        CHECK(std::string_view(ui->get_status_text()) == "Send 1 to 1000 Echo Requests per ping.");
+    }
+    type(ui, "Echo Requests per ping", "3");
+    press(ui, "Send");
+    play_to_end(ui, app);
+    CHECK(app.simulation().pings().size() == 1 && app.simulation().pings()[0].replies() == 3);
+    CHECK(exists(ui, "ICMP: Reply 2/3 · 192.168.1.20 → PC-A"));
+    CHECK(shown(ui, "✓ ping 3/3"));
+    type(ui, "Echo Requests per ping", "1");
+}
+
+void storm_pauses_playback(const Ui& ui, resend::AppController& app) {
+    const auto path = std::filesystem::path(RESEND_EXAMPLES_DIR) / "switch-loop.json";
+    std::ifstream file(path, std::ios::binary);
+    std::string error;
+    const std::string text{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+    auto scenario = netsim::scenario_from_json(text, error);
+    CHECK(scenario.has_value());
+    app.open(std::move(*scenario));
+    type(ui, "Destination IPv4", "192.168.1.20");
+    press(ui, "Send");
+    press(ui, "▷ Run");
+    for (int frame = 0; frame < 2000 && ui->get_running(); ++frame) app.advance_playback(100ms);
+    // Paused at the guard, with the network still running.
+    CHECK(!ui->get_running() && app.simulation().pending());
+    CHECK(std::string_view(ui->get_status_text()).starts_with("Storm protection:"));
+    CHECK(exists(ui, "SIMULATOR: Storm protection · frame stopped at Switch-2"));
+    CHECK(shown(ui, "⚠ storm stopped"));
+    // Run again: it pauses at each of the three guards.
+    int pauses = 1;
+    while (app.simulation().pending() && pauses < 10) {
+        press(ui, "▷ Run");
+        for (int frame = 0; frame < 2000 && ui->get_running(); ++frame) app.advance_playback(100ms);
+        if (app.simulation().pending()) ++pauses;
+    }
+    CHECK(!app.simulation().pending() && pauses == 3);
+}
+
 void about_dialog(const Ui& ui) {
     CHECK(!exists(ui, "About resend"));
     press(ui, "About");
@@ -297,6 +376,9 @@ int main() {
     drops_and_playback_controls(ui, app);
     pings_overlap(ui, app);
     open_scenario_file(ui, app);
+    live_edits(ui, app);
+    ping_count(ui, app);
+    storm_pauses_playback(ui, app);
     about_dialog(ui);
     std::cout << "GUI tests passed: " << test::checks << " checks.\n";
 }

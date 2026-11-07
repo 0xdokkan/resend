@@ -25,15 +25,17 @@ enum class Problem : std::uint8_t {
     PortInUse,            // a port already has a cable
     SameDevice,           // a cable between two ports of one device
     InvalidDelay,         // outside 1 µs .. 10 s
-    LoopNotSupported,     // an Ethernet loop, refused until storm protection exists
+    InvalidAgeing,        // a switch's MAC ageing time outside 10 s .. 1,000,000 s
     TooManyDevices,
     NoFreePort,
     NotAHost,
+    NotASwitch,
     // Ping
     SourceNotHost,
     SourcePoweredOff,
     InvalidDestination,   // not a unicast address
     BroadcastDestination, // the network or broadcast address of the source's subnet
+    InvalidPingOptions,   // count, interval or timeout out of range
 };
 
 constexpr bool ok(Problem problem) { return problem == Problem::None; }

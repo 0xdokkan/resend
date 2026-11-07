@@ -50,6 +50,7 @@ When resend writes a file it writes every member except switch ports left at the
 | `name` | string | yes | 1 to 48 characters, at least one visible, no control characters |
 | `powered` | boolean | no | Default `true`. A powered-off device sends nothing and drops what reaches it |
 | `x`, `y` | number | no | Top-left corner of the card on the canvas, in whole units from −1000000 to 1000000; default 0 |
+| `ageing` | string | no | Switches only: how long a MAC table entry lasts without a frame from its address, a duration as for cable delays, from `"10s"` to `"1000000s"`; default `"300s"`, as IEEE 802.1Q recommends |
 | `ports` | array | no | Exactly one entry for a host, eight for a switch, in port order. Left out, every port takes its defaults |
 
 ### Ports
@@ -81,7 +82,7 @@ Reading stops at the first problem with the file itself and says where it is:
 
 The JSON is strict: whole numbers only, no comments, no trailing commas, no duplicate members, valid UTF-8, at most 64 levels of nesting.
 
-A file that reads correctly is then validated as a network, and every problem is reported with the device or cable it concerns: duplicate ids, a cable to a missing device or port, two cables on one port, a cable between two ports of the same device, a missing or unusable host address, a delay out of range, more than 100 devices, or an Ethernet loop. Loops are refused until resend can protect against broadcast storms. Questionable but valid networks, such as two hosts with the same address or masks that disagree, are accepted: they are worth trying.
+A file that reads correctly is then validated as a network, and every problem is reported with the device or cable it concerns: duplicate ids, a cable to a missing device or port, two cables on one port, a cable between two ports of the same device, a missing or unusable host address, a delay or ageing time out of range, or more than 100 devices. Questionable but valid networks, such as two hosts with the same address, masks that disagree or a loop of switches, are accepted: they are worth trying. In a loop, resend's storm guard stops the frames that go round it.
 
 ## Versions
 

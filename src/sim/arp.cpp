@@ -1,18 +1,28 @@
 #include "sim/arp.hpp"
 
+#include <iterator>
 #include <utility>
 
 namespace netsim {
 
-std::optional<MacAddress> Arp::lookup(Ipv4Address address) const {
+std::optional<MacAddress> Arp::lookup(Context& context, const Nic& nic, Ipv4Address address) {
     const auto it = cache_.find(address);
-    return it == cache_.end() ? std::nullopt : std::optional(it->second);
+    if (it == cache_.end()) return std::nullopt;
+    if (it->second.valid(context.now())) return it->second.mac;
+    context.record({.kind = TraceKind::ArpEntryExpired, .port = nic.port, .value = address.bits()});
+    cache_.erase(it);
+    return std::nullopt;
 }
 
-void Arp::resolve(Context& context, const Nic& nic, Ipv4Address next_hop, Outgoing outgoing) {
+std::optional<Outgoing> Arp::resolve(Context& context, const Nic& nic, Ipv4Address next_hop, Outgoing outgoing) {
     auto [resolution, fresh] = resolving_.try_emplace(next_hop);
-    resolution->second.waiting.push_back(std::move(outgoing));
+    auto& waiting = resolution->second.waiting;
+    waiting.push_back(std::move(outgoing));
     if (fresh) request(context, nic, next_hop, resolution->second);
+    if (waiting.size() <= arp_queue_limit) return std::nullopt;
+    auto oldest = std::move(waiting.front());
+    waiting.pop_front();
+    return oldest;
 }
 
 void Arp::request(Context& context, const Nic& nic, Ipv4Address next_hop, Resolution& resolution) {
@@ -26,11 +36,12 @@ void Arp::request(Context& context, const Nic& nic, Ipv4Address next_hop, Resolu
 std::vector<Outgoing> Arp::receive(Context& context, const Nic& nic, const Arrival& arrival, const ArpPacket& packet) {
     const auto self = nic.address(context).address();
     const bool for_us = packet.target_ip == self;
-    // The merge step: refresh a known sender; learn it when the packet is
-    // for us, since we are about to talk to it.
-    const bool merge = cache_.contains(packet.sender_ip) || for_us;
+    // The merge step: refresh a sender we know or are asking for; learn it
+    // when the packet is for us, since we are about to talk to it.
+    const auto known = cache_.find(packet.sender_ip);
+    const bool merge = (known != cache_.end() && known->second.valid(context.now())) || resolving_.contains(packet.sender_ip) || for_us;
     if (merge) {
-        cache_[packet.sender_ip] = packet.sender_mac;
+        cache_[packet.sender_ip] = {packet.sender_mac, context.now()};
         context.note(arrival, TraceKind::ArpCacheUpdated);
     }
     if (!for_us) {
@@ -43,7 +54,7 @@ std::vector<Outgoing> Arp::receive(Context& context, const Nic& nic, const Arriv
     const auto it = merge ? resolving_.find(packet.sender_ip) : resolving_.end();
     if (it == resolving_.end()) return {};
     context.cancel(it->second.timer);
-    auto ready = std::move(it->second.waiting);
+    std::vector<Outgoing> ready(std::make_move_iterator(it->second.waiting.begin()), std::make_move_iterator(it->second.waiting.end()));
     resolving_.erase(it);
     return ready;
 }
@@ -57,14 +68,19 @@ std::vector<Outgoing> Arp::retry(Context& context, const Nic& nic, Ipv4Address n
         request(context, nic, next_hop, resolution);
         return {};
     }
-    auto dropped = std::move(resolution.waiting);
+    std::vector<Outgoing> dropped(std::make_move_iterator(resolution.waiting.begin()), std::make_move_iterator(resolution.waiting.end()));
     resolving_.erase(it);
     return dropped;
 }
 
-std::vector<ArpCacheEntry> Arp::entries() const {
+std::vector<ArpCacheEntry> Arp::entries(SimTime now) const {
+    std::map<Ipv4Address, ArpCacheEntry> rows;
+    for (const auto& [ip, entry] : cache_)
+        if (entry.valid(now)) rows[ip] = {ip, entry.mac, ArpState::Reachable, entry.updated + arp_cache_timeout, 0};
+    for (const auto& [ip, resolution] : resolving_)
+        rows.try_emplace(ip, ArpCacheEntry{ip, {}, ArpState::Incomplete, {}, resolution.waiting.size()});
     std::vector<ArpCacheEntry> entries;
-    for (const auto& [ip, mac] : cache_) entries.push_back({ip, mac});
+    for (const auto& [ip, row] : rows) entries.push_back(row);
     return entries;
 }
 

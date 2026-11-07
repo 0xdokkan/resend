@@ -74,23 +74,23 @@ After A, a public **0.1.1 preview** can collect early feedback.
 
 **Outcome:** the instructive failures become possible: stale caches, cables moved while traffic flows, loops.
 
-- [ ] **M3.1 Edits while running.** `Simulation::apply(Edit)` at the current time, recorded in the trace: cable up/down, plug/unplug/move, port admin state, power, IPv4 change, add/remove devices. A frame on a cable that goes down is lost on arrival with `LinkDown`; powering off clears volatile state.
-- [ ] **M3.2 ARP cache with states** (RFC 1122 §2.3.2): incomplete entries with a queue (the latest packet is kept), at most one request per second per address, three attempts, entries that expire after 60 s.
-- [ ] **M3.3 MAC ageing** in the switch, 300 s by default (IEEE 802.1Q), with the time of the last update.
-- [ ] **M3.4 Replies resolve the sender.** A host that must answer an address it has no entry for resolves it with ARP first; `Reason::NotModelled` disappears.
-- [ ] **M3.5 Ping as an application:** identifier, sequence numbers, count, interval and timeout; per-reply round-trip time and a summary like `ping`'s.
-- [ ] **M3.6 IPv4 TTL** in every packet (64 from hosts).
+- [x] **M3.1 Edits while running.** `Simulation::apply(Edit)` at the current time, recorded in the trace: cable up/down, plug/unplug/move, port admin state, power, IPv4 change, add/remove devices. A frame on a cable that goes down is lost on arrival with `LinkDown`; powering off clears volatile state.
+- [x] **M3.2 ARP cache with states** (RFC 1122 §2.3.2): incomplete entries with a queue (the latest packet is kept), at most one request per second per address, three attempts, entries that expire after 60 s.
+- [x] **M3.3 MAC ageing** in the switch, 300 s by default (IEEE 802.1Q), with the time of the last update.
+- [x] **M3.4 Replies resolve the sender.** A host that must answer an address it has no entry for resolves it with ARP first; `Reason::NotModelled` disappears.
+- [x] **M3.5 Ping as an application:** identifier, sequence numbers, count, interval and timeout; per-reply round-trip time and a summary like `ping`'s.
+- [x] **M3.6 IPv4 TTL** in every packet (64 from hosts).
 - [x] **M3.7 Explicit ports** in the engine API and in the scenario (done with M2).
-- [ ] **M3.8 Loops allowed, storm protection.** Ethernet has no TTL: when a frame is copied beyond a limit the simulator pauses with a record of its own category (`SimulatorGuard`), shown in a distinct colour and never as network behaviour.
-- [ ] **M3.9 Bytes and pcap.** The `wire` module encodes frames (Ethernet II, ARP, IPv4 with checksum, ICMP with checksum), decodes them for round trips, and writes pcap files with nanosecond timestamps, for the whole network or one cable.
+- [x] **M3.8 Loops allowed, storm protection.** Ethernet has no TTL: when a frame is copied beyond a limit the simulator pauses with a record of its own category (`SimulatorGuard`), shown in a distinct colour and never as network behaviour.
+- [x] **M3.9 Bytes and pcap.** The `wire` module encodes frames (Ethernet II, ARP, IPv4 with checksum, ICMP with checksum), decodes them for round trips, and writes pcap files with nanosecond timestamps, for the whole network or one cable.
 
 **Exit checks** (automated scenarios)
 
-- [ ] After an IP change the caches of the other hosts stay stale until the entry expires, then ARP finds the new owner.
-- [ ] After a cable is moved to another switch port, frames go to the old port until the switch relearns or the entry ages out.
-- [ ] A loop of three switches trips the storm protection, which is clearly separate from network events.
-- [ ] `tshark -z expert` reports no errors or warnings on the exported pcap files (test skipped when tshark is missing).
-- [ ] At every instant, frames sent = frames delivered + frames dropped + frames in flight (randomised test).
+- [x] After an IP change the caches of the other hosts stay stale until the entry expires, then ARP finds the new owner. (`stale_entry_after_address_change` in `tests/live_tests.cpp`, regression case 17.)
+- [x] After a cable is moved to another switch port, frames go to the old port until the switch relearns or the entry ages out. (`moved_cable` and `mac_ageing`, regression case 18.)
+- [x] A loop of three switches trips the storm protection, which is clearly separate from network events. (`storm_guard`, regression case 19, the GUI and app tests, `examples/switch-loop.json`.)
+- [x] `tshark -z expert` reports no errors or warnings on the exported pcap files (test skipped when tshark is missing). (CTest `pcap-wireshark-expert`, checked with TShark 4.7.4 on Linux.)
+- [x] At every instant, frames sent = frames delivered + frames dropped + frames in flight (randomised test). (`random_live_networks`: 300 networks, loops included, edited at random; frames the storm guard stops count as dropped.)
 
 ## M4 — Usable sandbox → 0.2 (50–80 h)
 
@@ -181,7 +181,7 @@ Deferred on purpose: dynamically loaded plugins (fragile C++ ABI), an IOS-style 
 
 ## Risks
 
-1. **Explaining without inventing.** Every explanation must come from a record and the state it consulted. The `explain` module and the `NotModelled` reason exist for this.
+1. **Explaining without inventing.** Every explanation must come from a record and the state it consulted. The `explain` module exists for this, and a case the model does not cover is said to be outside it, never presented as network behaviour; the storm guard's `SimulatorGuard` records are the example.
 2. **Scope.** Each protocol gets a model contract: what is modelled, which RFC sections it follows, which simplifications it declares.
 3. **Edits while running** (M3) are the hardest part to keep consistent, and the most instructive.
 4. **Software rendering.** Without a GPU, Slint's software renderer drew 15–19 fps with 150 devices; semantic zoom must bring it above 30 fps or the toolkit choice is reopened (ADR 0002).

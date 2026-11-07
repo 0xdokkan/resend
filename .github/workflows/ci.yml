@@ -35,8 +35,12 @@ jobs:
         compiler: [g++, clang++]
     steps:
       - uses: actions/checkout@v5
-      - name: Install Ninja
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Install Ninja and tshark
+        # tshark checks the exported captures; its installer asks about
+        # capture permissions unless told not to.
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ninja-build tshark
       - name: Configure
         run: >
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug

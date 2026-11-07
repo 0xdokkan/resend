@@ -34,6 +34,12 @@ struct PortConfig {
     bool operator==(const PortConfig&) const = default;
 };
 
+// How long a switch keeps a MAC address it has not seen again: IEEE 802.1Q's
+// default and range.
+constexpr SimTime default_mac_ageing = std::chrono::seconds(300);
+constexpr SimTime min_mac_ageing = std::chrono::seconds(10);
+constexpr SimTime max_mac_ageing = std::chrono::seconds(1'000'000);
+
 struct DeviceConfig {
     DeviceId id{};
     DeviceKind kind = DeviceKind::Host;
@@ -41,6 +47,7 @@ struct DeviceConfig {
     bool powered = true;
     std::vector<PortConfig> ports;
     int x = 0, y = 0;  // top-left corner of the card, in canvas units
+    SimTime mac_ageing = default_mac_ageing;  // switches only
     bool operator==(const DeviceConfig&) const = default;
 };
 
@@ -78,6 +85,8 @@ constexpr int switch_ports = 8;
 constexpr std::size_t max_devices = 100;
 constexpr SimTime min_delay = std::chrono::microseconds(1);
 constexpr SimTime max_delay = std::chrono::seconds(10);
+// Card positions, as in scenario files.
+constexpr int max_coordinate = 1'000'000;
 
 int port_count(DeviceKind kind);
 // The MAC a port gets by default: 02:00:<id> for host ports, so hosts keep
@@ -93,7 +102,8 @@ struct Issue {
     bool operator==(const Issue&) const = default;
 };
 // Everything that makes a scenario impossible to simulate. Valid but
-// questionable networks (duplicate addresses, inconsistent masks) pass.
+// questionable networks (duplicate addresses, inconsistent masks, Ethernet
+// loops) pass: they are worth trying.
 std::vector<Issue> validate(const Scenario& scenario);
 
 // The network the app starts with: PC-A and PC-B on Switch-01.

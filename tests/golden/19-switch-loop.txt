@@ -1,0 +1,2640 @@
+# three switches in a ring: the storm guard
+
+## pings
+1  PC-4 > 192.168.1.14  failed ArpUnresolved  0.000 ms .. 3000.000 ms
+  seq 1  lost ArpUnresolved  0.000 ms .. 3000.000 ms  record 890
+
+## records
+0.000 ms  #0 e1  PC-4 port -  PingStarted  link - frame - value 1
+0.000 ms  #1 e1  PC-4 port 1  FrameSent  link 4 frame 0 value 1
+10.000 ms  #2 e2  Switch-1 port 3  FrameReceived  link 4 frame 0 value 0
+10.000 ms  #3 e2  Switch-1 port 3  MacLearned  link 4 frame 0 value 0
+10.000 ms  #4 e2  Switch-1 port 3  FrameFlooded  link 4 frame 0 value 0
+10.000 ms  #5 e2  Switch-1 port 1  FrameSent  link 1 frame 0 value 0
+10.000 ms  #6 e2  Switch-1 port 2  FrameSent  link 3 frame 0 value 0
+20.000 ms  #7 e3  Switch-2 port 1  FrameReceived  link 1 frame 0 value 0
+20.000 ms  #8 e3  Switch-2 port 1  MacLearned  link 1 frame 0 value 0
+20.000 ms  #9 e3  Switch-2 port 1  FrameFlooded  link 1 frame 0 value 0
+20.000 ms  #10 e3  Switch-2 port 2  FrameSent  link 2 frame 0 value 0
+20.000 ms  #11 e3  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+20.000 ms  #12 e4  Switch-3 port 2  FrameReceived  link 3 frame 0 value 0
+20.000 ms  #13 e4  Switch-3 port 2  MacLearned  link 3 frame 0 value 0
+20.000 ms  #14 e4  Switch-3 port 2  FrameFlooded  link 3 frame 0 value 0
+20.000 ms  #15 e4  Switch-3 port 1  FrameSent  link 2 frame 0 value 0
+30.000 ms  #16 e5  Switch-3 port 1  FrameReceived  link 2 frame 0 value 0
+30.000 ms  #17 e5  Switch-3 port 1  MacLearned  link 2 frame 0 value 0
+30.000 ms  #18 e5  Switch-3 port 1  FrameFlooded  link 2 frame 0 value 0
+30.000 ms  #19 e5  Switch-3 port 2  FrameSent  link 3 frame 0 value 0
+30.000 ms  #20 e6  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+30.000 ms  #21 e6  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+30.000 ms  #22 e6  PC-5 port 1  FrameSent  link 5 frame 1 value 0
+30.000 ms  #23 e7  Switch-2 port 2  FrameReceived  link 2 frame 0 value 0
+30.000 ms  #24 e7  Switch-2 port 2  MacLearned  link 2 frame 0 value 0
+30.000 ms  #25 e7  Switch-2 port 2  FrameFlooded  link 2 frame 0 value 0
+30.000 ms  #26 e7  Switch-2 port 1  FrameSent  link 1 frame 0 value 0
+30.000 ms  #27 e7  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+40.000 ms  #28 e8  Switch-1 port 2  FrameReceived  link 3 frame 0 value 0
+40.000 ms  #29 e8  Switch-1 port 2  MacLearned  link 3 frame 0 value 0
+40.000 ms  #30 e8  Switch-1 port 2  FrameFlooded  link 3 frame 0 value 0
+40.000 ms  #31 e8  Switch-1 port 1  FrameSent  link 1 frame 0 value 0
+40.000 ms  #32 e8  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+40.000 ms  #33 e9  Switch-2 port 3  FrameReceived  link 5 frame 1 value 0
+40.000 ms  #34 e9  Switch-2 port 3  MacLearned  link 5 frame 1 value 0
+40.000 ms  #35 e9  Switch-2 port 3  FrameForwarded  link 5 frame 1 value 0
+40.000 ms  #36 e9  Switch-2 port 2  FrameSent  link 2 frame 1 value 0
+40.000 ms  #37 e10  Switch-1 port 1  FrameReceived  link 1 frame 0 value 0
+40.000 ms  #38 e10  Switch-1 port 1  MacLearned  link 1 frame 0 value 0
+40.000 ms  #39 e10  Switch-1 port 1  FrameFlooded  link 1 frame 0 value 0
+40.000 ms  #40 e10  Switch-1 port 2  FrameSent  link 3 frame 0 value 0
+40.000 ms  #41 e10  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+40.000 ms  #42 e11  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+40.000 ms  #43 e11  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+40.000 ms  #44 e11  PC-5 port 1  FrameSent  link 5 frame 2 value 0
+50.000 ms  #45 e12  Switch-2 port 1  FrameReceived  link 1 frame 0 value 0
+50.000 ms  #46 e12  Switch-2 port 1  MacLearned  link 1 frame 0 value 0
+50.000 ms  #47 e12  Switch-2 port 1  FrameFlooded  link 1 frame 0 value 0
+50.000 ms  #48 e12  Switch-2 port 2  FrameSent  link 2 frame 0 value 0
+50.000 ms  #49 e12  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+50.000 ms  #50 e13  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+50.000 ms  #51 e13  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+50.000 ms  #52 e14  Switch-3 port 1  FrameReceived  link 2 frame 1 value 0
+50.000 ms  #53 e14  Switch-3 port 1  MacLearned  link 2 frame 1 value 0
+50.000 ms  #54 e14  Switch-3 port 1  FrameFiltered  link 2 frame 1 value 0
+50.000 ms  #55 e15  Switch-3 port 2  FrameReceived  link 3 frame 0 value 0
+50.000 ms  #56 e15  Switch-3 port 2  MacLearned  link 3 frame 0 value 0
+50.000 ms  #57 e15  Switch-3 port 2  FrameFlooded  link 3 frame 0 value 0
+50.000 ms  #58 e15  Switch-3 port 1  FrameSent  link 2 frame 0 value 0
+50.000 ms  #59 e16  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+50.000 ms  #60 e16  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+50.000 ms  #61 e17  Switch-2 port 3  FrameReceived  link 5 frame 2 value 0
+50.000 ms  #62 e17  Switch-2 port 3  FrameForwarded  link 5 frame 2 value 0
+50.000 ms  #63 e17  Switch-2 port 1  FrameSent  link 1 frame 2 value 0
+60.000 ms  #64 e18  Switch-3 port 1  FrameReceived  link 2 frame 0 value 0
+60.000 ms  #65 e18  Switch-3 port 1  MacLearned  link 2 frame 0 value 0
+60.000 ms  #66 e18  Switch-3 port 1  FrameFlooded  link 2 frame 0 value 0
+60.000 ms  #67 e18  Switch-3 port 2  FrameSent  link 3 frame 0 value 0
+60.000 ms  #68 e19  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+60.000 ms  #69 e19  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+60.000 ms  #70 e19  PC-5 port 1  FrameSent  link 5 frame 3 value 0
+60.000 ms  #71 e20  Switch-2 port 2  FrameReceived  link 2 frame 0 value 0
+60.000 ms  #72 e20  Switch-2 port 2  MacLearned  link 2 frame 0 value 0
+60.000 ms  #73 e20  Switch-2 port 2  FrameFlooded  link 2 frame 0 value 0
+60.000 ms  #74 e20  Switch-2 port 1  FrameSent  link 1 frame 0 value 0
+60.000 ms  #75 e20  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+60.000 ms  #76 e21  Switch-1 port 1  FrameReceived  link 1 frame 2 value 0
+60.000 ms  #77 e21  Switch-1 port 1  MacLearned  link 1 frame 2 value 0
+60.000 ms  #78 e21  Switch-1 port 1  FrameFiltered  link 1 frame 2 value 0
+70.000 ms  #79 e22  Switch-1 port 2  FrameReceived  link 3 frame 0 value 0
+70.000 ms  #80 e22  Switch-1 port 2  MacLearned  link 3 frame 0 value 0
+70.000 ms  #81 e22  Switch-1 port 2  FrameFlooded  link 3 frame 0 value 0
+70.000 ms  #82 e22  Switch-1 port 1  FrameSent  link 1 frame 0 value 0
+70.000 ms  #83 e22  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+70.000 ms  #84 e23  Switch-2 port 3  FrameReceived  link 5 frame 3 value 0
+70.000 ms  #85 e23  Switch-2 port 3  FrameForwarded  link 5 frame 3 value 0
+70.000 ms  #86 e23  Switch-2 port 2  FrameSent  link 2 frame 3 value 0
+70.000 ms  #87 e24  Switch-1 port 1  FrameReceived  link 1 frame 0 value 0
+70.000 ms  #88 e24  Switch-1 port 1  MacLearned  link 1 frame 0 value 0
+70.000 ms  #89 e24  Switch-1 port 1  FrameFlooded  link 1 frame 0 value 0
+70.000 ms  #90 e24  Switch-1 port 2  FrameSent  link 3 frame 0 value 0
+70.000 ms  #91 e24  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+70.000 ms  #92 e25  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+70.000 ms  #93 e25  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+70.000 ms  #94 e25  PC-5 port 1  FrameSent  link 5 frame 4 value 0
+80.000 ms  #95 e26  Switch-2 port 1  FrameReceived  link 1 frame 0 value 0
+80.000 ms  #96 e26  Switch-2 port 1  MacLearned  link 1 frame 0 value 0
+80.000 ms  #97 e26  Switch-2 port 1  FrameFlooded  link 1 frame 0 value 0
+80.000 ms  #98 e26  Switch-2 port 2  FrameSent  link 2 frame 0 value 0
+80.000 ms  #99 e26  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+80.000 ms  #100 e27  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+80.000 ms  #101 e27  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+80.000 ms  #102 e28  Switch-3 port 1  FrameReceived  link 2 frame 3 value 0
+80.000 ms  #103 e28  Switch-3 port 1  FrameFiltered  link 2 frame 3 value 0
+80.000 ms  #104 e29  Switch-3 port 2  FrameReceived  link 3 frame 0 value 0
+80.000 ms  #105 e29  Switch-3 port 2  MacLearned  link 3 frame 0 value 0
+80.000 ms  #106 e29  Switch-3 port 2  FrameFlooded  link 3 frame 0 value 0
+80.000 ms  #107 e29  Switch-3 port 1  FrameSent  link 2 frame 0 value 0
+80.000 ms  #108 e30  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+80.000 ms  #109 e30  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+80.000 ms  #110 e31  Switch-2 port 3  FrameReceived  link 5 frame 4 value 0
+80.000 ms  #111 e31  Switch-2 port 3  FrameForwarded  link 5 frame 4 value 0
+80.000 ms  #112 e31  Switch-2 port 1  FrameSent  link 1 frame 4 value 0
+90.000 ms  #113 e32  Switch-3 port 1  FrameReceived  link 2 frame 0 value 0
+90.000 ms  #114 e32  Switch-3 port 1  MacLearned  link 2 frame 0 value 0
+90.000 ms  #115 e32  Switch-3 port 1  FrameFlooded  link 2 frame 0 value 0
+90.000 ms  #116 e32  Switch-3 port 2  FrameSent  link 3 frame 0 value 0
+90.000 ms  #117 e33  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+90.000 ms  #118 e33  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+90.000 ms  #119 e33  PC-5 port 1  FrameSent  link 5 frame 5 value 0
+90.000 ms  #120 e34  Switch-2 port 2  FrameReceived  link 2 frame 0 value 0
+90.000 ms  #121 e34  Switch-2 port 2  MacLearned  link 2 frame 0 value 0
+90.000 ms  #122 e34  Switch-2 port 2  FrameFlooded  link 2 frame 0 value 0
+90.000 ms  #123 e34  Switch-2 port 1  FrameSent  link 1 frame 0 value 0
+90.000 ms  #124 e34  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+90.000 ms  #125 e35  Switch-1 port 1  FrameReceived  link 1 frame 4 value 0
+90.000 ms  #126 e35  Switch-1 port 1  FrameFiltered  link 1 frame 4 value 0
+100.000 ms  #127 e36  Switch-1 port 2  FrameReceived  link 3 frame 0 value 0
+100.000 ms  #128 e36  Switch-1 port 2  MacLearned  link 3 frame 0 value 0
+100.000 ms  #129 e36  Switch-1 port 2  FrameFlooded  link 3 frame 0 value 0
+100.000 ms  #130 e36  Switch-1 port 1  FrameSent  link 1 frame 0 value 0
+100.000 ms  #131 e36  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+100.000 ms  #132 e37  Switch-2 port 3  FrameReceived  link 5 frame 5 value 0
+100.000 ms  #133 e37  Switch-2 port 3  FrameForwarded  link 5 frame 5 value 0
+100.000 ms  #134 e37  Switch-2 port 2  FrameSent  link 2 frame 5 value 0
+100.000 ms  #135 e38  Switch-1 port 1  FrameReceived  link 1 frame 0 value 0
+100.000 ms  #136 e38  Switch-1 port 1  MacLearned  link 1 frame 0 value 0
+100.000 ms  #137 e38  Switch-1 port 1  FrameFlooded  link 1 frame 0 value 0
+100.000 ms  #138 e38  Switch-1 port 2  FrameSent  link 3 frame 0 value 0
+100.000 ms  #139 e38  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+100.000 ms  #140 e39  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+100.000 ms  #141 e39  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+100.000 ms  #142 e39  PC-5 port 1  FrameSent  link 5 frame 6 value 0
+110.000 ms  #143 e40  Switch-2 port 1  FrameReceived  link 1 frame 0 value 0
+110.000 ms  #144 e40  Switch-2 port 1  MacLearned  link 1 frame 0 value 0
+110.000 ms  #145 e40  Switch-2 port 1  FrameFlooded  link 1 frame 0 value 0
+110.000 ms  #146 e40  Switch-2 port 2  FrameSent  link 2 frame 0 value 0
+110.000 ms  #147 e40  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+110.000 ms  #148 e41  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+110.000 ms  #149 e41  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+110.000 ms  #150 e42  Switch-3 port 1  FrameReceived  link 2 frame 5 value 0
+110.000 ms  #151 e42  Switch-3 port 1  FrameFiltered  link 2 frame 5 value 0
+110.000 ms  #152 e43  Switch-3 port 2  FrameReceived  link 3 frame 0 value 0
+110.000 ms  #153 e43  Switch-3 port 2  MacLearned  link 3 frame 0 value 0
+110.000 ms  #154 e43  Switch-3 port 2  FrameFlooded  link 3 frame 0 value 0
+110.000 ms  #155 e43  Switch-3 port 1  FrameSent  link 2 frame 0 value 0
+110.000 ms  #156 e44  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+110.000 ms  #157 e44  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+110.000 ms  #158 e45  Switch-2 port 3  FrameReceived  link 5 frame 6 value 0
+110.000 ms  #159 e45  Switch-2 port 3  FrameForwarded  link 5 frame 6 value 0
+110.000 ms  #160 e45  Switch-2 port 1  FrameSent  link 1 frame 6 value 0
+120.000 ms  #161 e46  Switch-3 port 1  FrameReceived  link 2 frame 0 value 0
+120.000 ms  #162 e46  Switch-3 port 1  MacLearned  link 2 frame 0 value 0
+120.000 ms  #163 e46  Switch-3 port 1  FrameFlooded  link 2 frame 0 value 0
+120.000 ms  #164 e46  Switch-3 port 2  FrameSent  link 3 frame 0 value 0
+120.000 ms  #165 e47  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+120.000 ms  #166 e47  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+120.000 ms  #167 e47  PC-5 port 1  FrameSent  link 5 frame 7 value 0
+120.000 ms  #168 e48  Switch-2 port 2  FrameReceived  link 2 frame 0 value 0
+120.000 ms  #169 e48  Switch-2 port 2  MacLearned  link 2 frame 0 value 0
+120.000 ms  #170 e48  Switch-2 port 2  FrameFlooded  link 2 frame 0 value 0
+120.000 ms  #171 e48  Switch-2 port 1  FrameSent  link 1 frame 0 value 0
+120.000 ms  #172 e48  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+120.000 ms  #173 e49  Switch-1 port 1  FrameReceived  link 1 frame 6 value 0
+120.000 ms  #174 e49  Switch-1 port 1  FrameFiltered  link 1 frame 6 value 0
+130.000 ms  #175 e50  Switch-1 port 2  FrameReceived  link 3 frame 0 value 0
+130.000 ms  #176 e50  Switch-1 port 2  MacLearned  link 3 frame 0 value 0
+130.000 ms  #177 e50  Switch-1 port 2  FrameFlooded  link 3 frame 0 value 0
+130.000 ms  #178 e50  Switch-1 port 1  FrameSent  link 1 frame 0 value 0
+130.000 ms  #179 e50  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+130.000 ms  #180 e51  Switch-2 port 3  FrameReceived  link 5 frame 7 value 0
+130.000 ms  #181 e51  Switch-2 port 3  FrameForwarded  link 5 frame 7 value 0
+130.000 ms  #182 e51  Switch-2 port 2  FrameSent  link 2 frame 7 value 0
+130.000 ms  #183 e52  Switch-1 port 1  FrameReceived  link 1 frame 0 value 0
+130.000 ms  #184 e52  Switch-1 port 1  MacLearned  link 1 frame 0 value 0
+130.000 ms  #185 e52  Switch-1 port 1  FrameFlooded  link 1 frame 0 value 0
+130.000 ms  #186 e52  Switch-1 port 2  FrameSent  link 3 frame 0 value 0
+130.000 ms  #187 e52  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+130.000 ms  #188 e53  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+130.000 ms  #189 e53  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+130.000 ms  #190 e53  PC-5 port 1  FrameSent  link 5 frame 8 value 0
+140.000 ms  #191 e54  Switch-2 port 1  FrameReceived  link 1 frame 0 value 0
+140.000 ms  #192 e54  Switch-2 port 1  MacLearned  link 1 frame 0 value 0
+140.000 ms  #193 e54  Switch-2 port 1  FrameFlooded  link 1 frame 0 value 0
+140.000 ms  #194 e54  Switch-2 port 2  FrameSent  link 2 frame 0 value 0
+140.000 ms  #195 e54  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+140.000 ms  #196 e55  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+140.000 ms  #197 e55  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+140.000 ms  #198 e56  Switch-3 port 1  FrameReceived  link 2 frame 7 value 0
+140.000 ms  #199 e56  Switch-3 port 1  FrameFiltered  link 2 frame 7 value 0
+140.000 ms  #200 e57  Switch-3 port 2  FrameReceived  link 3 frame 0 value 0
+140.000 ms  #201 e57  Switch-3 port 2  MacLearned  link 3 frame 0 value 0
+140.000 ms  #202 e57  Switch-3 port 2  FrameFlooded  link 3 frame 0 value 0
+140.000 ms  #203 e57  Switch-3 port 1  FrameSent  link 2 frame 0 value 0
+140.000 ms  #204 e58  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+140.000 ms  #205 e58  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+140.000 ms  #206 e59  Switch-2 port 3  FrameReceived  link 5 frame 8 value 0
+140.000 ms  #207 e59  Switch-2 port 3  FrameForwarded  link 5 frame 8 value 0
+140.000 ms  #208 e59  Switch-2 port 1  FrameSent  link 1 frame 8 value 0
+150.000 ms  #209 e60  Switch-3 port 1  FrameReceived  link 2 frame 0 value 0
+150.000 ms  #210 e60  Switch-3 port 1  MacLearned  link 2 frame 0 value 0
+150.000 ms  #211 e60  Switch-3 port 1  FrameFlooded  link 2 frame 0 value 0
+150.000 ms  #212 e60  Switch-3 port 2  FrameSent  link 3 frame 0 value 0
+150.000 ms  #213 e61  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+150.000 ms  #214 e61  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+150.000 ms  #215 e61  PC-5 port 1  FrameSent  link 5 frame 9 value 0
+150.000 ms  #216 e62  Switch-2 port 2  FrameReceived  link 2 frame 0 value 0
+150.000 ms  #217 e62  Switch-2 port 2  MacLearned  link 2 frame 0 value 0
+150.000 ms  #218 e62  Switch-2 port 2  FrameFlooded  link 2 frame 0 value 0
+150.000 ms  #219 e62  Switch-2 port 1  FrameSent  link 1 frame 0 value 0
+150.000 ms  #220 e62  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+150.000 ms  #221 e63  Switch-1 port 1  FrameReceived  link 1 frame 8 value 0
+150.000 ms  #222 e63  Switch-1 port 1  FrameFiltered  link 1 frame 8 value 0
+160.000 ms  #223 e64  Switch-1 port 2  FrameReceived  link 3 frame 0 value 0
+160.000 ms  #224 e64  Switch-1 port 2  MacLearned  link 3 frame 0 value 0
+160.000 ms  #225 e64  Switch-1 port 2  FrameFlooded  link 3 frame 0 value 0
+160.000 ms  #226 e64  Switch-1 port 1  FrameSent  link 1 frame 0 value 0
+160.000 ms  #227 e64  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+160.000 ms  #228 e65  Switch-2 port 3  FrameReceived  link 5 frame 9 value 0
+160.000 ms  #229 e65  Switch-2 port 3  FrameForwarded  link 5 frame 9 value 0
+160.000 ms  #230 e65  Switch-2 port 2  FrameSent  link 2 frame 9 value 0
+160.000 ms  #231 e66  Switch-1 port 1  FrameReceived  link 1 frame 0 value 0
+160.000 ms  #232 e66  Switch-1 port 1  MacLearned  link 1 frame 0 value 0
+160.000 ms  #233 e66  Switch-1 port 1  FrameFlooded  link 1 frame 0 value 0
+160.000 ms  #234 e66  Switch-1 port 2  FrameSent  link 3 frame 0 value 0
+160.000 ms  #235 e66  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+160.000 ms  #236 e67  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+160.000 ms  #237 e67  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+160.000 ms  #238 e67  PC-5 port 1  FrameSent  link 5 frame 10 value 0
+170.000 ms  #239 e68  Switch-2 port 1  FrameReceived  link 1 frame 0 value 0
+170.000 ms  #240 e68  Switch-2 port 1  MacLearned  link 1 frame 0 value 0
+170.000 ms  #241 e68  Switch-2 port 1  FrameFlooded  link 1 frame 0 value 0
+170.000 ms  #242 e68  Switch-2 port 2  FrameSent  link 2 frame 0 value 0
+170.000 ms  #243 e68  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+170.000 ms  #244 e69  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+170.000 ms  #245 e69  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+170.000 ms  #246 e70  Switch-3 port 1  FrameReceived  link 2 frame 9 value 0
+170.000 ms  #247 e70  Switch-3 port 1  FrameFiltered  link 2 frame 9 value 0
+170.000 ms  #248 e71  Switch-3 port 2  FrameReceived  link 3 frame 0 value 0
+170.000 ms  #249 e71  Switch-3 port 2  MacLearned  link 3 frame 0 value 0
+170.000 ms  #250 e71  Switch-3 port 2  FrameFlooded  link 3 frame 0 value 0
+170.000 ms  #251 e71  Switch-3 port 1  FrameSent  link 2 frame 0 value 0
+170.000 ms  #252 e72  PC-4 port 1  FrameReceived  link 4 frame 0 value 0
+170.000 ms  #253 e72  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+170.000 ms  #254 e73  Switch-2 port 3  FrameReceived  link 5 frame 10 value 0
+170.000 ms  #255 e73  Switch-2 port 3  FrameForwarded  link 5 frame 10 value 0
+170.000 ms  #256 e73  Switch-2 port 1  FrameSent  link 1 frame 10 value 0
+180.000 ms  #257 e74  Switch-3 port 1  FrameReceived  link 2 frame 0 value 0
+180.000 ms  #258 e74  Switch-3 port 1  MacLearned  link 2 frame 0 value 0
+180.000 ms  #259 e74  Switch-3 port 1  FrameFlooded  link 2 frame 0 value 0
+180.000 ms  #260 e74  Switch-3 port 2  FrameSent  link 3 frame 0 value 0
+180.000 ms  #261 e75  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+180.000 ms  #262 e75  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+180.000 ms  #263 e75  PC-5 port 1  FrameSent  link 5 frame 11 value 0
+180.000 ms  #264 e76  Switch-2 port 2  FrameReceived  link 2 frame 0 value 0
+180.000 ms  #265 e76  Switch-2 port 2  MacLearned  link 2 frame 0 value 0
+180.000 ms  #266 e76  Switch-2 port 2  FrameFlooded  link 2 frame 0 value 0
+180.000 ms  #267 e76  Switch-2 port 1  FrameSent  link 1 frame 0 value 0
+180.000 ms  #268 e76  Switch-2 port 3  FrameSent  link 5 frame 0 value 0
+180.000 ms  #269 e77  Switch-1 port 1  FrameReceived  link 1 frame 10 value 0
+180.000 ms  #270 e77  Switch-1 port 1  FrameFiltered  link 1 frame 10 value 0
+190.000 ms  #271 e78  Switch-1 port 2  FrameReceived  link 3 frame 0 value 0
+190.000 ms  #272 e78  Switch-1 port 2  MacLearned  link 3 frame 0 value 0
+190.000 ms  #273 e78  Switch-1 port 2  FrameFlooded  link 3 frame 0 value 0
+190.000 ms  #274 e78  Switch-1 port 1  FrameSent  link 1 frame 0 value 0
+190.000 ms  #275 e78  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+190.000 ms  #276 e79  Switch-2 port 3  FrameReceived  link 5 frame 11 value 0
+190.000 ms  #277 e79  Switch-2 port 3  FrameForwarded  link 5 frame 11 value 0
+190.000 ms  #278 e79  Switch-2 port 2  FrameSent  link 2 frame 11 value 0
+190.000 ms  #279 e80  Switch-1 port 1  FrameReceived  link 1 frame 0 value 0
+190.000 ms  #280 e80  Switch-1 port 1  MacLearned  link 1 frame 0 value 0
+190.000 ms  #281 e80  Switch-1 port 1  FrameFlooded  link 1 frame 0 value 0
+190.000 ms  #282 e80  Switch-1 port 2  FrameSent  link 3 frame 0 value 0
+190.000 ms  #283 e80  Switch-1 port 3  FrameSent  link 4 frame 0 value 0
+190.000 ms  #284 e81  PC-5 port 1  FrameReceived  link 5 frame 0 value 0
+190.000 ms  #285 e81  PC-5 port 1  ArpCacheUpdated  link 5 frame 0 value 0
+190.000 ms  #286 e81  PC-5 port 1  FrameSent  link 5 frame 12 value 0
+200.000 ms  #287 e82  Switch-2 port 1  FrameReceived  link 1 frame 0 value 0
+200.000 ms  #288 e82  Switch-2 port 1  MacLearned  link 1 frame 0 value 0
+200.000 ms  #289 e82  Switch-2 port 1  FrameFlooded  link 1 frame 0 value 0
+200.000 ms  #290 e82  Switch-2 port 2  FrameSent  link 2 frame 0 value 0
+200.000 ms  #291 e82  Switch-2 port -  SimulatorGuard  link - frame 0 value 64
+200.000 ms  #292 e83  Switch-3 port 1  FrameReceived  link 2 frame 11 value 0
+200.000 ms  #293 e83  Switch-3 port 1  FrameFiltered  link 2 frame 11 value 0
+200.000 ms  #294 e84  Switch-2 port 3  FrameReceived  link 5 frame 12 value 0
+200.000 ms  #295 e84  Switch-2 port 3  FrameForwarded  link 5 frame 12 value 0
+200.000 ms  #296 e84  Switch-2 port 1  FrameSent  link 1 frame 12 value 0
+210.000 ms  #297 e85  Switch-1 port 1  FrameReceived  link 1 frame 12 value 0
+210.000 ms  #298 e85  Switch-1 port 1  FrameFiltered  link 1 frame 12 value 0
+1000.000 ms  #299 e86  PC-4 port 1  ArpTimeout  link - frame - value 1
+1000.000 ms  #300 e86  PC-4 port 1  FrameSent  link 4 frame 13 value 2
+1010.000 ms  #301 e87  Switch-1 port 3  FrameReceived  link 4 frame 13 value 0
+1010.000 ms  #302 e87  Switch-1 port 3  MacLearned  link 4 frame 13 value 0
+1010.000 ms  #303 e87  Switch-1 port 3  FrameFlooded  link 4 frame 13 value 0
+1010.000 ms  #304 e87  Switch-1 port 1  FrameSent  link 1 frame 13 value 0
+1010.000 ms  #305 e87  Switch-1 port 2  FrameSent  link 3 frame 13 value 0
+1020.000 ms  #306 e88  Switch-2 port 1  FrameReceived  link 1 frame 13 value 0
+1020.000 ms  #307 e88  Switch-2 port 1  FrameFlooded  link 1 frame 13 value 0
+1020.000 ms  #308 e88  Switch-2 port 2  FrameSent  link 2 frame 13 value 0
+1020.000 ms  #309 e88  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1020.000 ms  #310 e89  Switch-3 port 2  FrameReceived  link 3 frame 13 value 0
+1020.000 ms  #311 e89  Switch-3 port 2  MacLearned  link 3 frame 13 value 0
+1020.000 ms  #312 e89  Switch-3 port 2  FrameFlooded  link 3 frame 13 value 0
+1020.000 ms  #313 e89  Switch-3 port 1  FrameSent  link 2 frame 13 value 0
+1030.000 ms  #314 e90  Switch-3 port 1  FrameReceived  link 2 frame 13 value 0
+1030.000 ms  #315 e90  Switch-3 port 1  MacLearned  link 2 frame 13 value 0
+1030.000 ms  #316 e90  Switch-3 port 1  FrameFlooded  link 2 frame 13 value 0
+1030.000 ms  #317 e90  Switch-3 port 2  FrameSent  link 3 frame 13 value 0
+1030.000 ms  #318 e91  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1030.000 ms  #319 e91  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1030.000 ms  #320 e91  PC-5 port 1  FrameSent  link 5 frame 14 value 0
+1030.000 ms  #321 e92  Switch-2 port 2  FrameReceived  link 2 frame 13 value 0
+1030.000 ms  #322 e92  Switch-2 port 2  MacLearned  link 2 frame 13 value 0
+1030.000 ms  #323 e92  Switch-2 port 2  FrameFlooded  link 2 frame 13 value 0
+1030.000 ms  #324 e92  Switch-2 port 1  FrameSent  link 1 frame 13 value 0
+1030.000 ms  #325 e92  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1040.000 ms  #326 e93  Switch-1 port 2  FrameReceived  link 3 frame 13 value 0
+1040.000 ms  #327 e93  Switch-1 port 2  MacLearned  link 3 frame 13 value 0
+1040.000 ms  #328 e93  Switch-1 port 2  FrameFlooded  link 3 frame 13 value 0
+1040.000 ms  #329 e93  Switch-1 port 1  FrameSent  link 1 frame 13 value 0
+1040.000 ms  #330 e93  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1040.000 ms  #331 e94  Switch-2 port 3  FrameReceived  link 5 frame 14 value 0
+1040.000 ms  #332 e94  Switch-2 port 3  FrameForwarded  link 5 frame 14 value 0
+1040.000 ms  #333 e94  Switch-2 port 2  FrameSent  link 2 frame 14 value 0
+1040.000 ms  #334 e95  Switch-1 port 1  FrameReceived  link 1 frame 13 value 0
+1040.000 ms  #335 e95  Switch-1 port 1  MacLearned  link 1 frame 13 value 0
+1040.000 ms  #336 e95  Switch-1 port 1  FrameFlooded  link 1 frame 13 value 0
+1040.000 ms  #337 e95  Switch-1 port 2  FrameSent  link 3 frame 13 value 0
+1040.000 ms  #338 e95  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1040.000 ms  #339 e96  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1040.000 ms  #340 e96  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1040.000 ms  #341 e96  PC-5 port 1  FrameSent  link 5 frame 15 value 0
+1050.000 ms  #342 e97  Switch-2 port 1  FrameReceived  link 1 frame 13 value 0
+1050.000 ms  #343 e97  Switch-2 port 1  MacLearned  link 1 frame 13 value 0
+1050.000 ms  #344 e97  Switch-2 port 1  FrameFlooded  link 1 frame 13 value 0
+1050.000 ms  #345 e97  Switch-2 port 2  FrameSent  link 2 frame 13 value 0
+1050.000 ms  #346 e97  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1050.000 ms  #347 e98  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1050.000 ms  #348 e98  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1050.000 ms  #349 e99  Switch-3 port 1  FrameReceived  link 2 frame 14 value 0
+1050.000 ms  #350 e99  Switch-3 port 1  FrameFiltered  link 2 frame 14 value 0
+1050.000 ms  #351 e100  Switch-3 port 2  FrameReceived  link 3 frame 13 value 0
+1050.000 ms  #352 e100  Switch-3 port 2  MacLearned  link 3 frame 13 value 0
+1050.000 ms  #353 e100  Switch-3 port 2  FrameFlooded  link 3 frame 13 value 0
+1050.000 ms  #354 e100  Switch-3 port 1  FrameSent  link 2 frame 13 value 0
+1050.000 ms  #355 e101  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1050.000 ms  #356 e101  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1050.000 ms  #357 e102  Switch-2 port 3  FrameReceived  link 5 frame 15 value 0
+1050.000 ms  #358 e102  Switch-2 port 3  FrameForwarded  link 5 frame 15 value 0
+1050.000 ms  #359 e102  Switch-2 port 1  FrameSent  link 1 frame 15 value 0
+1060.000 ms  #360 e103  Switch-3 port 1  FrameReceived  link 2 frame 13 value 0
+1060.000 ms  #361 e103  Switch-3 port 1  MacLearned  link 2 frame 13 value 0
+1060.000 ms  #362 e103  Switch-3 port 1  FrameFlooded  link 2 frame 13 value 0
+1060.000 ms  #363 e103  Switch-3 port 2  FrameSent  link 3 frame 13 value 0
+1060.000 ms  #364 e104  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1060.000 ms  #365 e104  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1060.000 ms  #366 e104  PC-5 port 1  FrameSent  link 5 frame 16 value 0
+1060.000 ms  #367 e105  Switch-2 port 2  FrameReceived  link 2 frame 13 value 0
+1060.000 ms  #368 e105  Switch-2 port 2  MacLearned  link 2 frame 13 value 0
+1060.000 ms  #369 e105  Switch-2 port 2  FrameFlooded  link 2 frame 13 value 0
+1060.000 ms  #370 e105  Switch-2 port 1  FrameSent  link 1 frame 13 value 0
+1060.000 ms  #371 e105  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1060.000 ms  #372 e106  Switch-1 port 1  FrameReceived  link 1 frame 15 value 0
+1060.000 ms  #373 e106  Switch-1 port 1  FrameFiltered  link 1 frame 15 value 0
+1070.000 ms  #374 e107  Switch-1 port 2  FrameReceived  link 3 frame 13 value 0
+1070.000 ms  #375 e107  Switch-1 port 2  MacLearned  link 3 frame 13 value 0
+1070.000 ms  #376 e107  Switch-1 port 2  FrameFlooded  link 3 frame 13 value 0
+1070.000 ms  #377 e107  Switch-1 port 1  FrameSent  link 1 frame 13 value 0
+1070.000 ms  #378 e107  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1070.000 ms  #379 e108  Switch-2 port 3  FrameReceived  link 5 frame 16 value 0
+1070.000 ms  #380 e108  Switch-2 port 3  FrameForwarded  link 5 frame 16 value 0
+1070.000 ms  #381 e108  Switch-2 port 2  FrameSent  link 2 frame 16 value 0
+1070.000 ms  #382 e109  Switch-1 port 1  FrameReceived  link 1 frame 13 value 0
+1070.000 ms  #383 e109  Switch-1 port 1  MacLearned  link 1 frame 13 value 0
+1070.000 ms  #384 e109  Switch-1 port 1  FrameFlooded  link 1 frame 13 value 0
+1070.000 ms  #385 e109  Switch-1 port 2  FrameSent  link 3 frame 13 value 0
+1070.000 ms  #386 e109  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1070.000 ms  #387 e110  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1070.000 ms  #388 e110  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1070.000 ms  #389 e110  PC-5 port 1  FrameSent  link 5 frame 17 value 0
+1080.000 ms  #390 e111  Switch-2 port 1  FrameReceived  link 1 frame 13 value 0
+1080.000 ms  #391 e111  Switch-2 port 1  MacLearned  link 1 frame 13 value 0
+1080.000 ms  #392 e111  Switch-2 port 1  FrameFlooded  link 1 frame 13 value 0
+1080.000 ms  #393 e111  Switch-2 port 2  FrameSent  link 2 frame 13 value 0
+1080.000 ms  #394 e111  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1080.000 ms  #395 e112  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1080.000 ms  #396 e112  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1080.000 ms  #397 e113  Switch-3 port 1  FrameReceived  link 2 frame 16 value 0
+1080.000 ms  #398 e113  Switch-3 port 1  FrameFiltered  link 2 frame 16 value 0
+1080.000 ms  #399 e114  Switch-3 port 2  FrameReceived  link 3 frame 13 value 0
+1080.000 ms  #400 e114  Switch-3 port 2  MacLearned  link 3 frame 13 value 0
+1080.000 ms  #401 e114  Switch-3 port 2  FrameFlooded  link 3 frame 13 value 0
+1080.000 ms  #402 e114  Switch-3 port 1  FrameSent  link 2 frame 13 value 0
+1080.000 ms  #403 e115  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1080.000 ms  #404 e115  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1080.000 ms  #405 e116  Switch-2 port 3  FrameReceived  link 5 frame 17 value 0
+1080.000 ms  #406 e116  Switch-2 port 3  FrameForwarded  link 5 frame 17 value 0
+1080.000 ms  #407 e116  Switch-2 port 1  FrameSent  link 1 frame 17 value 0
+1090.000 ms  #408 e117  Switch-3 port 1  FrameReceived  link 2 frame 13 value 0
+1090.000 ms  #409 e117  Switch-3 port 1  MacLearned  link 2 frame 13 value 0
+1090.000 ms  #410 e117  Switch-3 port 1  FrameFlooded  link 2 frame 13 value 0
+1090.000 ms  #411 e117  Switch-3 port 2  FrameSent  link 3 frame 13 value 0
+1090.000 ms  #412 e118  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1090.000 ms  #413 e118  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1090.000 ms  #414 e118  PC-5 port 1  FrameSent  link 5 frame 18 value 0
+1090.000 ms  #415 e119  Switch-2 port 2  FrameReceived  link 2 frame 13 value 0
+1090.000 ms  #416 e119  Switch-2 port 2  MacLearned  link 2 frame 13 value 0
+1090.000 ms  #417 e119  Switch-2 port 2  FrameFlooded  link 2 frame 13 value 0
+1090.000 ms  #418 e119  Switch-2 port 1  FrameSent  link 1 frame 13 value 0
+1090.000 ms  #419 e119  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1090.000 ms  #420 e120  Switch-1 port 1  FrameReceived  link 1 frame 17 value 0
+1090.000 ms  #421 e120  Switch-1 port 1  FrameFiltered  link 1 frame 17 value 0
+1100.000 ms  #422 e121  Switch-1 port 2  FrameReceived  link 3 frame 13 value 0
+1100.000 ms  #423 e121  Switch-1 port 2  MacLearned  link 3 frame 13 value 0
+1100.000 ms  #424 e121  Switch-1 port 2  FrameFlooded  link 3 frame 13 value 0
+1100.000 ms  #425 e121  Switch-1 port 1  FrameSent  link 1 frame 13 value 0
+1100.000 ms  #426 e121  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1100.000 ms  #427 e122  Switch-2 port 3  FrameReceived  link 5 frame 18 value 0
+1100.000 ms  #428 e122  Switch-2 port 3  FrameForwarded  link 5 frame 18 value 0
+1100.000 ms  #429 e122  Switch-2 port 2  FrameSent  link 2 frame 18 value 0
+1100.000 ms  #430 e123  Switch-1 port 1  FrameReceived  link 1 frame 13 value 0
+1100.000 ms  #431 e123  Switch-1 port 1  MacLearned  link 1 frame 13 value 0
+1100.000 ms  #432 e123  Switch-1 port 1  FrameFlooded  link 1 frame 13 value 0
+1100.000 ms  #433 e123  Switch-1 port 2  FrameSent  link 3 frame 13 value 0
+1100.000 ms  #434 e123  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1100.000 ms  #435 e124  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1100.000 ms  #436 e124  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1100.000 ms  #437 e124  PC-5 port 1  FrameSent  link 5 frame 19 value 0
+1110.000 ms  #438 e125  Switch-2 port 1  FrameReceived  link 1 frame 13 value 0
+1110.000 ms  #439 e125  Switch-2 port 1  MacLearned  link 1 frame 13 value 0
+1110.000 ms  #440 e125  Switch-2 port 1  FrameFlooded  link 1 frame 13 value 0
+1110.000 ms  #441 e125  Switch-2 port 2  FrameSent  link 2 frame 13 value 0
+1110.000 ms  #442 e125  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1110.000 ms  #443 e126  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1110.000 ms  #444 e126  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1110.000 ms  #445 e127  Switch-3 port 1  FrameReceived  link 2 frame 18 value 0
+1110.000 ms  #446 e127  Switch-3 port 1  FrameFiltered  link 2 frame 18 value 0
+1110.000 ms  #447 e128  Switch-3 port 2  FrameReceived  link 3 frame 13 value 0
+1110.000 ms  #448 e128  Switch-3 port 2  MacLearned  link 3 frame 13 value 0
+1110.000 ms  #449 e128  Switch-3 port 2  FrameFlooded  link 3 frame 13 value 0
+1110.000 ms  #450 e128  Switch-3 port 1  FrameSent  link 2 frame 13 value 0
+1110.000 ms  #451 e129  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1110.000 ms  #452 e129  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1110.000 ms  #453 e130  Switch-2 port 3  FrameReceived  link 5 frame 19 value 0
+1110.000 ms  #454 e130  Switch-2 port 3  FrameForwarded  link 5 frame 19 value 0
+1110.000 ms  #455 e130  Switch-2 port 1  FrameSent  link 1 frame 19 value 0
+1120.000 ms  #456 e131  Switch-3 port 1  FrameReceived  link 2 frame 13 value 0
+1120.000 ms  #457 e131  Switch-3 port 1  MacLearned  link 2 frame 13 value 0
+1120.000 ms  #458 e131  Switch-3 port 1  FrameFlooded  link 2 frame 13 value 0
+1120.000 ms  #459 e131  Switch-3 port 2  FrameSent  link 3 frame 13 value 0
+1120.000 ms  #460 e132  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1120.000 ms  #461 e132  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1120.000 ms  #462 e132  PC-5 port 1  FrameSent  link 5 frame 20 value 0
+1120.000 ms  #463 e133  Switch-2 port 2  FrameReceived  link 2 frame 13 value 0
+1120.000 ms  #464 e133  Switch-2 port 2  MacLearned  link 2 frame 13 value 0
+1120.000 ms  #465 e133  Switch-2 port 2  FrameFlooded  link 2 frame 13 value 0
+1120.000 ms  #466 e133  Switch-2 port 1  FrameSent  link 1 frame 13 value 0
+1120.000 ms  #467 e133  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1120.000 ms  #468 e134  Switch-1 port 1  FrameReceived  link 1 frame 19 value 0
+1120.000 ms  #469 e134  Switch-1 port 1  FrameFiltered  link 1 frame 19 value 0
+1130.000 ms  #470 e135  Switch-1 port 2  FrameReceived  link 3 frame 13 value 0
+1130.000 ms  #471 e135  Switch-1 port 2  MacLearned  link 3 frame 13 value 0
+1130.000 ms  #472 e135  Switch-1 port 2  FrameFlooded  link 3 frame 13 value 0
+1130.000 ms  #473 e135  Switch-1 port 1  FrameSent  link 1 frame 13 value 0
+1130.000 ms  #474 e135  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1130.000 ms  #475 e136  Switch-2 port 3  FrameReceived  link 5 frame 20 value 0
+1130.000 ms  #476 e136  Switch-2 port 3  FrameForwarded  link 5 frame 20 value 0
+1130.000 ms  #477 e136  Switch-2 port 2  FrameSent  link 2 frame 20 value 0
+1130.000 ms  #478 e137  Switch-1 port 1  FrameReceived  link 1 frame 13 value 0
+1130.000 ms  #479 e137  Switch-1 port 1  MacLearned  link 1 frame 13 value 0
+1130.000 ms  #480 e137  Switch-1 port 1  FrameFlooded  link 1 frame 13 value 0
+1130.000 ms  #481 e137  Switch-1 port 2  FrameSent  link 3 frame 13 value 0
+1130.000 ms  #482 e137  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1130.000 ms  #483 e138  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1130.000 ms  #484 e138  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1130.000 ms  #485 e138  PC-5 port 1  FrameSent  link 5 frame 21 value 0
+1140.000 ms  #486 e139  Switch-2 port 1  FrameReceived  link 1 frame 13 value 0
+1140.000 ms  #487 e139  Switch-2 port 1  MacLearned  link 1 frame 13 value 0
+1140.000 ms  #488 e139  Switch-2 port 1  FrameFlooded  link 1 frame 13 value 0
+1140.000 ms  #489 e139  Switch-2 port 2  FrameSent  link 2 frame 13 value 0
+1140.000 ms  #490 e139  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1140.000 ms  #491 e140  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1140.000 ms  #492 e140  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1140.000 ms  #493 e141  Switch-3 port 1  FrameReceived  link 2 frame 20 value 0
+1140.000 ms  #494 e141  Switch-3 port 1  FrameFiltered  link 2 frame 20 value 0
+1140.000 ms  #495 e142  Switch-3 port 2  FrameReceived  link 3 frame 13 value 0
+1140.000 ms  #496 e142  Switch-3 port 2  MacLearned  link 3 frame 13 value 0
+1140.000 ms  #497 e142  Switch-3 port 2  FrameFlooded  link 3 frame 13 value 0
+1140.000 ms  #498 e142  Switch-3 port 1  FrameSent  link 2 frame 13 value 0
+1140.000 ms  #499 e143  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1140.000 ms  #500 e143  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1140.000 ms  #501 e144  Switch-2 port 3  FrameReceived  link 5 frame 21 value 0
+1140.000 ms  #502 e144  Switch-2 port 3  FrameForwarded  link 5 frame 21 value 0
+1140.000 ms  #503 e144  Switch-2 port 1  FrameSent  link 1 frame 21 value 0
+1150.000 ms  #504 e145  Switch-3 port 1  FrameReceived  link 2 frame 13 value 0
+1150.000 ms  #505 e145  Switch-3 port 1  MacLearned  link 2 frame 13 value 0
+1150.000 ms  #506 e145  Switch-3 port 1  FrameFlooded  link 2 frame 13 value 0
+1150.000 ms  #507 e145  Switch-3 port 2  FrameSent  link 3 frame 13 value 0
+1150.000 ms  #508 e146  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1150.000 ms  #509 e146  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1150.000 ms  #510 e146  PC-5 port 1  FrameSent  link 5 frame 22 value 0
+1150.000 ms  #511 e147  Switch-2 port 2  FrameReceived  link 2 frame 13 value 0
+1150.000 ms  #512 e147  Switch-2 port 2  MacLearned  link 2 frame 13 value 0
+1150.000 ms  #513 e147  Switch-2 port 2  FrameFlooded  link 2 frame 13 value 0
+1150.000 ms  #514 e147  Switch-2 port 1  FrameSent  link 1 frame 13 value 0
+1150.000 ms  #515 e147  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1150.000 ms  #516 e148  Switch-1 port 1  FrameReceived  link 1 frame 21 value 0
+1150.000 ms  #517 e148  Switch-1 port 1  FrameFiltered  link 1 frame 21 value 0
+1160.000 ms  #518 e149  Switch-1 port 2  FrameReceived  link 3 frame 13 value 0
+1160.000 ms  #519 e149  Switch-1 port 2  MacLearned  link 3 frame 13 value 0
+1160.000 ms  #520 e149  Switch-1 port 2  FrameFlooded  link 3 frame 13 value 0
+1160.000 ms  #521 e149  Switch-1 port 1  FrameSent  link 1 frame 13 value 0
+1160.000 ms  #522 e149  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1160.000 ms  #523 e150  Switch-2 port 3  FrameReceived  link 5 frame 22 value 0
+1160.000 ms  #524 e150  Switch-2 port 3  FrameForwarded  link 5 frame 22 value 0
+1160.000 ms  #525 e150  Switch-2 port 2  FrameSent  link 2 frame 22 value 0
+1160.000 ms  #526 e151  Switch-1 port 1  FrameReceived  link 1 frame 13 value 0
+1160.000 ms  #527 e151  Switch-1 port 1  MacLearned  link 1 frame 13 value 0
+1160.000 ms  #528 e151  Switch-1 port 1  FrameFlooded  link 1 frame 13 value 0
+1160.000 ms  #529 e151  Switch-1 port 2  FrameSent  link 3 frame 13 value 0
+1160.000 ms  #530 e151  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1160.000 ms  #531 e152  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1160.000 ms  #532 e152  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1160.000 ms  #533 e152  PC-5 port 1  FrameSent  link 5 frame 23 value 0
+1170.000 ms  #534 e153  Switch-2 port 1  FrameReceived  link 1 frame 13 value 0
+1170.000 ms  #535 e153  Switch-2 port 1  MacLearned  link 1 frame 13 value 0
+1170.000 ms  #536 e153  Switch-2 port 1  FrameFlooded  link 1 frame 13 value 0
+1170.000 ms  #537 e153  Switch-2 port 2  FrameSent  link 2 frame 13 value 0
+1170.000 ms  #538 e153  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1170.000 ms  #539 e154  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1170.000 ms  #540 e154  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1170.000 ms  #541 e155  Switch-3 port 1  FrameReceived  link 2 frame 22 value 0
+1170.000 ms  #542 e155  Switch-3 port 1  FrameFiltered  link 2 frame 22 value 0
+1170.000 ms  #543 e156  Switch-3 port 2  FrameReceived  link 3 frame 13 value 0
+1170.000 ms  #544 e156  Switch-3 port 2  MacLearned  link 3 frame 13 value 0
+1170.000 ms  #545 e156  Switch-3 port 2  FrameFlooded  link 3 frame 13 value 0
+1170.000 ms  #546 e156  Switch-3 port 1  FrameSent  link 2 frame 13 value 0
+1170.000 ms  #547 e157  PC-4 port 1  FrameReceived  link 4 frame 13 value 0
+1170.000 ms  #548 e157  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 13 value 0
+1170.000 ms  #549 e158  Switch-2 port 3  FrameReceived  link 5 frame 23 value 0
+1170.000 ms  #550 e158  Switch-2 port 3  FrameForwarded  link 5 frame 23 value 0
+1170.000 ms  #551 e158  Switch-2 port 1  FrameSent  link 1 frame 23 value 0
+1180.000 ms  #552 e159  Switch-3 port 1  FrameReceived  link 2 frame 13 value 0
+1180.000 ms  #553 e159  Switch-3 port 1  MacLearned  link 2 frame 13 value 0
+1180.000 ms  #554 e159  Switch-3 port 1  FrameFlooded  link 2 frame 13 value 0
+1180.000 ms  #555 e159  Switch-3 port 2  FrameSent  link 3 frame 13 value 0
+1180.000 ms  #556 e160  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1180.000 ms  #557 e160  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1180.000 ms  #558 e160  PC-5 port 1  FrameSent  link 5 frame 24 value 0
+1180.000 ms  #559 e161  Switch-2 port 2  FrameReceived  link 2 frame 13 value 0
+1180.000 ms  #560 e161  Switch-2 port 2  MacLearned  link 2 frame 13 value 0
+1180.000 ms  #561 e161  Switch-2 port 2  FrameFlooded  link 2 frame 13 value 0
+1180.000 ms  #562 e161  Switch-2 port 1  FrameSent  link 1 frame 13 value 0
+1180.000 ms  #563 e161  Switch-2 port 3  FrameSent  link 5 frame 13 value 0
+1180.000 ms  #564 e162  Switch-1 port 1  FrameReceived  link 1 frame 23 value 0
+1180.000 ms  #565 e162  Switch-1 port 1  FrameFiltered  link 1 frame 23 value 0
+1190.000 ms  #566 e163  Switch-1 port 2  FrameReceived  link 3 frame 13 value 0
+1190.000 ms  #567 e163  Switch-1 port 2  MacLearned  link 3 frame 13 value 0
+1190.000 ms  #568 e163  Switch-1 port 2  FrameFlooded  link 3 frame 13 value 0
+1190.000 ms  #569 e163  Switch-1 port 1  FrameSent  link 1 frame 13 value 0
+1190.000 ms  #570 e163  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1190.000 ms  #571 e164  Switch-2 port 3  FrameReceived  link 5 frame 24 value 0
+1190.000 ms  #572 e164  Switch-2 port 3  FrameForwarded  link 5 frame 24 value 0
+1190.000 ms  #573 e164  Switch-2 port 2  FrameSent  link 2 frame 24 value 0
+1190.000 ms  #574 e165  Switch-1 port 1  FrameReceived  link 1 frame 13 value 0
+1190.000 ms  #575 e165  Switch-1 port 1  MacLearned  link 1 frame 13 value 0
+1190.000 ms  #576 e165  Switch-1 port 1  FrameFlooded  link 1 frame 13 value 0
+1190.000 ms  #577 e165  Switch-1 port 2  FrameSent  link 3 frame 13 value 0
+1190.000 ms  #578 e165  Switch-1 port 3  FrameSent  link 4 frame 13 value 0
+1190.000 ms  #579 e166  PC-5 port 1  FrameReceived  link 5 frame 13 value 0
+1190.000 ms  #580 e166  PC-5 port 1  ArpCacheUpdated  link 5 frame 13 value 0
+1190.000 ms  #581 e166  PC-5 port 1  FrameSent  link 5 frame 25 value 0
+1200.000 ms  #582 e167  Switch-2 port 1  FrameReceived  link 1 frame 13 value 0
+1200.000 ms  #583 e167  Switch-2 port 1  MacLearned  link 1 frame 13 value 0
+1200.000 ms  #584 e167  Switch-2 port 1  FrameFlooded  link 1 frame 13 value 0
+1200.000 ms  #585 e167  Switch-2 port 2  FrameSent  link 2 frame 13 value 0
+1200.000 ms  #586 e167  Switch-2 port -  SimulatorGuard  link - frame 13 value 64
+1200.000 ms  #587 e168  Switch-3 port 1  FrameReceived  link 2 frame 24 value 0
+1200.000 ms  #588 e168  Switch-3 port 1  FrameFiltered  link 2 frame 24 value 0
+1200.000 ms  #589 e169  Switch-2 port 3  FrameReceived  link 5 frame 25 value 0
+1200.000 ms  #590 e169  Switch-2 port 3  FrameForwarded  link 5 frame 25 value 0
+1200.000 ms  #591 e169  Switch-2 port 1  FrameSent  link 1 frame 25 value 0
+1210.000 ms  #592 e170  Switch-1 port 1  FrameReceived  link 1 frame 25 value 0
+1210.000 ms  #593 e170  Switch-1 port 1  FrameFiltered  link 1 frame 25 value 0
+2000.000 ms  #594 e171  PC-4 port 1  ArpTimeout  link - frame - value 2
+2000.000 ms  #595 e171  PC-4 port 1  FrameSent  link 4 frame 26 value 3
+2010.000 ms  #596 e172  Switch-1 port 3  FrameReceived  link 4 frame 26 value 0
+2010.000 ms  #597 e172  Switch-1 port 3  MacLearned  link 4 frame 26 value 0
+2010.000 ms  #598 e172  Switch-1 port 3  FrameFlooded  link 4 frame 26 value 0
+2010.000 ms  #599 e172  Switch-1 port 1  FrameSent  link 1 frame 26 value 0
+2010.000 ms  #600 e172  Switch-1 port 2  FrameSent  link 3 frame 26 value 0
+2020.000 ms  #601 e173  Switch-2 port 1  FrameReceived  link 1 frame 26 value 0
+2020.000 ms  #602 e173  Switch-2 port 1  FrameFlooded  link 1 frame 26 value 0
+2020.000 ms  #603 e173  Switch-2 port 2  FrameSent  link 2 frame 26 value 0
+2020.000 ms  #604 e173  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2020.000 ms  #605 e174  Switch-3 port 2  FrameReceived  link 3 frame 26 value 0
+2020.000 ms  #606 e174  Switch-3 port 2  MacLearned  link 3 frame 26 value 0
+2020.000 ms  #607 e174  Switch-3 port 2  FrameFlooded  link 3 frame 26 value 0
+2020.000 ms  #608 e174  Switch-3 port 1  FrameSent  link 2 frame 26 value 0
+2030.000 ms  #609 e175  Switch-3 port 1  FrameReceived  link 2 frame 26 value 0
+2030.000 ms  #610 e175  Switch-3 port 1  MacLearned  link 2 frame 26 value 0
+2030.000 ms  #611 e175  Switch-3 port 1  FrameFlooded  link 2 frame 26 value 0
+2030.000 ms  #612 e175  Switch-3 port 2  FrameSent  link 3 frame 26 value 0
+2030.000 ms  #613 e176  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2030.000 ms  #614 e176  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2030.000 ms  #615 e176  PC-5 port 1  FrameSent  link 5 frame 27 value 0
+2030.000 ms  #616 e177  Switch-2 port 2  FrameReceived  link 2 frame 26 value 0
+2030.000 ms  #617 e177  Switch-2 port 2  MacLearned  link 2 frame 26 value 0
+2030.000 ms  #618 e177  Switch-2 port 2  FrameFlooded  link 2 frame 26 value 0
+2030.000 ms  #619 e177  Switch-2 port 1  FrameSent  link 1 frame 26 value 0
+2030.000 ms  #620 e177  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2040.000 ms  #621 e178  Switch-1 port 2  FrameReceived  link 3 frame 26 value 0
+2040.000 ms  #622 e178  Switch-1 port 2  MacLearned  link 3 frame 26 value 0
+2040.000 ms  #623 e178  Switch-1 port 2  FrameFlooded  link 3 frame 26 value 0
+2040.000 ms  #624 e178  Switch-1 port 1  FrameSent  link 1 frame 26 value 0
+2040.000 ms  #625 e178  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2040.000 ms  #626 e179  Switch-2 port 3  FrameReceived  link 5 frame 27 value 0
+2040.000 ms  #627 e179  Switch-2 port 3  FrameForwarded  link 5 frame 27 value 0
+2040.000 ms  #628 e179  Switch-2 port 2  FrameSent  link 2 frame 27 value 0
+2040.000 ms  #629 e180  Switch-1 port 1  FrameReceived  link 1 frame 26 value 0
+2040.000 ms  #630 e180  Switch-1 port 1  MacLearned  link 1 frame 26 value 0
+2040.000 ms  #631 e180  Switch-1 port 1  FrameFlooded  link 1 frame 26 value 0
+2040.000 ms  #632 e180  Switch-1 port 2  FrameSent  link 3 frame 26 value 0
+2040.000 ms  #633 e180  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2040.000 ms  #634 e181  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2040.000 ms  #635 e181  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2040.000 ms  #636 e181  PC-5 port 1  FrameSent  link 5 frame 28 value 0
+2050.000 ms  #637 e182  Switch-2 port 1  FrameReceived  link 1 frame 26 value 0
+2050.000 ms  #638 e182  Switch-2 port 1  MacLearned  link 1 frame 26 value 0
+2050.000 ms  #639 e182  Switch-2 port 1  FrameFlooded  link 1 frame 26 value 0
+2050.000 ms  #640 e182  Switch-2 port 2  FrameSent  link 2 frame 26 value 0
+2050.000 ms  #641 e182  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2050.000 ms  #642 e183  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2050.000 ms  #643 e183  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2050.000 ms  #644 e184  Switch-3 port 1  FrameReceived  link 2 frame 27 value 0
+2050.000 ms  #645 e184  Switch-3 port 1  FrameFiltered  link 2 frame 27 value 0
+2050.000 ms  #646 e185  Switch-3 port 2  FrameReceived  link 3 frame 26 value 0
+2050.000 ms  #647 e185  Switch-3 port 2  MacLearned  link 3 frame 26 value 0
+2050.000 ms  #648 e185  Switch-3 port 2  FrameFlooded  link 3 frame 26 value 0
+2050.000 ms  #649 e185  Switch-3 port 1  FrameSent  link 2 frame 26 value 0
+2050.000 ms  #650 e186  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2050.000 ms  #651 e186  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2050.000 ms  #652 e187  Switch-2 port 3  FrameReceived  link 5 frame 28 value 0
+2050.000 ms  #653 e187  Switch-2 port 3  FrameForwarded  link 5 frame 28 value 0
+2050.000 ms  #654 e187  Switch-2 port 1  FrameSent  link 1 frame 28 value 0
+2060.000 ms  #655 e188  Switch-3 port 1  FrameReceived  link 2 frame 26 value 0
+2060.000 ms  #656 e188  Switch-3 port 1  MacLearned  link 2 frame 26 value 0
+2060.000 ms  #657 e188  Switch-3 port 1  FrameFlooded  link 2 frame 26 value 0
+2060.000 ms  #658 e188  Switch-3 port 2  FrameSent  link 3 frame 26 value 0
+2060.000 ms  #659 e189  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2060.000 ms  #660 e189  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2060.000 ms  #661 e189  PC-5 port 1  FrameSent  link 5 frame 29 value 0
+2060.000 ms  #662 e190  Switch-2 port 2  FrameReceived  link 2 frame 26 value 0
+2060.000 ms  #663 e190  Switch-2 port 2  MacLearned  link 2 frame 26 value 0
+2060.000 ms  #664 e190  Switch-2 port 2  FrameFlooded  link 2 frame 26 value 0
+2060.000 ms  #665 e190  Switch-2 port 1  FrameSent  link 1 frame 26 value 0
+2060.000 ms  #666 e190  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2060.000 ms  #667 e191  Switch-1 port 1  FrameReceived  link 1 frame 28 value 0
+2060.000 ms  #668 e191  Switch-1 port 1  FrameFiltered  link 1 frame 28 value 0
+2070.000 ms  #669 e192  Switch-1 port 2  FrameReceived  link 3 frame 26 value 0
+2070.000 ms  #670 e192  Switch-1 port 2  MacLearned  link 3 frame 26 value 0
+2070.000 ms  #671 e192  Switch-1 port 2  FrameFlooded  link 3 frame 26 value 0
+2070.000 ms  #672 e192  Switch-1 port 1  FrameSent  link 1 frame 26 value 0
+2070.000 ms  #673 e192  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2070.000 ms  #674 e193  Switch-2 port 3  FrameReceived  link 5 frame 29 value 0
+2070.000 ms  #675 e193  Switch-2 port 3  FrameForwarded  link 5 frame 29 value 0
+2070.000 ms  #676 e193  Switch-2 port 2  FrameSent  link 2 frame 29 value 0
+2070.000 ms  #677 e194  Switch-1 port 1  FrameReceived  link 1 frame 26 value 0
+2070.000 ms  #678 e194  Switch-1 port 1  MacLearned  link 1 frame 26 value 0
+2070.000 ms  #679 e194  Switch-1 port 1  FrameFlooded  link 1 frame 26 value 0
+2070.000 ms  #680 e194  Switch-1 port 2  FrameSent  link 3 frame 26 value 0
+2070.000 ms  #681 e194  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2070.000 ms  #682 e195  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2070.000 ms  #683 e195  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2070.000 ms  #684 e195  PC-5 port 1  FrameSent  link 5 frame 30 value 0
+2080.000 ms  #685 e196  Switch-2 port 1  FrameReceived  link 1 frame 26 value 0
+2080.000 ms  #686 e196  Switch-2 port 1  MacLearned  link 1 frame 26 value 0
+2080.000 ms  #687 e196  Switch-2 port 1  FrameFlooded  link 1 frame 26 value 0
+2080.000 ms  #688 e196  Switch-2 port 2  FrameSent  link 2 frame 26 value 0
+2080.000 ms  #689 e196  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2080.000 ms  #690 e197  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2080.000 ms  #691 e197  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2080.000 ms  #692 e198  Switch-3 port 1  FrameReceived  link 2 frame 29 value 0
+2080.000 ms  #693 e198  Switch-3 port 1  FrameFiltered  link 2 frame 29 value 0
+2080.000 ms  #694 e199  Switch-3 port 2  FrameReceived  link 3 frame 26 value 0
+2080.000 ms  #695 e199  Switch-3 port 2  MacLearned  link 3 frame 26 value 0
+2080.000 ms  #696 e199  Switch-3 port 2  FrameFlooded  link 3 frame 26 value 0
+2080.000 ms  #697 e199  Switch-3 port 1  FrameSent  link 2 frame 26 value 0
+2080.000 ms  #698 e200  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2080.000 ms  #699 e200  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2080.000 ms  #700 e201  Switch-2 port 3  FrameReceived  link 5 frame 30 value 0
+2080.000 ms  #701 e201  Switch-2 port 3  FrameForwarded  link 5 frame 30 value 0
+2080.000 ms  #702 e201  Switch-2 port 1  FrameSent  link 1 frame 30 value 0
+2090.000 ms  #703 e202  Switch-3 port 1  FrameReceived  link 2 frame 26 value 0
+2090.000 ms  #704 e202  Switch-3 port 1  MacLearned  link 2 frame 26 value 0
+2090.000 ms  #705 e202  Switch-3 port 1  FrameFlooded  link 2 frame 26 value 0
+2090.000 ms  #706 e202  Switch-3 port 2  FrameSent  link 3 frame 26 value 0
+2090.000 ms  #707 e203  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2090.000 ms  #708 e203  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2090.000 ms  #709 e203  PC-5 port 1  FrameSent  link 5 frame 31 value 0
+2090.000 ms  #710 e204  Switch-2 port 2  FrameReceived  link 2 frame 26 value 0
+2090.000 ms  #711 e204  Switch-2 port 2  MacLearned  link 2 frame 26 value 0
+2090.000 ms  #712 e204  Switch-2 port 2  FrameFlooded  link 2 frame 26 value 0
+2090.000 ms  #713 e204  Switch-2 port 1  FrameSent  link 1 frame 26 value 0
+2090.000 ms  #714 e204  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2090.000 ms  #715 e205  Switch-1 port 1  FrameReceived  link 1 frame 30 value 0
+2090.000 ms  #716 e205  Switch-1 port 1  FrameFiltered  link 1 frame 30 value 0
+2100.000 ms  #717 e206  Switch-1 port 2  FrameReceived  link 3 frame 26 value 0
+2100.000 ms  #718 e206  Switch-1 port 2  MacLearned  link 3 frame 26 value 0
+2100.000 ms  #719 e206  Switch-1 port 2  FrameFlooded  link 3 frame 26 value 0
+2100.000 ms  #720 e206  Switch-1 port 1  FrameSent  link 1 frame 26 value 0
+2100.000 ms  #721 e206  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2100.000 ms  #722 e207  Switch-2 port 3  FrameReceived  link 5 frame 31 value 0
+2100.000 ms  #723 e207  Switch-2 port 3  FrameForwarded  link 5 frame 31 value 0
+2100.000 ms  #724 e207  Switch-2 port 2  FrameSent  link 2 frame 31 value 0
+2100.000 ms  #725 e208  Switch-1 port 1  FrameReceived  link 1 frame 26 value 0
+2100.000 ms  #726 e208  Switch-1 port 1  MacLearned  link 1 frame 26 value 0
+2100.000 ms  #727 e208  Switch-1 port 1  FrameFlooded  link 1 frame 26 value 0
+2100.000 ms  #728 e208  Switch-1 port 2  FrameSent  link 3 frame 26 value 0
+2100.000 ms  #729 e208  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2100.000 ms  #730 e209  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2100.000 ms  #731 e209  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2100.000 ms  #732 e209  PC-5 port 1  FrameSent  link 5 frame 32 value 0
+2110.000 ms  #733 e210  Switch-2 port 1  FrameReceived  link 1 frame 26 value 0
+2110.000 ms  #734 e210  Switch-2 port 1  MacLearned  link 1 frame 26 value 0
+2110.000 ms  #735 e210  Switch-2 port 1  FrameFlooded  link 1 frame 26 value 0
+2110.000 ms  #736 e210  Switch-2 port 2  FrameSent  link 2 frame 26 value 0
+2110.000 ms  #737 e210  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2110.000 ms  #738 e211  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2110.000 ms  #739 e211  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2110.000 ms  #740 e212  Switch-3 port 1  FrameReceived  link 2 frame 31 value 0
+2110.000 ms  #741 e212  Switch-3 port 1  FrameFiltered  link 2 frame 31 value 0
+2110.000 ms  #742 e213  Switch-3 port 2  FrameReceived  link 3 frame 26 value 0
+2110.000 ms  #743 e213  Switch-3 port 2  MacLearned  link 3 frame 26 value 0
+2110.000 ms  #744 e213  Switch-3 port 2  FrameFlooded  link 3 frame 26 value 0
+2110.000 ms  #745 e213  Switch-3 port 1  FrameSent  link 2 frame 26 value 0
+2110.000 ms  #746 e214  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2110.000 ms  #747 e214  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2110.000 ms  #748 e215  Switch-2 port 3  FrameReceived  link 5 frame 32 value 0
+2110.000 ms  #749 e215  Switch-2 port 3  FrameForwarded  link 5 frame 32 value 0
+2110.000 ms  #750 e215  Switch-2 port 1  FrameSent  link 1 frame 32 value 0
+2120.000 ms  #751 e216  Switch-3 port 1  FrameReceived  link 2 frame 26 value 0
+2120.000 ms  #752 e216  Switch-3 port 1  MacLearned  link 2 frame 26 value 0
+2120.000 ms  #753 e216  Switch-3 port 1  FrameFlooded  link 2 frame 26 value 0
+2120.000 ms  #754 e216  Switch-3 port 2  FrameSent  link 3 frame 26 value 0
+2120.000 ms  #755 e217  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2120.000 ms  #756 e217  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2120.000 ms  #757 e217  PC-5 port 1  FrameSent  link 5 frame 33 value 0
+2120.000 ms  #758 e218  Switch-2 port 2  FrameReceived  link 2 frame 26 value 0
+2120.000 ms  #759 e218  Switch-2 port 2  MacLearned  link 2 frame 26 value 0
+2120.000 ms  #760 e218  Switch-2 port 2  FrameFlooded  link 2 frame 26 value 0
+2120.000 ms  #761 e218  Switch-2 port 1  FrameSent  link 1 frame 26 value 0
+2120.000 ms  #762 e218  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2120.000 ms  #763 e219  Switch-1 port 1  FrameReceived  link 1 frame 32 value 0
+2120.000 ms  #764 e219  Switch-1 port 1  FrameFiltered  link 1 frame 32 value 0
+2130.000 ms  #765 e220  Switch-1 port 2  FrameReceived  link 3 frame 26 value 0
+2130.000 ms  #766 e220  Switch-1 port 2  MacLearned  link 3 frame 26 value 0
+2130.000 ms  #767 e220  Switch-1 port 2  FrameFlooded  link 3 frame 26 value 0
+2130.000 ms  #768 e220  Switch-1 port 1  FrameSent  link 1 frame 26 value 0
+2130.000 ms  #769 e220  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2130.000 ms  #770 e221  Switch-2 port 3  FrameReceived  link 5 frame 33 value 0
+2130.000 ms  #771 e221  Switch-2 port 3  FrameForwarded  link 5 frame 33 value 0
+2130.000 ms  #772 e221  Switch-2 port 2  FrameSent  link 2 frame 33 value 0
+2130.000 ms  #773 e222  Switch-1 port 1  FrameReceived  link 1 frame 26 value 0
+2130.000 ms  #774 e222  Switch-1 port 1  MacLearned  link 1 frame 26 value 0
+2130.000 ms  #775 e222  Switch-1 port 1  FrameFlooded  link 1 frame 26 value 0
+2130.000 ms  #776 e222  Switch-1 port 2  FrameSent  link 3 frame 26 value 0
+2130.000 ms  #777 e222  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2130.000 ms  #778 e223  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2130.000 ms  #779 e223  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2130.000 ms  #780 e223  PC-5 port 1  FrameSent  link 5 frame 34 value 0
+2140.000 ms  #781 e224  Switch-2 port 1  FrameReceived  link 1 frame 26 value 0
+2140.000 ms  #782 e224  Switch-2 port 1  MacLearned  link 1 frame 26 value 0
+2140.000 ms  #783 e224  Switch-2 port 1  FrameFlooded  link 1 frame 26 value 0
+2140.000 ms  #784 e224  Switch-2 port 2  FrameSent  link 2 frame 26 value 0
+2140.000 ms  #785 e224  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2140.000 ms  #786 e225  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2140.000 ms  #787 e225  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2140.000 ms  #788 e226  Switch-3 port 1  FrameReceived  link 2 frame 33 value 0
+2140.000 ms  #789 e226  Switch-3 port 1  FrameFiltered  link 2 frame 33 value 0
+2140.000 ms  #790 e227  Switch-3 port 2  FrameReceived  link 3 frame 26 value 0
+2140.000 ms  #791 e227  Switch-3 port 2  MacLearned  link 3 frame 26 value 0
+2140.000 ms  #792 e227  Switch-3 port 2  FrameFlooded  link 3 frame 26 value 0
+2140.000 ms  #793 e227  Switch-3 port 1  FrameSent  link 2 frame 26 value 0
+2140.000 ms  #794 e228  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2140.000 ms  #795 e228  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2140.000 ms  #796 e229  Switch-2 port 3  FrameReceived  link 5 frame 34 value 0
+2140.000 ms  #797 e229  Switch-2 port 3  FrameForwarded  link 5 frame 34 value 0
+2140.000 ms  #798 e229  Switch-2 port 1  FrameSent  link 1 frame 34 value 0
+2150.000 ms  #799 e230  Switch-3 port 1  FrameReceived  link 2 frame 26 value 0
+2150.000 ms  #800 e230  Switch-3 port 1  MacLearned  link 2 frame 26 value 0
+2150.000 ms  #801 e230  Switch-3 port 1  FrameFlooded  link 2 frame 26 value 0
+2150.000 ms  #802 e230  Switch-3 port 2  FrameSent  link 3 frame 26 value 0
+2150.000 ms  #803 e231  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2150.000 ms  #804 e231  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2150.000 ms  #805 e231  PC-5 port 1  FrameSent  link 5 frame 35 value 0
+2150.000 ms  #806 e232  Switch-2 port 2  FrameReceived  link 2 frame 26 value 0
+2150.000 ms  #807 e232  Switch-2 port 2  MacLearned  link 2 frame 26 value 0
+2150.000 ms  #808 e232  Switch-2 port 2  FrameFlooded  link 2 frame 26 value 0
+2150.000 ms  #809 e232  Switch-2 port 1  FrameSent  link 1 frame 26 value 0
+2150.000 ms  #810 e232  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2150.000 ms  #811 e233  Switch-1 port 1  FrameReceived  link 1 frame 34 value 0
+2150.000 ms  #812 e233  Switch-1 port 1  FrameFiltered  link 1 frame 34 value 0
+2160.000 ms  #813 e234  Switch-1 port 2  FrameReceived  link 3 frame 26 value 0
+2160.000 ms  #814 e234  Switch-1 port 2  MacLearned  link 3 frame 26 value 0
+2160.000 ms  #815 e234  Switch-1 port 2  FrameFlooded  link 3 frame 26 value 0
+2160.000 ms  #816 e234  Switch-1 port 1  FrameSent  link 1 frame 26 value 0
+2160.000 ms  #817 e234  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2160.000 ms  #818 e235  Switch-2 port 3  FrameReceived  link 5 frame 35 value 0
+2160.000 ms  #819 e235  Switch-2 port 3  FrameForwarded  link 5 frame 35 value 0
+2160.000 ms  #820 e235  Switch-2 port 2  FrameSent  link 2 frame 35 value 0
+2160.000 ms  #821 e236  Switch-1 port 1  FrameReceived  link 1 frame 26 value 0
+2160.000 ms  #822 e236  Switch-1 port 1  MacLearned  link 1 frame 26 value 0
+2160.000 ms  #823 e236  Switch-1 port 1  FrameFlooded  link 1 frame 26 value 0
+2160.000 ms  #824 e236  Switch-1 port 2  FrameSent  link 3 frame 26 value 0
+2160.000 ms  #825 e236  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2160.000 ms  #826 e237  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2160.000 ms  #827 e237  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2160.000 ms  #828 e237  PC-5 port 1  FrameSent  link 5 frame 36 value 0
+2170.000 ms  #829 e238  Switch-2 port 1  FrameReceived  link 1 frame 26 value 0
+2170.000 ms  #830 e238  Switch-2 port 1  MacLearned  link 1 frame 26 value 0
+2170.000 ms  #831 e238  Switch-2 port 1  FrameFlooded  link 1 frame 26 value 0
+2170.000 ms  #832 e238  Switch-2 port 2  FrameSent  link 2 frame 26 value 0
+2170.000 ms  #833 e238  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2170.000 ms  #834 e239  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2170.000 ms  #835 e239  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2170.000 ms  #836 e240  Switch-3 port 1  FrameReceived  link 2 frame 35 value 0
+2170.000 ms  #837 e240  Switch-3 port 1  FrameFiltered  link 2 frame 35 value 0
+2170.000 ms  #838 e241  Switch-3 port 2  FrameReceived  link 3 frame 26 value 0
+2170.000 ms  #839 e241  Switch-3 port 2  MacLearned  link 3 frame 26 value 0
+2170.000 ms  #840 e241  Switch-3 port 2  FrameFlooded  link 3 frame 26 value 0
+2170.000 ms  #841 e241  Switch-3 port 1  FrameSent  link 2 frame 26 value 0
+2170.000 ms  #842 e242  PC-4 port 1  FrameReceived  link 4 frame 26 value 0
+2170.000 ms  #843 e242  PC-4 port 1  FrameDropped ArpForOtherHost  link 4 frame 26 value 0
+2170.000 ms  #844 e243  Switch-2 port 3  FrameReceived  link 5 frame 36 value 0
+2170.000 ms  #845 e243  Switch-2 port 3  FrameForwarded  link 5 frame 36 value 0
+2170.000 ms  #846 e243  Switch-2 port 1  FrameSent  link 1 frame 36 value 0
+2180.000 ms  #847 e244  Switch-3 port 1  FrameReceived  link 2 frame 26 value 0
+2180.000 ms  #848 e244  Switch-3 port 1  MacLearned  link 2 frame 26 value 0
+2180.000 ms  #849 e244  Switch-3 port 1  FrameFlooded  link 2 frame 26 value 0
+2180.000 ms  #850 e244  Switch-3 port 2  FrameSent  link 3 frame 26 value 0
+2180.000 ms  #851 e245  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2180.000 ms  #852 e245  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2180.000 ms  #853 e245  PC-5 port 1  FrameSent  link 5 frame 37 value 0
+2180.000 ms  #854 e246  Switch-2 port 2  FrameReceived  link 2 frame 26 value 0
+2180.000 ms  #855 e246  Switch-2 port 2  MacLearned  link 2 frame 26 value 0
+2180.000 ms  #856 e246  Switch-2 port 2  FrameFlooded  link 2 frame 26 value 0
+2180.000 ms  #857 e246  Switch-2 port 1  FrameSent  link 1 frame 26 value 0
+2180.000 ms  #858 e246  Switch-2 port 3  FrameSent  link 5 frame 26 value 0
+2180.000 ms  #859 e247  Switch-1 port 1  FrameReceived  link 1 frame 36 value 0
+2180.000 ms  #860 e247  Switch-1 port 1  FrameFiltered  link 1 frame 36 value 0
+2190.000 ms  #861 e248  Switch-1 port 2  FrameReceived  link 3 frame 26 value 0
+2190.000 ms  #862 e248  Switch-1 port 2  MacLearned  link 3 frame 26 value 0
+2190.000 ms  #863 e248  Switch-1 port 2  FrameFlooded  link 3 frame 26 value 0
+2190.000 ms  #864 e248  Switch-1 port 1  FrameSent  link 1 frame 26 value 0
+2190.000 ms  #865 e248  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2190.000 ms  #866 e249  Switch-2 port 3  FrameReceived  link 5 frame 37 value 0
+2190.000 ms  #867 e249  Switch-2 port 3  FrameForwarded  link 5 frame 37 value 0
+2190.000 ms  #868 e249  Switch-2 port 2  FrameSent  link 2 frame 37 value 0
+2190.000 ms  #869 e250  Switch-1 port 1  FrameReceived  link 1 frame 26 value 0
+2190.000 ms  #870 e250  Switch-1 port 1  MacLearned  link 1 frame 26 value 0
+2190.000 ms  #871 e250  Switch-1 port 1  FrameFlooded  link 1 frame 26 value 0
+2190.000 ms  #872 e250  Switch-1 port 2  FrameSent  link 3 frame 26 value 0
+2190.000 ms  #873 e250  Switch-1 port 3  FrameSent  link 4 frame 26 value 0
+2190.000 ms  #874 e251  PC-5 port 1  FrameReceived  link 5 frame 26 value 0
+2190.000 ms  #875 e251  PC-5 port 1  ArpCacheUpdated  link 5 frame 26 value 0
+2190.000 ms  #876 e251  PC-5 port 1  FrameSent  link 5 frame 38 value 0
+2200.000 ms  #877 e252  Switch-2 port 1  FrameReceived  link 1 frame 26 value 0
+2200.000 ms  #878 e252  Switch-2 port 1  MacLearned  link 1 frame 26 value 0
+2200.000 ms  #879 e252  Switch-2 port 1  FrameFlooded  link 1 frame 26 value 0
+2200.000 ms  #880 e252  Switch-2 port 2  FrameSent  link 2 frame 26 value 0
+2200.000 ms  #881 e252  Switch-2 port -  SimulatorGuard  link - frame 26 value 64
+2200.000 ms  #882 e253  Switch-3 port 1  FrameReceived  link 2 frame 37 value 0
+2200.000 ms  #883 e253  Switch-3 port 1  FrameFiltered  link 2 frame 37 value 0
+2200.000 ms  #884 e254  Switch-2 port 3  FrameReceived  link 5 frame 38 value 0
+2200.000 ms  #885 e254  Switch-2 port 3  FrameForwarded  link 5 frame 38 value 0
+2200.000 ms  #886 e254  Switch-2 port 1  FrameSent  link 1 frame 38 value 0
+2210.000 ms  #887 e255  Switch-1 port 1  FrameReceived  link 1 frame 38 value 0
+2210.000 ms  #888 e255  Switch-1 port 1  FrameFiltered  link 1 frame 38 value 0
+3000.000 ms  #889 e256  PC-4 port 1  ArpTimeout  link - frame - value 3
+3000.000 ms  #890 e256  PC-4 port -  PingLost ArpUnresolved  link - frame - value 1
+3000.000 ms  #891 e256  PC-4 port -  PingFailed ArpUnresolved  link - frame - value 1
+
+## frames
+0  02:00:00:00:00:04 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:04 192.168.1.13 target 00:00:00:00:00:00 192.168.1.14
+1  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+2  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+3  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+4  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+5  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+6  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+7  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+8  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+9  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+10  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+11  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+12  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+13  02:00:00:00:00:04 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:04 192.168.1.13 target 00:00:00:00:00:00 192.168.1.14
+14  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+15  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+16  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+17  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+18  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+19  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+20  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+21  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+22  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+23  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+24  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+25  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+26  02:00:00:00:00:04 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:04 192.168.1.13 target 00:00:00:00:00:00 192.168.1.14
+27  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+28  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+29  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+30  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+31  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+32  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+33  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+34  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+35  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+36  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+37  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+38  02:00:00:00:00:05 > 02:00:00:00:00:04  ARP reply sender 02:00:00:00:00:05 192.168.1.14 target 02:00:00:00:00:04 192.168.1.13
+
+## transmissions
+frame 0 link 4  PC-4 port 1 > Switch-1 port 3  0.000 ms .. 10.000 ms  record 1
+frame 0 link 1  Switch-1 port 1 > Switch-2 port 1  10.000 ms .. 20.000 ms  record 5
+frame 0 link 3  Switch-1 port 2 > Switch-3 port 2  10.000 ms .. 20.000 ms  record 6
+frame 0 link 2  Switch-2 port 2 > Switch-3 port 1  20.000 ms .. 30.000 ms  record 10
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  20.000 ms .. 30.000 ms  record 11
+frame 0 link 2  Switch-3 port 1 > Switch-2 port 2  20.000 ms .. 30.000 ms  record 15
+frame 0 link 3  Switch-3 port 2 > Switch-1 port 2  30.000 ms .. 40.000 ms  record 19
+frame 1 link 5  PC-5 port 1 > Switch-2 port 3  30.000 ms .. 40.000 ms  record 22
+frame 0 link 1  Switch-2 port 1 > Switch-1 port 1  30.000 ms .. 40.000 ms  record 26
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  30.000 ms .. 40.000 ms  record 27
+frame 0 link 1  Switch-1 port 1 > Switch-2 port 1  40.000 ms .. 50.000 ms  record 31
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  40.000 ms .. 50.000 ms  record 32
+frame 1 link 2  Switch-2 port 2 > Switch-3 port 1  40.000 ms .. 50.000 ms  record 36
+frame 0 link 3  Switch-1 port 2 > Switch-3 port 2  40.000 ms .. 50.000 ms  record 40
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  40.000 ms .. 50.000 ms  record 41
+frame 2 link 5  PC-5 port 1 > Switch-2 port 3  40.000 ms .. 50.000 ms  record 44
+frame 0 link 2  Switch-2 port 2 > Switch-3 port 1  50.000 ms .. 60.000 ms  record 48
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  50.000 ms .. 60.000 ms  record 49
+frame 0 link 2  Switch-3 port 1 > Switch-2 port 2  50.000 ms .. 60.000 ms  record 58
+frame 2 link 1  Switch-2 port 1 > Switch-1 port 1  50.000 ms .. 60.000 ms  record 63
+frame 0 link 3  Switch-3 port 2 > Switch-1 port 2  60.000 ms .. 70.000 ms  record 67
+frame 3 link 5  PC-5 port 1 > Switch-2 port 3  60.000 ms .. 70.000 ms  record 70
+frame 0 link 1  Switch-2 port 1 > Switch-1 port 1  60.000 ms .. 70.000 ms  record 74
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  60.000 ms .. 70.000 ms  record 75
+frame 0 link 1  Switch-1 port 1 > Switch-2 port 1  70.000 ms .. 80.000 ms  record 82
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  70.000 ms .. 80.000 ms  record 83
+frame 3 link 2  Switch-2 port 2 > Switch-3 port 1  70.000 ms .. 80.000 ms  record 86
+frame 0 link 3  Switch-1 port 2 > Switch-3 port 2  70.000 ms .. 80.000 ms  record 90
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  70.000 ms .. 80.000 ms  record 91
+frame 4 link 5  PC-5 port 1 > Switch-2 port 3  70.000 ms .. 80.000 ms  record 94
+frame 0 link 2  Switch-2 port 2 > Switch-3 port 1  80.000 ms .. 90.000 ms  record 98
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  80.000 ms .. 90.000 ms  record 99
+frame 0 link 2  Switch-3 port 1 > Switch-2 port 2  80.000 ms .. 90.000 ms  record 107
+frame 4 link 1  Switch-2 port 1 > Switch-1 port 1  80.000 ms .. 90.000 ms  record 112
+frame 0 link 3  Switch-3 port 2 > Switch-1 port 2  90.000 ms .. 100.000 ms  record 116
+frame 5 link 5  PC-5 port 1 > Switch-2 port 3  90.000 ms .. 100.000 ms  record 119
+frame 0 link 1  Switch-2 port 1 > Switch-1 port 1  90.000 ms .. 100.000 ms  record 123
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  90.000 ms .. 100.000 ms  record 124
+frame 0 link 1  Switch-1 port 1 > Switch-2 port 1  100.000 ms .. 110.000 ms  record 130
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  100.000 ms .. 110.000 ms  record 131
+frame 5 link 2  Switch-2 port 2 > Switch-3 port 1  100.000 ms .. 110.000 ms  record 134
+frame 0 link 3  Switch-1 port 2 > Switch-3 port 2  100.000 ms .. 110.000 ms  record 138
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  100.000 ms .. 110.000 ms  record 139
+frame 6 link 5  PC-5 port 1 > Switch-2 port 3  100.000 ms .. 110.000 ms  record 142
+frame 0 link 2  Switch-2 port 2 > Switch-3 port 1  110.000 ms .. 120.000 ms  record 146
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  110.000 ms .. 120.000 ms  record 147
+frame 0 link 2  Switch-3 port 1 > Switch-2 port 2  110.000 ms .. 120.000 ms  record 155
+frame 6 link 1  Switch-2 port 1 > Switch-1 port 1  110.000 ms .. 120.000 ms  record 160
+frame 0 link 3  Switch-3 port 2 > Switch-1 port 2  120.000 ms .. 130.000 ms  record 164
+frame 7 link 5  PC-5 port 1 > Switch-2 port 3  120.000 ms .. 130.000 ms  record 167
+frame 0 link 1  Switch-2 port 1 > Switch-1 port 1  120.000 ms .. 130.000 ms  record 171
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  120.000 ms .. 130.000 ms  record 172
+frame 0 link 1  Switch-1 port 1 > Switch-2 port 1  130.000 ms .. 140.000 ms  record 178
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  130.000 ms .. 140.000 ms  record 179
+frame 7 link 2  Switch-2 port 2 > Switch-3 port 1  130.000 ms .. 140.000 ms  record 182
+frame 0 link 3  Switch-1 port 2 > Switch-3 port 2  130.000 ms .. 140.000 ms  record 186
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  130.000 ms .. 140.000 ms  record 187
+frame 8 link 5  PC-5 port 1 > Switch-2 port 3  130.000 ms .. 140.000 ms  record 190
+frame 0 link 2  Switch-2 port 2 > Switch-3 port 1  140.000 ms .. 150.000 ms  record 194
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  140.000 ms .. 150.000 ms  record 195
+frame 0 link 2  Switch-3 port 1 > Switch-2 port 2  140.000 ms .. 150.000 ms  record 203
+frame 8 link 1  Switch-2 port 1 > Switch-1 port 1  140.000 ms .. 150.000 ms  record 208
+frame 0 link 3  Switch-3 port 2 > Switch-1 port 2  150.000 ms .. 160.000 ms  record 212
+frame 9 link 5  PC-5 port 1 > Switch-2 port 3  150.000 ms .. 160.000 ms  record 215
+frame 0 link 1  Switch-2 port 1 > Switch-1 port 1  150.000 ms .. 160.000 ms  record 219
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  150.000 ms .. 160.000 ms  record 220
+frame 0 link 1  Switch-1 port 1 > Switch-2 port 1  160.000 ms .. 170.000 ms  record 226
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  160.000 ms .. 170.000 ms  record 227
+frame 9 link 2  Switch-2 port 2 > Switch-3 port 1  160.000 ms .. 170.000 ms  record 230
+frame 0 link 3  Switch-1 port 2 > Switch-3 port 2  160.000 ms .. 170.000 ms  record 234
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  160.000 ms .. 170.000 ms  record 235
+frame 10 link 5  PC-5 port 1 > Switch-2 port 3  160.000 ms .. 170.000 ms  record 238
+frame 0 link 2  Switch-2 port 2 > Switch-3 port 1  170.000 ms .. 180.000 ms  record 242
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  170.000 ms .. 180.000 ms  record 243
+frame 0 link 2  Switch-3 port 1 > Switch-2 port 2  170.000 ms .. 180.000 ms  record 251
+frame 10 link 1  Switch-2 port 1 > Switch-1 port 1  170.000 ms .. 180.000 ms  record 256
+frame 0 link 3  Switch-3 port 2 > Switch-1 port 2  180.000 ms .. 190.000 ms  record 260
+frame 11 link 5  PC-5 port 1 > Switch-2 port 3  180.000 ms .. 190.000 ms  record 263
+frame 0 link 1  Switch-2 port 1 > Switch-1 port 1  180.000 ms .. 190.000 ms  record 267
+frame 0 link 5  Switch-2 port 3 > PC-5 port 1  180.000 ms .. 190.000 ms  record 268
+frame 0 link 1  Switch-1 port 1 > Switch-2 port 1  190.000 ms .. 200.000 ms  record 274
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  190.000 ms .. 200.000 ms  record 275  stopped
+frame 11 link 2  Switch-2 port 2 > Switch-3 port 1  190.000 ms .. 200.000 ms  record 278
+frame 0 link 3  Switch-1 port 2 > Switch-3 port 2  190.000 ms .. 200.000 ms  record 282  stopped
+frame 0 link 4  Switch-1 port 3 > PC-4 port 1  190.000 ms .. 200.000 ms  record 283  stopped
+frame 12 link 5  PC-5 port 1 > Switch-2 port 3  190.000 ms .. 200.000 ms  record 286
+frame 0 link 2  Switch-2 port 2 > Switch-3 port 1  200.000 ms .. 200.000 ms  record 290  stopped
+frame 12 link 1  Switch-2 port 1 > Switch-1 port 1  200.000 ms .. 210.000 ms  record 296
+frame 13 link 4  PC-4 port 1 > Switch-1 port 3  1000.000 ms .. 1010.000 ms  record 300
+frame 13 link 1  Switch-1 port 1 > Switch-2 port 1  1010.000 ms .. 1020.000 ms  record 304
+frame 13 link 3  Switch-1 port 2 > Switch-3 port 2  1010.000 ms .. 1020.000 ms  record 305
+frame 13 link 2  Switch-2 port 2 > Switch-3 port 1  1020.000 ms .. 1030.000 ms  record 308
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1020.000 ms .. 1030.000 ms  record 309
+frame 13 link 2  Switch-3 port 1 > Switch-2 port 2  1020.000 ms .. 1030.000 ms  record 313
+frame 13 link 3  Switch-3 port 2 > Switch-1 port 2  1030.000 ms .. 1040.000 ms  record 317
+frame 14 link 5  PC-5 port 1 > Switch-2 port 3  1030.000 ms .. 1040.000 ms  record 320
+frame 13 link 1  Switch-2 port 1 > Switch-1 port 1  1030.000 ms .. 1040.000 ms  record 324
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1030.000 ms .. 1040.000 ms  record 325
+frame 13 link 1  Switch-1 port 1 > Switch-2 port 1  1040.000 ms .. 1050.000 ms  record 329
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1040.000 ms .. 1050.000 ms  record 330
+frame 14 link 2  Switch-2 port 2 > Switch-3 port 1  1040.000 ms .. 1050.000 ms  record 333
+frame 13 link 3  Switch-1 port 2 > Switch-3 port 2  1040.000 ms .. 1050.000 ms  record 337
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1040.000 ms .. 1050.000 ms  record 338
+frame 15 link 5  PC-5 port 1 > Switch-2 port 3  1040.000 ms .. 1050.000 ms  record 341
+frame 13 link 2  Switch-2 port 2 > Switch-3 port 1  1050.000 ms .. 1060.000 ms  record 345
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1050.000 ms .. 1060.000 ms  record 346
+frame 13 link 2  Switch-3 port 1 > Switch-2 port 2  1050.000 ms .. 1060.000 ms  record 354
+frame 15 link 1  Switch-2 port 1 > Switch-1 port 1  1050.000 ms .. 1060.000 ms  record 359
+frame 13 link 3  Switch-3 port 2 > Switch-1 port 2  1060.000 ms .. 1070.000 ms  record 363
+frame 16 link 5  PC-5 port 1 > Switch-2 port 3  1060.000 ms .. 1070.000 ms  record 366
+frame 13 link 1  Switch-2 port 1 > Switch-1 port 1  1060.000 ms .. 1070.000 ms  record 370
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1060.000 ms .. 1070.000 ms  record 371
+frame 13 link 1  Switch-1 port 1 > Switch-2 port 1  1070.000 ms .. 1080.000 ms  record 377
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1070.000 ms .. 1080.000 ms  record 378
+frame 16 link 2  Switch-2 port 2 > Switch-3 port 1  1070.000 ms .. 1080.000 ms  record 381
+frame 13 link 3  Switch-1 port 2 > Switch-3 port 2  1070.000 ms .. 1080.000 ms  record 385
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1070.000 ms .. 1080.000 ms  record 386
+frame 17 link 5  PC-5 port 1 > Switch-2 port 3  1070.000 ms .. 1080.000 ms  record 389
+frame 13 link 2  Switch-2 port 2 > Switch-3 port 1  1080.000 ms .. 1090.000 ms  record 393
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1080.000 ms .. 1090.000 ms  record 394
+frame 13 link 2  Switch-3 port 1 > Switch-2 port 2  1080.000 ms .. 1090.000 ms  record 402
+frame 17 link 1  Switch-2 port 1 > Switch-1 port 1  1080.000 ms .. 1090.000 ms  record 407
+frame 13 link 3  Switch-3 port 2 > Switch-1 port 2  1090.000 ms .. 1100.000 ms  record 411
+frame 18 link 5  PC-5 port 1 > Switch-2 port 3  1090.000 ms .. 1100.000 ms  record 414
+frame 13 link 1  Switch-2 port 1 > Switch-1 port 1  1090.000 ms .. 1100.000 ms  record 418
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1090.000 ms .. 1100.000 ms  record 419
+frame 13 link 1  Switch-1 port 1 > Switch-2 port 1  1100.000 ms .. 1110.000 ms  record 425
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1100.000 ms .. 1110.000 ms  record 426
+frame 18 link 2  Switch-2 port 2 > Switch-3 port 1  1100.000 ms .. 1110.000 ms  record 429
+frame 13 link 3  Switch-1 port 2 > Switch-3 port 2  1100.000 ms .. 1110.000 ms  record 433
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1100.000 ms .. 1110.000 ms  record 434
+frame 19 link 5  PC-5 port 1 > Switch-2 port 3  1100.000 ms .. 1110.000 ms  record 437
+frame 13 link 2  Switch-2 port 2 > Switch-3 port 1  1110.000 ms .. 1120.000 ms  record 441
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1110.000 ms .. 1120.000 ms  record 442
+frame 13 link 2  Switch-3 port 1 > Switch-2 port 2  1110.000 ms .. 1120.000 ms  record 450
+frame 19 link 1  Switch-2 port 1 > Switch-1 port 1  1110.000 ms .. 1120.000 ms  record 455
+frame 13 link 3  Switch-3 port 2 > Switch-1 port 2  1120.000 ms .. 1130.000 ms  record 459
+frame 20 link 5  PC-5 port 1 > Switch-2 port 3  1120.000 ms .. 1130.000 ms  record 462
+frame 13 link 1  Switch-2 port 1 > Switch-1 port 1  1120.000 ms .. 1130.000 ms  record 466
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1120.000 ms .. 1130.000 ms  record 467
+frame 13 link 1  Switch-1 port 1 > Switch-2 port 1  1130.000 ms .. 1140.000 ms  record 473
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1130.000 ms .. 1140.000 ms  record 474
+frame 20 link 2  Switch-2 port 2 > Switch-3 port 1  1130.000 ms .. 1140.000 ms  record 477
+frame 13 link 3  Switch-1 port 2 > Switch-3 port 2  1130.000 ms .. 1140.000 ms  record 481
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1130.000 ms .. 1140.000 ms  record 482
+frame 21 link 5  PC-5 port 1 > Switch-2 port 3  1130.000 ms .. 1140.000 ms  record 485
+frame 13 link 2  Switch-2 port 2 > Switch-3 port 1  1140.000 ms .. 1150.000 ms  record 489
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1140.000 ms .. 1150.000 ms  record 490
+frame 13 link 2  Switch-3 port 1 > Switch-2 port 2  1140.000 ms .. 1150.000 ms  record 498
+frame 21 link 1  Switch-2 port 1 > Switch-1 port 1  1140.000 ms .. 1150.000 ms  record 503
+frame 13 link 3  Switch-3 port 2 > Switch-1 port 2  1150.000 ms .. 1160.000 ms  record 507
+frame 22 link 5  PC-5 port 1 > Switch-2 port 3  1150.000 ms .. 1160.000 ms  record 510
+frame 13 link 1  Switch-2 port 1 > Switch-1 port 1  1150.000 ms .. 1160.000 ms  record 514
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1150.000 ms .. 1160.000 ms  record 515
+frame 13 link 1  Switch-1 port 1 > Switch-2 port 1  1160.000 ms .. 1170.000 ms  record 521
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1160.000 ms .. 1170.000 ms  record 522
+frame 22 link 2  Switch-2 port 2 > Switch-3 port 1  1160.000 ms .. 1170.000 ms  record 525
+frame 13 link 3  Switch-1 port 2 > Switch-3 port 2  1160.000 ms .. 1170.000 ms  record 529
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1160.000 ms .. 1170.000 ms  record 530
+frame 23 link 5  PC-5 port 1 > Switch-2 port 3  1160.000 ms .. 1170.000 ms  record 533
+frame 13 link 2  Switch-2 port 2 > Switch-3 port 1  1170.000 ms .. 1180.000 ms  record 537
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1170.000 ms .. 1180.000 ms  record 538
+frame 13 link 2  Switch-3 port 1 > Switch-2 port 2  1170.000 ms .. 1180.000 ms  record 546
+frame 23 link 1  Switch-2 port 1 > Switch-1 port 1  1170.000 ms .. 1180.000 ms  record 551
+frame 13 link 3  Switch-3 port 2 > Switch-1 port 2  1180.000 ms .. 1190.000 ms  record 555
+frame 24 link 5  PC-5 port 1 > Switch-2 port 3  1180.000 ms .. 1190.000 ms  record 558
+frame 13 link 1  Switch-2 port 1 > Switch-1 port 1  1180.000 ms .. 1190.000 ms  record 562
+frame 13 link 5  Switch-2 port 3 > PC-5 port 1  1180.000 ms .. 1190.000 ms  record 563
+frame 13 link 1  Switch-1 port 1 > Switch-2 port 1  1190.000 ms .. 1200.000 ms  record 569
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1190.000 ms .. 1200.000 ms  record 570  stopped
+frame 24 link 2  Switch-2 port 2 > Switch-3 port 1  1190.000 ms .. 1200.000 ms  record 573
+frame 13 link 3  Switch-1 port 2 > Switch-3 port 2  1190.000 ms .. 1200.000 ms  record 577  stopped
+frame 13 link 4  Switch-1 port 3 > PC-4 port 1  1190.000 ms .. 1200.000 ms  record 578  stopped
+frame 25 link 5  PC-5 port 1 > Switch-2 port 3  1190.000 ms .. 1200.000 ms  record 581
+frame 13 link 2  Switch-2 port 2 > Switch-3 port 1  1200.000 ms .. 1200.000 ms  record 585  stopped
+frame 25 link 1  Switch-2 port 1 > Switch-1 port 1  1200.000 ms .. 1210.000 ms  record 591
+frame 26 link 4  PC-4 port 1 > Switch-1 port 3  2000.000 ms .. 2010.000 ms  record 595
+frame 26 link 1  Switch-1 port 1 > Switch-2 port 1  2010.000 ms .. 2020.000 ms  record 599
+frame 26 link 3  Switch-1 port 2 > Switch-3 port 2  2010.000 ms .. 2020.000 ms  record 600
+frame 26 link 2  Switch-2 port 2 > Switch-3 port 1  2020.000 ms .. 2030.000 ms  record 603
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2020.000 ms .. 2030.000 ms  record 604
+frame 26 link 2  Switch-3 port 1 > Switch-2 port 2  2020.000 ms .. 2030.000 ms  record 608
+frame 26 link 3  Switch-3 port 2 > Switch-1 port 2  2030.000 ms .. 2040.000 ms  record 612
+frame 27 link 5  PC-5 port 1 > Switch-2 port 3  2030.000 ms .. 2040.000 ms  record 615
+frame 26 link 1  Switch-2 port 1 > Switch-1 port 1  2030.000 ms .. 2040.000 ms  record 619
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2030.000 ms .. 2040.000 ms  record 620
+frame 26 link 1  Switch-1 port 1 > Switch-2 port 1  2040.000 ms .. 2050.000 ms  record 624
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2040.000 ms .. 2050.000 ms  record 625
+frame 27 link 2  Switch-2 port 2 > Switch-3 port 1  2040.000 ms .. 2050.000 ms  record 628
+frame 26 link 3  Switch-1 port 2 > Switch-3 port 2  2040.000 ms .. 2050.000 ms  record 632
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2040.000 ms .. 2050.000 ms  record 633
+frame 28 link 5  PC-5 port 1 > Switch-2 port 3  2040.000 ms .. 2050.000 ms  record 636
+frame 26 link 2  Switch-2 port 2 > Switch-3 port 1  2050.000 ms .. 2060.000 ms  record 640
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2050.000 ms .. 2060.000 ms  record 641
+frame 26 link 2  Switch-3 port 1 > Switch-2 port 2  2050.000 ms .. 2060.000 ms  record 649
+frame 28 link 1  Switch-2 port 1 > Switch-1 port 1  2050.000 ms .. 2060.000 ms  record 654
+frame 26 link 3  Switch-3 port 2 > Switch-1 port 2  2060.000 ms .. 2070.000 ms  record 658
+frame 29 link 5  PC-5 port 1 > Switch-2 port 3  2060.000 ms .. 2070.000 ms  record 661
+frame 26 link 1  Switch-2 port 1 > Switch-1 port 1  2060.000 ms .. 2070.000 ms  record 665
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2060.000 ms .. 2070.000 ms  record 666
+frame 26 link 1  Switch-1 port 1 > Switch-2 port 1  2070.000 ms .. 2080.000 ms  record 672
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2070.000 ms .. 2080.000 ms  record 673
+frame 29 link 2  Switch-2 port 2 > Switch-3 port 1  2070.000 ms .. 2080.000 ms  record 676
+frame 26 link 3  Switch-1 port 2 > Switch-3 port 2  2070.000 ms .. 2080.000 ms  record 680
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2070.000 ms .. 2080.000 ms  record 681
+frame 30 link 5  PC-5 port 1 > Switch-2 port 3  2070.000 ms .. 2080.000 ms  record 684
+frame 26 link 2  Switch-2 port 2 > Switch-3 port 1  2080.000 ms .. 2090.000 ms  record 688
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2080.000 ms .. 2090.000 ms  record 689
+frame 26 link 2  Switch-3 port 1 > Switch-2 port 2  2080.000 ms .. 2090.000 ms  record 697
+frame 30 link 1  Switch-2 port 1 > Switch-1 port 1  2080.000 ms .. 2090.000 ms  record 702
+frame 26 link 3  Switch-3 port 2 > Switch-1 port 2  2090.000 ms .. 2100.000 ms  record 706
+frame 31 link 5  PC-5 port 1 > Switch-2 port 3  2090.000 ms .. 2100.000 ms  record 709
+frame 26 link 1  Switch-2 port 1 > Switch-1 port 1  2090.000 ms .. 2100.000 ms  record 713
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2090.000 ms .. 2100.000 ms  record 714
+frame 26 link 1  Switch-1 port 1 > Switch-2 port 1  2100.000 ms .. 2110.000 ms  record 720
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2100.000 ms .. 2110.000 ms  record 721
+frame 31 link 2  Switch-2 port 2 > Switch-3 port 1  2100.000 ms .. 2110.000 ms  record 724
+frame 26 link 3  Switch-1 port 2 > Switch-3 port 2  2100.000 ms .. 2110.000 ms  record 728
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2100.000 ms .. 2110.000 ms  record 729
+frame 32 link 5  PC-5 port 1 > Switch-2 port 3  2100.000 ms .. 2110.000 ms  record 732
+frame 26 link 2  Switch-2 port 2 > Switch-3 port 1  2110.000 ms .. 2120.000 ms  record 736
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2110.000 ms .. 2120.000 ms  record 737
+frame 26 link 2  Switch-3 port 1 > Switch-2 port 2  2110.000 ms .. 2120.000 ms  record 745
+frame 32 link 1  Switch-2 port 1 > Switch-1 port 1  2110.000 ms .. 2120.000 ms  record 750
+frame 26 link 3  Switch-3 port 2 > Switch-1 port 2  2120.000 ms .. 2130.000 ms  record 754
+frame 33 link 5  PC-5 port 1 > Switch-2 port 3  2120.000 ms .. 2130.000 ms  record 757
+frame 26 link 1  Switch-2 port 1 > Switch-1 port 1  2120.000 ms .. 2130.000 ms  record 761
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2120.000 ms .. 2130.000 ms  record 762
+frame 26 link 1  Switch-1 port 1 > Switch-2 port 1  2130.000 ms .. 2140.000 ms  record 768
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2130.000 ms .. 2140.000 ms  record 769
+frame 33 link 2  Switch-2 port 2 > Switch-3 port 1  2130.000 ms .. 2140.000 ms  record 772
+frame 26 link 3  Switch-1 port 2 > Switch-3 port 2  2130.000 ms .. 2140.000 ms  record 776
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2130.000 ms .. 2140.000 ms  record 777
+frame 34 link 5  PC-5 port 1 > Switch-2 port 3  2130.000 ms .. 2140.000 ms  record 780
+frame 26 link 2  Switch-2 port 2 > Switch-3 port 1  2140.000 ms .. 2150.000 ms  record 784
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2140.000 ms .. 2150.000 ms  record 785
+frame 26 link 2  Switch-3 port 1 > Switch-2 port 2  2140.000 ms .. 2150.000 ms  record 793
+frame 34 link 1  Switch-2 port 1 > Switch-1 port 1  2140.000 ms .. 2150.000 ms  record 798
+frame 26 link 3  Switch-3 port 2 > Switch-1 port 2  2150.000 ms .. 2160.000 ms  record 802
+frame 35 link 5  PC-5 port 1 > Switch-2 port 3  2150.000 ms .. 2160.000 ms  record 805
+frame 26 link 1  Switch-2 port 1 > Switch-1 port 1  2150.000 ms .. 2160.000 ms  record 809
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2150.000 ms .. 2160.000 ms  record 810
+frame 26 link 1  Switch-1 port 1 > Switch-2 port 1  2160.000 ms .. 2170.000 ms  record 816
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2160.000 ms .. 2170.000 ms  record 817
+frame 35 link 2  Switch-2 port 2 > Switch-3 port 1  2160.000 ms .. 2170.000 ms  record 820
+frame 26 link 3  Switch-1 port 2 > Switch-3 port 2  2160.000 ms .. 2170.000 ms  record 824
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2160.000 ms .. 2170.000 ms  record 825
+frame 36 link 5  PC-5 port 1 > Switch-2 port 3  2160.000 ms .. 2170.000 ms  record 828
+frame 26 link 2  Switch-2 port 2 > Switch-3 port 1  2170.000 ms .. 2180.000 ms  record 832
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2170.000 ms .. 2180.000 ms  record 833
+frame 26 link 2  Switch-3 port 1 > Switch-2 port 2  2170.000 ms .. 2180.000 ms  record 841
+frame 36 link 1  Switch-2 port 1 > Switch-1 port 1  2170.000 ms .. 2180.000 ms  record 846
+frame 26 link 3  Switch-3 port 2 > Switch-1 port 2  2180.000 ms .. 2190.000 ms  record 850
+frame 37 link 5  PC-5 port 1 > Switch-2 port 3  2180.000 ms .. 2190.000 ms  record 853
+frame 26 link 1  Switch-2 port 1 > Switch-1 port 1  2180.000 ms .. 2190.000 ms  record 857
+frame 26 link 5  Switch-2 port 3 > PC-5 port 1  2180.000 ms .. 2190.000 ms  record 858
+frame 26 link 1  Switch-1 port 1 > Switch-2 port 1  2190.000 ms .. 2200.000 ms  record 864
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2190.000 ms .. 2200.000 ms  record 865  stopped
+frame 37 link 2  Switch-2 port 2 > Switch-3 port 1  2190.000 ms .. 2200.000 ms  record 868
+frame 26 link 3  Switch-1 port 2 > Switch-3 port 2  2190.000 ms .. 2200.000 ms  record 872  stopped
+frame 26 link 4  Switch-1 port 3 > PC-4 port 1  2190.000 ms .. 2200.000 ms  record 873  stopped
+frame 38 link 5  PC-5 port 1 > Switch-2 port 3  2190.000 ms .. 2200.000 ms  record 876
+frame 26 link 2  Switch-2 port 2 > Switch-3 port 1  2200.000 ms .. 2200.000 ms  record 880  stopped
+frame 38 link 1  Switch-2 port 1 > Switch-1 port 1  2200.000 ms .. 2210.000 ms  record 886
+
+## events
+0.000 ms  [ARP] PC-4 · who has 192.168.1.14?  (ok, from 4 to - link - frame 0)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 1/3.
+    The destination is in the local subnet. Looking for its MAC address.
+10.000 ms  [ARP] PC-4 → Switch-1 · ARP Request  (ok, from 4 to 1 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 3.
+    Learned source MAC 02:00:00:00:00:04 on port 3.
+    Flooded to every active port except the ingress port: 2 copies.
+20.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+20.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+30.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+30.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+30.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+40.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+40.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 1)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Learned source MAC 02:00:00:00:00:05 on port 3.
+    Unicast on port 2.
+40.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+40.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+50.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+50.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+50.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 1)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Learned source MAC 02:00:00:00:00:05 on port 1.
+    Frame filtered: the destination is on the ingress port.
+50.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+50.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+50.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 2)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+60.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+60.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+60.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+60.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 2)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Learned source MAC 02:00:00:00:00:05 on port 1.
+    Frame filtered: the destination is on the ingress port.
+70.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+70.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 3)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+70.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+70.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+80.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+80.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+80.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 3)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+80.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+80.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+80.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 4)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+90.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+90.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+90.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+90.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 4)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+100.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+100.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 5)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+100.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+100.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+110.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+110.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+110.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 5)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+110.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+110.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+110.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 6)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+120.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+120.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+120.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+120.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 6)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+130.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+130.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 7)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+130.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+130.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+140.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+140.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+140.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 7)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+140.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+140.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+140.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 8)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+150.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+150.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+150.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+150.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 8)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+160.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+160.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 9)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+160.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+160.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+170.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+170.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+170.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 9)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+170.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+170.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+170.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 10)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+180.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+180.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+180.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+180.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 10)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+190.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+190.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 11)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+190.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+190.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+200.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+200.000 ms  [SIMULATOR] Storm protection · frame stopped at Switch-2  (simulator, from 2 to - link - frame 0)
+    This ARP Request was sent 64 times: more often than a network without loops could ever send it. The network has an Ethernet loop and nothing stops the copies going round, so the simulator removed them all. Real switches would keep flooding; spanning tree (STP) prevents this and is not implemented yet.
+200.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 11)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+200.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 12)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+210.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 12)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1000.000 ms  [ARP] No ARP reply · retrying  (ok, from 4 to - link - frame -)
+    One simulated second has passed. The PC repeats the ARP request.
+1000.000 ms  [ARP] PC-4 · who has 192.168.1.14?  (ok, from 4 to - link - frame 13)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 2/3.
+    The destination is in the local subnet. Looking for its MAC address.
+1010.000 ms  [ARP] PC-4 → Switch-1 · ARP Request  (ok, from 4 to 1 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 3.
+    Learned source MAC 02:00:00:00:00:04 on port 3.
+    Flooded to every active port except the ingress port: 2 copies.
+1020.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1020.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+1030.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+1030.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1030.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1040.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1040.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 14)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+1040.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1040.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1050.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1050.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1050.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 14)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1050.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+1050.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1050.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 15)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+1060.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+1060.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1060.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1060.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 15)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1070.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1070.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 16)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+1070.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1070.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1080.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1080.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1080.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 16)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1080.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+1080.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1080.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 17)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+1090.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+1090.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1090.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1090.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 17)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1100.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1100.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 18)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+1100.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1100.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1110.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1110.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1110.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 18)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1110.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+1110.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1110.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 19)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+1120.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+1120.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1120.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1120.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 19)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1130.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1130.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 20)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+1130.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1130.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1140.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1140.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1140.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 20)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1140.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+1140.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1140.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 21)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+1150.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+1150.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1150.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1150.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 21)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1160.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1160.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 22)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+1160.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1160.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1170.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1170.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1170.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 22)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1170.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+1170.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1170.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 23)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+1180.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+1180.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1180.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1180.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 23)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1190.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+1190.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 24)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+1190.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+1190.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+1200.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 13)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+1200.000 ms  [SIMULATOR] Storm protection · frame stopped at Switch-2  (simulator, from 2 to - link - frame 13)
+    This ARP Request was sent 64 times: more often than a network without loops could ever send it. The network has an Ethernet loop and nothing stops the copies going round, so the simulator removed them all. Real switches would keep flooding; spanning tree (STP) prevents this and is not implemented yet.
+1200.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 24)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+1200.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 25)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+1210.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 25)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2000.000 ms  [ARP] No ARP reply · retrying  (ok, from 4 to - link - frame -)
+    One simulated second has passed. The PC repeats the ARP request.
+2000.000 ms  [ARP] PC-4 · who has 192.168.1.14?  (ok, from 4 to - link - frame 26)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 3/3.
+    The destination is in the local subnet. Looking for its MAC address.
+2010.000 ms  [ARP] PC-4 → Switch-1 · ARP Request  (ok, from 4 to 1 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 3.
+    Learned source MAC 02:00:00:00:00:04 on port 3.
+    Flooded to every active port except the ingress port: 2 copies.
+2020.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2020.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+2030.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+2030.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2030.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2040.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2040.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 27)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+2040.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2040.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2050.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2050.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2050.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 27)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2050.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+2050.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2050.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 28)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+2060.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+2060.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2060.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2060.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 28)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2070.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2070.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 29)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+2070.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2070.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2080.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2080.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2080.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 29)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2080.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+2080.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2080.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 30)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+2090.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+2090.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2090.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2090.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 30)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2100.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2100.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 31)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+2100.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2100.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2110.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2110.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2110.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 31)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2110.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+2110.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2110.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 32)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+2120.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+2120.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2120.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2120.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 32)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2130.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2130.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 33)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+2130.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2130.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2140.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2140.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2140.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 33)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2140.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+2140.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2140.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 34)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+2150.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+2150.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2150.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2150.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 34)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2160.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2160.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 35)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+2160.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2160.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2170.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2170.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2170.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 35)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2170.000 ms  [ARP] Switch-1 → Switch-3 · ARP Request  (ok, from 1 to 3 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 1 copy.
+2170.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 4 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2170.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 36)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+2180.000 ms  [ARP] Switch-2 → Switch-3 · ARP Request  (ok, from 2 to 3 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+2180.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2180.000 ms  [ARP] Switch-3 → Switch-2 · ARP Request  (ok, from 3 to 2 link 2 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2180.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 36)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2190.000 ms  [ARP] Switch-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 3 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:04 on port 2.
+    Flooded to every active port except the ingress port: 2 copies.
+2190.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 37)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 2.
+2190.000 ms  [ARP] Switch-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 2 copies.
+2190.000 ms  [ARP] Switch-2 → PC-5 · ARP Request  (ok, from 2 to 5 link 5 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.13 = 02:00:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+2200.000 ms  [ARP] Switch-1 → Switch-2 · ARP Request  (ok, from 1 to 2 link 1 frame 26)
+    Ethernet: 02:00:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.13 → 192.168.1.14
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:04 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+2200.000 ms  [SIMULATOR] Storm protection · frame stopped at Switch-2  (simulator, from 2 to - link - frame 26)
+    This ARP Request was sent 64 times: more often than a network without loops could ever send it. The network has an Ethernet loop and nothing stops the copies going round, so the simulator removed them all. Real switches would keep flooding; spanning tree (STP) prevents this and is not implemented yet.
+2200.000 ms  [ARP] Switch-2 → Switch-3 · ARP Reply  (ok, from 2 to 3 link 2 frame 37)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+2200.000 ms  [ARP] PC-5 → Switch-2 · ARP Reply  (ok, from 5 to 2 link 5 frame 38)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 3.
+    Unicast on port 1.
+2210.000 ms  [ARP] Switch-2 → Switch-1 · ARP Reply  (ok, from 2 to 1 link 1 frame 38)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:04
+    ARP: 192.168.1.14 → 192.168.1.13
+    ARP Reply; ingress port 1.
+    Frame filtered: the destination is on the ingress port.
+3000.000 ms  [ARP] Ping failed · ARP resolution timed out  (failed, from 4 to - link - frame -)
+    No reply after three ARP requests. Check the address, the cables and that the devices are on. No ICMP was sent.

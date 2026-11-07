@@ -20,12 +20,16 @@ namespace netsim::explain {
 struct Event {
     SimTime time{};
     std::uint64_t episode = 0;
-    std::string protocol{};  // "ARP", "ICMP", "IPv4"
+    // "ARP", "ICMP", "IPv4"; "EDIT" for a change to the network,
+    // "SIMULATOR" for the simulator's own interventions.
+    std::string protocol{};
     std::string summary{}, detail{};
     std::optional<DeviceId> from{}, to{};
     std::optional<LinkId> link{};
     std::optional<PduId> pdu{};  // the frame the event is about
     bool success = true;
+    // The simulator stepped in (storm protection): never network behaviour.
+    bool simulator = false;
     bool operator==(const Event&) const = default;
 };
 

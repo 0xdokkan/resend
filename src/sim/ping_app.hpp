@@ -6,20 +6,29 @@
 
 namespace netsim {
 
-// The ping command of one host. Each ping sends one Echo Request whose
-// identifier is the ping's id, and succeeds when the matching Echo Reply
-// arrives within echo_timeout of the request leaving.
+// The ping command of one host. Each request of ping `id` carries the id as
+// its ICMP identifier and its number, from 1, as its sequence; it succeeds
+// when the matching Echo Reply arrives within the ping's timeout of the
+// request leaving the host.
 class PingApp {
 public:
-    static IcmpMessage request(PingId id) { return {icmp::echo_request, 0, static_cast<std::uint16_t>(id.value), 1}; }
-    // The request left: the timeout starts.
-    void sent(Context& context, PingId id);
-    // An Echo Reply reached the host. True if it ended a ping.
+    // The ping's next Echo Request, as a datagram from `source`. Schedules
+    // the request after it, if any.
+    Outgoing request(Context& context, PingId id, Ipv4Address source);
+    // The request left the host as frame `pdu`: its timeout starts.
+    void sent(Context& context, PingId id, std::uint16_t sequence, PduId pdu);
+    // An Echo Reply reached the host. True if it answered a waiting request.
     bool reply(Context& context, const Arrival& arrival, Ipv4Address from, const IcmpMessage& message);
-    void timeout(Context& context, PingId id);
+    void timeout(Context& context, std::uint64_t key);
+
+    static std::uint64_t timer_key(PingId id, std::uint16_t sequence) { return std::uint64_t{id.value} << 16 | sequence; }
 
 private:
-    std::map<std::uint32_t, TimerHandle> waiting_;  // by ping id
+    struct Waiting {
+        TimerHandle timer;
+        PduId request{};
+    };
+    std::map<std::uint64_t, Waiting> waiting_;  // by timer key
 };
 
 } // namespace netsim
