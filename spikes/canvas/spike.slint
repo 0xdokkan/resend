@@ -1,0 +1,192 @@
+import { LineEdit, ListView } from "std-widgets.slint";
+
+export struct NodeRow { id: int, name: string, switch-kind: bool, x: float, y: float, selected: bool }
+export struct PortRow { x: float, y: float, used: bool, target: bool }
+export struct LinkRow { ax: float, ay: float, bx: float, by: float, selected: bool }
+export struct EventRow { time: string, protocol: string, summary: string }
+
+// Card size in canvas units; must match canvas_controller.hpp.
+export global Geometry {
+    out property <float> card-width: 160;
+    out property <float> card-height: 94;
+    out property <float> port-radius: 7;
+}
+
+export component SpikeWindow inherits Window {
+    title: "Canvas spike";
+    preferred-width: 1280px;
+    preferred-height: 820px;
+    background: #0c111b;
+    default-font-size: 13px;
+
+    in property <[NodeRow]> nodes;
+    in property <[PortRow]> ports;
+    in property <[LinkRow]> links;
+    in property <[EventRow]> events;
+    in property <float> zoom: 1;
+    in property <float> pan-x;
+    in property <float> pan-y;
+    in property <string> link-path;
+    in property <string> selected-path;
+    in property <string> band-path;
+    in property <bool> per-link-paths;
+    in property <string> status;
+    in-out property <string> selected-name;
+    in property <bool> name-editable;
+
+    callback pointer-down(float, float, int);  // x, y, button: 0 left, 1 middle, 2 right
+    callback pointer-move(float, float);
+    callback pointer-up(float, float);
+    callback wheel(float, float, float);
+    callback key(string) -> bool;
+    callback rename(string);
+    callback delete-selection();
+    callback fit-view();
+
+    out property <length> canvas-width: canvas.width;
+    out property <length> canvas-height: canvas.height;
+
+    public function scroll-events(delta: length) {
+        events-list.content-y = max(events-list.visible-height - events-list.content-height, min(0px, events-list.content-y - delta));
+    }
+
+    HorizontalLayout {
+        VerticalLayout {
+            horizontal-stretch: 1;
+            canvas := Rectangle {
+                background: #0d1520;
+                clip: true;
+                accessible-role: groupbox;
+                accessible-label: "Canvas";
+
+                if !root.per-link-paths: Path {
+                    width: canvas.width; height: canvas.height;
+                    viewbox-width: self.width / 1px; viewbox-height: self.height / 1px;
+                    commands: root.link-path;
+                    stroke: #4f7493; stroke-width: 2px;
+                }
+                if root.per-link-paths: Rectangle {
+                    for l in root.links: Path {
+                        width: canvas.width; height: canvas.height;
+                        viewbox-width: self.width / 1px; viewbox-height: self.height / 1px;
+                        stroke: l.selected ? #7ce3c0 : #4f7493; stroke-width: l.selected ? 3px : 2px;
+                        MoveTo { x: l.ax * root.zoom + root.pan-x; y: l.ay * root.zoom + root.pan-y; }
+                        LineTo { x: l.bx * root.zoom + root.pan-x; y: l.by * root.zoom + root.pan-y; }
+                    }
+                }
+                Path {
+                    width: canvas.width; height: canvas.height;
+                    viewbox-width: self.width / 1px; viewbox-height: self.height / 1px;
+                    commands: root.selected-path;
+                    stroke: #7ce3c0; stroke-width: 3px;
+                }
+
+                for n in root.nodes: Rectangle {
+                    x: (n.x * root.zoom + root.pan-x) * 1px;
+                    y: (n.y * root.zoom + root.pan-y) * 1px;
+                    width: Geometry.card-width * root.zoom * 1px;
+                    height: Geometry.card-height * root.zoom * 1px;
+                    border-radius: 10px * root.zoom;
+                    background: n.selected ? #1d3440 : #172534;
+                    border-width: n.selected ? 2px : 1px;
+                    border-color: n.selected ? #7ce3c0 : #365068;
+                    accessible-role: button;
+                    accessible-label: n.name;
+                    Text {
+                        x: 14px * root.zoom; y: 14px * root.zoom;
+                        text: n.name; color: #e6edf6; font-size: 14px * root.zoom; font-weight: 600;
+                    }
+                    Text {
+                        x: 14px * root.zoom; y: 38px * root.zoom;
+                        text: n.switch-kind ? "SWITCH · 8 PORTS" : "HOST · 1 PORT";
+                        color: #91a2b8; font-size: 9px * root.zoom; letter-spacing: 1px * root.zoom;
+                    }
+                }
+                for p in root.ports: Rectangle {
+                    x: (p.x * root.zoom + root.pan-x - Geometry.port-radius * root.zoom) * 1px;
+                    y: (p.y * root.zoom + root.pan-y - Geometry.port-radius * root.zoom) * 1px;
+                    width: Geometry.port-radius * 2 * root.zoom * 1px;
+                    height: self.width;
+                    border-radius: self.width / 2;
+                    background: p.target ? #7ce3c0 : p.used ? #4f7493 : #0d1520;
+                    border-width: 1.5px;
+                    border-color: p.target ? #ffffff : #7ce3c0;
+                }
+                Path {
+                    width: canvas.width; height: canvas.height;
+                    viewbox-width: self.width / 1px; viewbox-height: self.height / 1px;
+                    commands: root.band-path;
+                    stroke: #f1c47b; stroke-width: 2px;
+                }
+
+                // One input layer on top: the controller decides what was hit.
+                menu-area := ContextMenuArea {
+                    Menu {
+                        MenuItem { title: "Delete selection"; activated => { root.delete-selection(); } }
+                        MenuItem { title: "Fit view"; activated => { root.fit-view(); } }
+                    }
+                    keys := FocusScope {
+                        key-pressed(e) => { return root.key(e.text) ? accept : reject; }
+                        touch := TouchArea {
+                            mouse-cursor: default;
+                            pointer-event(e) => {
+                                if e.kind == PointerEventKind.down {
+                                    keys.focus();
+                                    root.pointer-down(self.mouse-x / 1px, self.mouse-y / 1px,
+                                        e.button == PointerEventButton.left ? 0 : e.button == PointerEventButton.right ? 2 : 1);
+                                    // The TouchArea accepts the press, so the menu is opened explicitly.
+                                    if e.button == PointerEventButton.right {
+                                        menu-area.show({ x: self.mouse-x, y: self.mouse-y });
+                                    }
+                                } else if e.kind == PointerEventKind.up {
+                                    root.pointer-up(self.mouse-x / 1px, self.mouse-y / 1px);
+                                }
+                            }
+                            moved => { root.pointer-move(self.mouse-x / 1px, self.mouse-y / 1px); }
+                            scroll-event(e) => {
+                                root.wheel(self.mouse-x / 1px, self.mouse-y / 1px, e.delta-y / 1px);
+                                return accept;
+                            }
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                height: 30px;
+                background: #111925;
+                Text {
+                    x: 12px; text: root.status; color: #91a2b8; font-size: 11px;
+                    vertical-alignment: center; height: parent.height;
+                }
+            }
+        }
+        Rectangle {
+            width: 340px;
+            background: #111925;
+            VerticalLayout {
+                padding: 12px;
+                spacing: 8px;
+                Text { text: "Name of the selected device"; color: #91a2b8; font-size: 11px; }
+                LineEdit {
+                    enabled: root.name-editable;
+                    text <=> root.selected-name;
+                    accessible-label: "Device name";
+                    accepted(value) => { root.rename(value); }
+                }
+                Text { text: "Events (" + root.events.length + ")"; color: #91a2b8; font-size: 11px; }
+                events-list := ListView {
+                    accessible-label: "Events";
+                    for e in root.events: Rectangle {
+                        height: 28px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Text { text: e.time; color: #91a2b8; font-size: 10px; width: 64px; vertical-alignment: center; }
+                            Text { text: e.protocol; color: #f1c47b; font-size: 10px; width: 40px; vertical-alignment: center; }
+                            Text { text: e.summary; color: #e6edf6; font-size: 11px; overflow: elide; vertical-alignment: center; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

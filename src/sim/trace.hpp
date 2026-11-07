@@ -1,0 +1,84 @@
+#pragma once
+
+#include "core/ids.hpp"
+#include "core/sim_time.hpp"
+#include "sim/pdu.hpp"
+
+#include <cstdint>
+#include <optional>
+#include <vector>
+
+namespace netsim {
+
+// Facts recorded by the simulation. Records carry no text: explanations are
+// derived from them, which keeps the model, its tests and the language apart.
+enum class TraceKind : std::uint8_t {
+    FrameSent,        // a frame left a port onto an active cable
+    FrameReceived,    // a frame arrived at a port of a powered device
+    FrameDropped,     // the frame stops here; the reason says why
+    MacLearned,       // a switch bound the source MAC to the ingress port
+    FrameFlooded,     // a switch sends the frame out of every other port
+    FrameForwarded,   // a switch sends the frame out of the learned port only
+    FrameFiltered,    // the learned port is the ingress port: nothing is sent
+    ArpCacheUpdated,  // the receiver maps the ARP sender address to its MAC
+    ArpTimeout,       // a retransmission interval passed without a reply
+    PingSucceeded,
+    PingFailed,
+};
+
+enum class Reason : std::uint8_t {
+    None,
+    LinkDown,         // the cable was disabled while the frame was on it
+    DeviceDown,       // the receiving device is powered off
+    NoCarrier,        // the sending port has no active cable
+    NotForUs,         // destination MAC is neither the local MAC nor broadcast
+    ArpForOtherHost,  // the ARP target address is not the local address
+    Ipv4NotForUs,     // destination IPv4 address is not the local address
+    NoRoute,          // destination outside the local subnet, and no routers yet
+    NotModelled,      // the case is outside what this version simulates
+    ArpUnresolved,    // three ARP requests went unanswered
+    EchoTimeout,      // no matching Echo Reply within the timeout
+};
+
+// `port` is zero-based. Switch decisions refer to the ingress port; the
+// FrameSent records that follow them name the egress ports.
+struct TraceRecord {
+    SimTime time{};
+    std::uint64_t seq = 0;  // position in the trace
+    TraceKind kind{};
+    Reason reason = Reason::None;
+    DeviceId device{};
+    std::optional<std::uint8_t> port{};
+    std::optional<LinkId> link{};
+    std::optional<PduId> pdu{};
+    bool operator==(const TraceRecord&) const = default;
+};
+
+// Append-only records plus the frames they refer to. A frame is archived
+// once and shared by every record about it, including the copies a switch
+// floods, so a frame can be followed across the network by its id.
+class Trace {
+public:
+    PduId archive(const Frame& frame) {
+        pdus_.push_back(frame);
+        return PduId{static_cast<std::uint32_t>(pdus_.size() - 1)};
+    }
+    void add(SimTime time, TraceRecord record) {
+        record.time = time;
+        record.seq = records_.size();
+        records_.push_back(record);
+    }
+    void clear() {
+        records_.clear();
+        pdus_.clear();
+    }
+    const Frame& pdu(PduId id) const { return pdus_.at(id.value); }
+    const std::vector<Frame>& pdus() const { return pdus_; }
+    const std::vector<TraceRecord>& records() const { return records_; }
+
+private:
+    std::vector<TraceRecord> records_;
+    std::vector<Frame> pdus_;
+};
+
+} // namespace netsim

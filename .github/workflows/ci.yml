@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  # Pull requests run once on their own trigger; pushes only for main.
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  linux-gui:
+    # Ubuntu 22.04 ships glibc 2.35, the minimum required by the prebuilt Slint SDK.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install build and runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build g++ libfontconfig1 libfreetype6 libgbm1 libinput10 libxkbcommon0
+      - uses: actions/cache@v4
+        with:
+          path: .deps
+          key: slint-sdk-${{ hashFiles('scripts/fetch-slint.sh') }}
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DRESEND_BUILD_SPIKES=ON -DSlint_DIR="$(bash scripts/fetch-slint.sh)"
+      - name: Build
+        run: cmake --build build
+      - name: Test (engine, CLI and GUI without a display)
+        run: ctest --test-dir build --output-on-failure
+
+  linux-sanitizers:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++, clang++]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          -DRESEND_BUILD_GUI=OFF -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all"
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  windows-core:
+    # Engine, CLI and tests only: keeps the core portable to MSVC from day one.
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        run: cmake -S . -B build -DRESEND_BUILD_GUI=OFF
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
