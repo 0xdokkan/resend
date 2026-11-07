@@ -1,6 +1,6 @@
 {
   "format": "resend-scenario",
-  "version": 1,
+  "version": 2,
   "title": "Mismatched masks",
   "notes": "PC-A has a /16 mask and believes PC-B is on its network, so ARP succeeds and the Echo Request arrives. PC-B has a /24 mask: for it PC-A is on another network, and without a router it cannot reply. The ping times out.",
   "seed": 1,

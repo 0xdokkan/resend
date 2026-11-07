@@ -124,19 +124,34 @@ export component Chip inherits Rectangle {
     touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
 }
 
+// A host's screen, a switch's front panel, or a router's round body with
+// a datagram going each way.
 export component DeviceIcon inherits Rectangle {
-    in property <bool> switch-kind: false;
-    in property <color> tint: Theme.mint;
+    // "host", "switch" or "router"
+    in property <string> kind: "host";
+    property <color> tint: Theme.device-color(root.kind);
     property <float> scale: root.width / 29px;
     background: transparent;
-    if !root.switch-kind: Rectangle {
+    if root.kind == "host": Rectangle {
         x: 2px * root.scale; y: 2px * root.scale;
         width: parent.width - 4px * root.scale; height: parent.height - 9px * root.scale;
         border-width: 1.5px * root.scale; border-color: root.tint; border-radius: 3px * root.scale;
         Rectangle { width: 1.5px * root.scale; height: 5px * root.scale; x: (parent.width - self.width) / 2; y: parent.height; background: root.tint; }
         Rectangle { width: 12px * root.scale; height: 1.5px * root.scale; x: (parent.width - self.width) / 2; y: parent.height + 4px * root.scale; background: root.tint; }
     }
-    if root.switch-kind: Rectangle {
+    if root.kind == "router": Rectangle {
+        x: (parent.width - self.width) / 2; y: 1px * root.scale;
+        width: 23px * root.scale; height: 23px * root.scale;
+        border-width: 1.5px * root.scale; border-color: root.tint; border-radius: self.width / 2;
+        Path {
+            width: 100%; height: 100%;
+            viewbox-width: 23; viewbox-height: 23;
+            commands: "M 6 9 L 16 9 M 13.5 6.5 L 16 9 L 13.5 11.5 M 17 14 L 7 14 M 9.5 11.5 L 7 14 L 9.5 16.5";
+            stroke: root.tint;
+            stroke-width: 1.5px * root.scale;
+        }
+    }
+    if root.kind == "switch": Rectangle {
         x: 1px * root.scale; y: 6px * root.scale; width: parent.width - 2px * root.scale; height: 15px * root.scale;
         border-width: 1.5px * root.scale; border-color: root.tint; border-radius: 3px * root.scale;
         for i in 4: Rectangle {

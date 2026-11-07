@@ -3,9 +3,11 @@
 // Regression cases. The first fourteen are the prototype's behaviour: each
 // network and its pings were checked against the prototype's engine, record
 // by record and text by text, before that engine was removed. The others
-// cover what came after, with scripts that change the network as it runs.
+// cover what came after, with scripts that change the network as it runs,
+// and from 24 on, routers.
 #include "check.hpp"
 #include "explain/explain.hpp"
+#include "routed_networks.hpp"
 #include "scenario/edit.hpp"
 #include "sim/simulation.hpp"
 
@@ -262,6 +264,39 @@ inline std::vector<Case> cases() {
              run.ping(1, "192.168.1.20");
              run.until(15ms);
              run.apply(netsim::RemoveDevice{netsim::DeviceId{2}});
+         }},
+        {"24-two-lans", "two LANs and a router, each PC with the router as its gateway", routed::two_lans,
+         {{1, "10.2.0.20"}, {1, "10.2.0.20"}, {5, "10.1.0.10"}, {1, "10.2.0.1"}}},
+        {"25-wrong-gateway", "a gateway address nobody has, then one outside the subnet",
+         [] {
+             auto s = routed::two_lans();
+             s.device(netsim::DeviceId{1})->gateway = netsim::Ipv4Address::parse("10.1.0.254");
+             return s;
+         },
+         {{1, "10.2.0.20"}},
+         [](Driver& run) {
+             run.ping(1, "10.2.0.20");
+             run.finish();
+             run.apply(netsim::SetGateway{netsim::DeviceId{1}, netsim::Ipv4Address::parse("10.2.0.1")});
+         }},
+        {"26-missing-return-route", "the far router has no route back: the request arrives, the reply does not",
+         [] { return routed::chain(false); }, {{1, "10.2.0.20"}}},
+        {"27-routing-loop", "two routers whose default routes point at each other: the TTL ends the loop",
+         routed::routing_loop, {{1, "10.9.9.9"}}},
+        {"28-longest-prefix", "overlapping /8, /16 and /24 routes: the longest prefix decides",
+         routed::longest_prefix, {{1, "10.9.0.10"}, {1, "10.20.9.10"}, {1, "10.20.30.10"}}},
+        {"29-traceroute", "traceroute across two routers, then into a routing loop", routed::routing_loop, {},
+         [](Driver& run) {
+             run.ping(1, "10.2.0.20", {.count = 30, .traceroute = true});
+             run.finish();
+             run.ping(1, "10.9.9.9", {.count = 5, .traceroute = true});
+         }},
+        {"30-unreachable", "no route at the first router, nobody at the address behind the second",
+         [] { return routed::chain(); }, {},
+         [](Driver& run) {
+             run.ping(1, "10.9.9.9", {.timeout = 5s});
+             run.finish();
+             run.ping(1, "10.2.0.99", {.timeout = 5s});
          }},
     };
 }

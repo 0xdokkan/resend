@@ -15,7 +15,7 @@ jobs:
       - name: Install build and runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build g++ libfontconfig1 libfreetype6 libgbm1 libinput10 libxkbcommon0
+          sudo apt-get install -y ninja-build g++ libfontconfig1 libfreetype6 libgbm1 libinput10 libxkbcommon0 tcpdump
       - uses: actions/cache@v4
         with:
           path: .deps
@@ -26,6 +26,8 @@ jobs:
         run: cmake --build build
       - name: Test (engine, CLI and GUI without a display)
         run: ctest --test-dir build --output-on-failure
+      - name: Compare with Linux (network namespaces, tcpdump)
+        run: sudo python3 scripts/compare-linux.py build/resend-cli
 
   linux-sanitizers:
     runs-on: ubuntu-24.04

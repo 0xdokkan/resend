@@ -1,6 +1,6 @@
 {
   "format": "resend-scenario",
-  "version": 1,
+  "version": 2,
   "title": "Switch loop",
   "notes": "Three switches joined in a ring. An Ethernet frame has no TTL, so PC-A's broadcast ARP request goes round the ring both ways for ever, and the switches keep learning PC-A's MAC on the wrong ports. resend stops each storm with a guard of its own; real networks prevent loops with spanning tree (STP), not implemented yet. Disable one cable of the ring and ping again.",
   "seed": 1,

@@ -1,0 +1,369 @@
+# overlapping /8, /16 and /24 routes: the longest prefix decides
+
+## pings
+1  PC-A > 10.9.0.10  succeeded None  0.000 ms .. 120.000 ms
+  seq 1  replied None  0.000 ms .. 120.000 ms  record 35
+2  PC-A > 10.20.9.10  succeeded None  120.000 ms .. 220.000 ms
+  seq 1  replied None  120.000 ms .. 220.000 ms  record 66
+3  PC-A > 10.20.30.10  succeeded None  220.000 ms .. 320.000 ms
+  seq 1  replied None  220.000 ms .. 320.000 ms  record 97
+
+## records
+0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
+0.000 ms  #1 e1  PC-A port 1  FrameSent  link 1 frame 0 value 1
+10.000 ms  #2 e2  Core port 1  FrameReceived  link 1 frame 0 value 0
+10.000 ms  #3 e2  Core port 1  ArpCacheUpdated  link 1 frame 0 value 0
+10.000 ms  #4 e2  Core port 1  FrameSent  link 1 frame 1 value 0
+20.000 ms  #5 e3  PC-A port 1  FrameReceived  link 1 frame 1 value 0
+20.000 ms  #6 e3  PC-A port 1  ArpCacheUpdated  link 1 frame 1 value 0
+20.000 ms  #7 e3  PC-A port 1  FrameSent  link 1 frame 2 value 0
+30.000 ms  #8 e4  Core port 1  FrameReceived  link 1 frame 2 value 0
+30.000 ms  #9 e4  Core port 1  DatagramRouted  link 1 frame 2 value 2886729986 route 10.0.0.0/8
+30.000 ms  #10 e4  Core port 2  FrameSent  link 2 frame 3 value 1
+40.000 ms  #11 e5  Wide port 1  FrameReceived  link 2 frame 3 value 0
+40.000 ms  #12 e5  Wide port 1  ArpCacheUpdated  link 2 frame 3 value 0
+40.000 ms  #13 e5  Wide port 1  FrameSent  link 2 frame 4 value 0
+50.000 ms  #14 e6  Core port 2  FrameReceived  link 2 frame 4 value 0
+50.000 ms  #15 e6  Core port 2  ArpCacheUpdated  link 2 frame 4 value 0
+50.000 ms  #16 e6  Core port 2  FrameSent  link 2 frame 5 value 0
+60.000 ms  #17 e7  Wide port 1  FrameReceived  link 2 frame 5 value 0
+60.000 ms  #18 e7  Wide port 1  DatagramRouted  link 2 frame 5 value 168361994 route 10.9.0.0/24
+60.000 ms  #19 e7  Wide port 2  FrameSent  link 5 frame 6 value 1
+70.000 ms  #20 e8  PC-8 port 1  FrameReceived  link 5 frame 6 value 0
+70.000 ms  #21 e8  PC-8 port 1  ArpCacheUpdated  link 5 frame 6 value 0
+70.000 ms  #22 e8  PC-8 port 1  FrameSent  link 5 frame 7 value 0
+80.000 ms  #23 e9  Wide port 2  FrameReceived  link 5 frame 7 value 0
+80.000 ms  #24 e9  Wide port 2  ArpCacheUpdated  link 5 frame 7 value 0
+80.000 ms  #25 e9  Wide port 2  FrameSent  link 5 frame 8 value 0
+90.000 ms  #26 e10  PC-8 port 1  FrameReceived  link 5 frame 8 value 0
+90.000 ms  #27 e10  PC-8 port 1  FrameSent  link 5 frame 9 value 0
+100.000 ms  #28 e11  Wide port 2  FrameReceived  link 5 frame 9 value 0
+100.000 ms  #29 e11  Wide port 2  DatagramRouted  link 5 frame 9 value 2886729985 route 0.0.0.0/0
+100.000 ms  #30 e11  Wide port 1  FrameSent  link 2 frame 10 value 0
+110.000 ms  #31 e12  Core port 2  FrameReceived  link 2 frame 10 value 0
+110.000 ms  #32 e12  Core port 2  DatagramRouted  link 2 frame 10 value 167837706 route 10.1.0.0/24
+110.000 ms  #33 e12  Core port 1  FrameSent  link 1 frame 11 value 0
+120.000 ms  #34 e13  PC-A port 1  FrameReceived  link 1 frame 11 value 0
+120.000 ms  #35 e13  PC-A port 1  PingReply  link 1 frame 11 value 1
+120.000 ms  #36 e13  PC-A port -  PingSucceeded  link - frame - value 1
+120.000 ms  #37 e14  PC-A port -  PingStarted  link - frame - value 2
+120.000 ms  #38 e14  PC-A port 1  FrameSent  link 1 frame 12 value 0
+130.000 ms  #39 e15  Core port 1  FrameReceived  link 1 frame 12 value 0
+130.000 ms  #40 e15  Core port 1  DatagramRouted  link 1 frame 12 value 2886730242 route 10.20.0.0/16
+130.000 ms  #41 e15  Core port 3  FrameSent  link 3 frame 13 value 1
+140.000 ms  #42 e16  Middle port 1  FrameReceived  link 3 frame 13 value 0
+140.000 ms  #43 e16  Middle port 1  ArpCacheUpdated  link 3 frame 13 value 0
+140.000 ms  #44 e16  Middle port 1  FrameSent  link 3 frame 14 value 0
+150.000 ms  #45 e17  Core port 3  FrameReceived  link 3 frame 14 value 0
+150.000 ms  #46 e17  Core port 3  ArpCacheUpdated  link 3 frame 14 value 0
+150.000 ms  #47 e17  Core port 3  FrameSent  link 3 frame 15 value 0
+160.000 ms  #48 e18  Middle port 1  FrameReceived  link 3 frame 15 value 0
+160.000 ms  #49 e18  Middle port 1  DatagramRouted  link 3 frame 15 value 169085194 route 10.20.9.0/24
+160.000 ms  #50 e18  Middle port 2  FrameSent  link 6 frame 16 value 1
+170.000 ms  #51 e19  PC-16 port 1  FrameReceived  link 6 frame 16 value 0
+170.000 ms  #52 e19  PC-16 port 1  ArpCacheUpdated  link 6 frame 16 value 0
+170.000 ms  #53 e19  PC-16 port 1  FrameSent  link 6 frame 17 value 0
+180.000 ms  #54 e20  Middle port 2  FrameReceived  link 6 frame 17 value 0
+180.000 ms  #55 e20  Middle port 2  ArpCacheUpdated  link 6 frame 17 value 0
+180.000 ms  #56 e20  Middle port 2  FrameSent  link 6 frame 18 value 0
+190.000 ms  #57 e21  PC-16 port 1  FrameReceived  link 6 frame 18 value 0
+190.000 ms  #58 e21  PC-16 port 1  FrameSent  link 6 frame 19 value 0
+200.000 ms  #59 e22  Middle port 2  FrameReceived  link 6 frame 19 value 0
+200.000 ms  #60 e22  Middle port 2  DatagramRouted  link 6 frame 19 value 2886730241 route 0.0.0.0/0
+200.000 ms  #61 e22  Middle port 1  FrameSent  link 3 frame 20 value 0
+210.000 ms  #62 e23  Core port 3  FrameReceived  link 3 frame 20 value 0
+210.000 ms  #63 e23  Core port 3  DatagramRouted  link 3 frame 20 value 167837706 route 10.1.0.0/24
+210.000 ms  #64 e23  Core port 1  FrameSent  link 1 frame 21 value 0
+220.000 ms  #65 e24  PC-A port 1  FrameReceived  link 1 frame 21 value 0
+220.000 ms  #66 e24  PC-A port 1  PingReply  link 1 frame 21 value 2
+220.000 ms  #67 e24  PC-A port -  PingSucceeded  link - frame - value 2
+220.000 ms  #68 e25  PC-A port -  PingStarted  link - frame - value 3
+220.000 ms  #69 e25  PC-A port 1  FrameSent  link 1 frame 22 value 0
+230.000 ms  #70 e26  Core port 1  FrameReceived  link 1 frame 22 value 0
+230.000 ms  #71 e26  Core port 1  DatagramRouted  link 1 frame 22 value 2886730498 route 10.20.30.0/24
+230.000 ms  #72 e26  Core port 4  FrameSent  link 4 frame 23 value 1
+240.000 ms  #73 e27  Narrow port 1  FrameReceived  link 4 frame 23 value 0
+240.000 ms  #74 e27  Narrow port 1  ArpCacheUpdated  link 4 frame 23 value 0
+240.000 ms  #75 e27  Narrow port 1  FrameSent  link 4 frame 24 value 0
+250.000 ms  #76 e28  Core port 4  FrameReceived  link 4 frame 24 value 0
+250.000 ms  #77 e28  Core port 4  ArpCacheUpdated  link 4 frame 24 value 0
+250.000 ms  #78 e28  Core port 4  FrameSent  link 4 frame 25 value 0
+260.000 ms  #79 e29  Narrow port 1  FrameReceived  link 4 frame 25 value 0
+260.000 ms  #80 e29  Narrow port 1  DatagramRouted  link 4 frame 25 value 169090570 route 10.20.30.0/24
+260.000 ms  #81 e29  Narrow port 2  FrameSent  link 7 frame 26 value 1
+270.000 ms  #82 e30  PC-24 port 1  FrameReceived  link 7 frame 26 value 0
+270.000 ms  #83 e30  PC-24 port 1  ArpCacheUpdated  link 7 frame 26 value 0
+270.000 ms  #84 e30  PC-24 port 1  FrameSent  link 7 frame 27 value 0
+280.000 ms  #85 e31  Narrow port 2  FrameReceived  link 7 frame 27 value 0
+280.000 ms  #86 e31  Narrow port 2  ArpCacheUpdated  link 7 frame 27 value 0
+280.000 ms  #87 e31  Narrow port 2  FrameSent  link 7 frame 28 value 0
+290.000 ms  #88 e32  PC-24 port 1  FrameReceived  link 7 frame 28 value 0
+290.000 ms  #89 e32  PC-24 port 1  FrameSent  link 7 frame 29 value 0
+300.000 ms  #90 e33  Narrow port 2  FrameReceived  link 7 frame 29 value 0
+300.000 ms  #91 e33  Narrow port 2  DatagramRouted  link 7 frame 29 value 2886730497 route 0.0.0.0/0
+300.000 ms  #92 e33  Narrow port 1  FrameSent  link 4 frame 30 value 0
+310.000 ms  #93 e34  Core port 4  FrameReceived  link 4 frame 30 value 0
+310.000 ms  #94 e34  Core port 4  DatagramRouted  link 4 frame 30 value 167837706 route 10.1.0.0/24
+310.000 ms  #95 e34  Core port 1  FrameSent  link 1 frame 31 value 0
+320.000 ms  #96 e35  PC-A port 1  FrameReceived  link 1 frame 31 value 0
+320.000 ms  #97 e35  PC-A port 1  PingReply  link 1 frame 31 value 3
+320.000 ms  #98 e35  PC-A port -  PingSucceeded  link - frame - value 3
+
+## frames
+0  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 10.1.0.10 target 00:00:00:00:00:00 10.1.0.1
+1  02:20:00:00:00:02 > 02:00:00:00:00:01  ARP reply sender 02:20:00:00:00:02 10.1.0.1 target 02:00:00:00:00:01 10.1.0.10
+2  02:00:00:00:00:01 > 02:20:00:00:00:02  IPv4 10.1.0.10 > 10.9.0.10 ttl 64 id 1 proto 1  ICMP type 8 code 0 identifier 1 sequence 1 data 56
+3  02:21:00:00:00:02 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:02 172.16.1.1 target 00:00:00:00:00:00 172.16.1.2
+4  02:20:00:00:00:03 > 02:21:00:00:00:02  ARP reply sender 02:20:00:00:00:03 172.16.1.2 target 02:21:00:00:00:02 172.16.1.1
+5  02:21:00:00:00:02 > 02:20:00:00:00:03  IPv4 10.1.0.10 > 10.9.0.10 ttl 63 id 1 proto 1  ICMP type 8 code 0 identifier 1 sequence 1 data 56
+6  02:21:00:00:00:03 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:03 10.9.0.1 target 00:00:00:00:00:00 10.9.0.10
+7  02:00:00:00:00:06 > 02:21:00:00:00:03  ARP reply sender 02:00:00:00:00:06 10.9.0.10 target 02:21:00:00:00:03 10.9.0.1
+8  02:21:00:00:00:03 > 02:00:00:00:00:06  IPv4 10.1.0.10 > 10.9.0.10 ttl 62 id 1 proto 1  ICMP type 8 code 0 identifier 1 sequence 1 data 56
+9  02:00:00:00:00:06 > 02:21:00:00:00:03  IPv4 10.9.0.10 > 10.1.0.10 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 1 sequence 1 data 56
+10  02:20:00:00:00:03 > 02:21:00:00:00:02  IPv4 10.9.0.10 > 10.1.0.10 ttl 63 id 1 proto 1  ICMP type 0 code 0 identifier 1 sequence 1 data 56
+11  02:20:00:00:00:02 > 02:00:00:00:00:01  IPv4 10.9.0.10 > 10.1.0.10 ttl 62 id 1 proto 1  ICMP type 0 code 0 identifier 1 sequence 1 data 56
+12  02:00:00:00:00:01 > 02:20:00:00:00:02  IPv4 10.1.0.10 > 10.20.9.10 ttl 64 id 2 proto 1  ICMP type 8 code 0 identifier 2 sequence 1 data 56
+13  02:22:00:00:00:02 > ff:ff:ff:ff:ff:ff  ARP request sender 02:22:00:00:00:02 172.16.2.1 target 00:00:00:00:00:00 172.16.2.2
+14  02:20:00:00:00:04 > 02:22:00:00:00:02  ARP reply sender 02:20:00:00:00:04 172.16.2.2 target 02:22:00:00:00:02 172.16.2.1
+15  02:22:00:00:00:02 > 02:20:00:00:00:04  IPv4 10.1.0.10 > 10.20.9.10 ttl 63 id 2 proto 1  ICMP type 8 code 0 identifier 2 sequence 1 data 56
+16  02:21:00:00:00:04 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:04 10.20.9.1 target 00:00:00:00:00:00 10.20.9.10
+17  02:00:00:00:00:07 > 02:21:00:00:00:04  ARP reply sender 02:00:00:00:00:07 10.20.9.10 target 02:21:00:00:00:04 10.20.9.1
+18  02:21:00:00:00:04 > 02:00:00:00:00:07  IPv4 10.1.0.10 > 10.20.9.10 ttl 62 id 2 proto 1  ICMP type 8 code 0 identifier 2 sequence 1 data 56
+19  02:00:00:00:00:07 > 02:21:00:00:00:04  IPv4 10.20.9.10 > 10.1.0.10 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 2 sequence 1 data 56
+20  02:20:00:00:00:04 > 02:22:00:00:00:02  IPv4 10.20.9.10 > 10.1.0.10 ttl 63 id 1 proto 1  ICMP type 0 code 0 identifier 2 sequence 1 data 56
+21  02:20:00:00:00:02 > 02:00:00:00:00:01  IPv4 10.20.9.10 > 10.1.0.10 ttl 62 id 1 proto 1  ICMP type 0 code 0 identifier 2 sequence 1 data 56
+22  02:00:00:00:00:01 > 02:20:00:00:00:02  IPv4 10.1.0.10 > 10.20.30.10 ttl 64 id 3 proto 1  ICMP type 8 code 0 identifier 3 sequence 1 data 56
+23  02:23:00:00:00:02 > ff:ff:ff:ff:ff:ff  ARP request sender 02:23:00:00:00:02 172.16.3.1 target 00:00:00:00:00:00 172.16.3.2
+24  02:20:00:00:00:05 > 02:23:00:00:00:02  ARP reply sender 02:20:00:00:00:05 172.16.3.2 target 02:23:00:00:00:02 172.16.3.1
+25  02:23:00:00:00:02 > 02:20:00:00:00:05  IPv4 10.1.0.10 > 10.20.30.10 ttl 63 id 3 proto 1  ICMP type 8 code 0 identifier 3 sequence 1 data 56
+26  02:21:00:00:00:05 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:05 10.20.30.1 target 00:00:00:00:00:00 10.20.30.10
+27  02:00:00:00:00:08 > 02:21:00:00:00:05  ARP reply sender 02:00:00:00:00:08 10.20.30.10 target 02:21:00:00:00:05 10.20.30.1
+28  02:21:00:00:00:05 > 02:00:00:00:00:08  IPv4 10.1.0.10 > 10.20.30.10 ttl 62 id 3 proto 1  ICMP type 8 code 0 identifier 3 sequence 1 data 56
+29  02:00:00:00:00:08 > 02:21:00:00:00:05  IPv4 10.20.30.10 > 10.1.0.10 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 3 sequence 1 data 56
+30  02:20:00:00:00:05 > 02:23:00:00:00:02  IPv4 10.20.30.10 > 10.1.0.10 ttl 63 id 1 proto 1  ICMP type 0 code 0 identifier 3 sequence 1 data 56
+31  02:20:00:00:00:02 > 02:00:00:00:00:01  IPv4 10.20.30.10 > 10.1.0.10 ttl 62 id 1 proto 1  ICMP type 0 code 0 identifier 3 sequence 1 data 56
+
+## transmissions
+frame 0 link 1  PC-A port 1 > Core port 1  0.000 ms .. 10.000 ms  record 1
+frame 1 link 1  Core port 1 > PC-A port 1  10.000 ms .. 20.000 ms  record 4
+frame 2 link 1  PC-A port 1 > Core port 1  20.000 ms .. 30.000 ms  record 7
+frame 3 link 2  Core port 2 > Wide port 1  30.000 ms .. 40.000 ms  record 10
+frame 4 link 2  Wide port 1 > Core port 2  40.000 ms .. 50.000 ms  record 13
+frame 5 link 2  Core port 2 > Wide port 1  50.000 ms .. 60.000 ms  record 16
+frame 6 link 5  Wide port 2 > PC-8 port 1  60.000 ms .. 70.000 ms  record 19
+frame 7 link 5  PC-8 port 1 > Wide port 2  70.000 ms .. 80.000 ms  record 22
+frame 8 link 5  Wide port 2 > PC-8 port 1  80.000 ms .. 90.000 ms  record 25
+frame 9 link 5  PC-8 port 1 > Wide port 2  90.000 ms .. 100.000 ms  record 27
+frame 10 link 2  Wide port 1 > Core port 2  100.000 ms .. 110.000 ms  record 30
+frame 11 link 1  Core port 1 > PC-A port 1  110.000 ms .. 120.000 ms  record 33
+frame 12 link 1  PC-A port 1 > Core port 1  120.000 ms .. 130.000 ms  record 38
+frame 13 link 3  Core port 3 > Middle port 1  130.000 ms .. 140.000 ms  record 41
+frame 14 link 3  Middle port 1 > Core port 3  140.000 ms .. 150.000 ms  record 44
+frame 15 link 3  Core port 3 > Middle port 1  150.000 ms .. 160.000 ms  record 47
+frame 16 link 6  Middle port 2 > PC-16 port 1  160.000 ms .. 170.000 ms  record 50
+frame 17 link 6  PC-16 port 1 > Middle port 2  170.000 ms .. 180.000 ms  record 53
+frame 18 link 6  Middle port 2 > PC-16 port 1  180.000 ms .. 190.000 ms  record 56
+frame 19 link 6  PC-16 port 1 > Middle port 2  190.000 ms .. 200.000 ms  record 58
+frame 20 link 3  Middle port 1 > Core port 3  200.000 ms .. 210.000 ms  record 61
+frame 21 link 1  Core port 1 > PC-A port 1  210.000 ms .. 220.000 ms  record 64
+frame 22 link 1  PC-A port 1 > Core port 1  220.000 ms .. 230.000 ms  record 69
+frame 23 link 4  Core port 4 > Narrow port 1  230.000 ms .. 240.000 ms  record 72
+frame 24 link 4  Narrow port 1 > Core port 4  240.000 ms .. 250.000 ms  record 75
+frame 25 link 4  Core port 4 > Narrow port 1  250.000 ms .. 260.000 ms  record 78
+frame 26 link 7  Narrow port 2 > PC-24 port 1  260.000 ms .. 270.000 ms  record 81
+frame 27 link 7  PC-24 port 1 > Narrow port 2  270.000 ms .. 280.000 ms  record 84
+frame 28 link 7  Narrow port 2 > PC-24 port 1  280.000 ms .. 290.000 ms  record 87
+frame 29 link 7  PC-24 port 1 > Narrow port 2  290.000 ms .. 300.000 ms  record 89
+frame 30 link 4  Narrow port 1 > Core port 4  300.000 ms .. 310.000 ms  record 92
+frame 31 link 1  Core port 1 > PC-A port 1  310.000 ms .. 320.000 ms  record 95
+
+## events
+0.000 ms  [ARP] PC-A · who has 10.1.0.1?  (ok, from 1 to - link - frame 0)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 1/3.
+    The destination is outside the local subnet: the datagram goes to the default gateway. Looking for its MAC address.
+10.000 ms  [ARP] PC-A → Core · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
+    ARP: 10.1.0.10 → 10.1.0.1
+    ARP Request; ingress port 1.
+    ARP cache updated: 10.1.0.10 = 02:00:00:00:00:01.
+    This router owns the requested IP: it sends a unicast ARP reply.
+20.000 ms  [ARP] Core → PC-A · ARP Reply  (ok, from 2 to 1 link 1 frame 1)
+    Ethernet: 02:20:00:00:00:02 → 02:00:00:00:00:01
+    ARP: 10.1.0.1 → 10.1.0.10
+    ARP Reply; ingress port 1.
+    ARP cache updated: 10.1.0.1 = 02:20:00:00:00:02.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+30.000 ms  [ICMP] PC-A → Core · Echo Request  (ok, from 1 to 2 link 1 frame 2)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:02
+    IPv4: 10.1.0.10 → 10.9.0.10, TTL 64
+    Echo Request; ingress port 1.
+    Route: 10.0.0.0/8 via 172.16.1.2, port 2. TTL 64 → 63.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 172.16.1.2 on port 2.
+40.000 ms  [ARP] Core → Wide · ARP Request  (ok, from 2 to 3 link 2 frame 3)
+    Ethernet: 02:21:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 172.16.1.1 → 172.16.1.2
+    ARP Request; ingress port 1.
+    ARP cache updated: 172.16.1.1 = 02:21:00:00:00:02.
+    This router owns the requested IP: it sends a unicast ARP reply.
+50.000 ms  [ARP] Wide → Core · ARP Reply  (ok, from 3 to 2 link 2 frame 4)
+    Ethernet: 02:20:00:00:00:03 → 02:21:00:00:00:02
+    ARP: 172.16.1.2 → 172.16.1.1
+    ARP Reply; ingress port 2.
+    ARP cache updated: 172.16.1.2 = 02:20:00:00:00:03.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+60.000 ms  [ICMP] Core → Wide · Echo Request  (ok, from 2 to 3 link 2 frame 5)
+    Ethernet: 02:21:00:00:00:02 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.9.0.10, TTL 63
+    Echo Request; ingress port 1.
+    Route: 10.9.0.10 is on the connected network 10.9.0.0/24, port 2. It is the longest prefix that matches: 0.0.0.0/0 matches too, but is shorter. TTL 63 → 62.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 10.9.0.10 on port 2.
+70.000 ms  [ARP] Wide → PC-8 · ARP Request  (ok, from 3 to 6 link 5 frame 6)
+    Ethernet: 02:21:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 10.9.0.1 → 10.9.0.10
+    ARP Request; ingress port 1.
+    ARP cache updated: 10.9.0.1 = 02:21:00:00:00:03.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+80.000 ms  [ARP] PC-8 → Wide · ARP Reply  (ok, from 6 to 3 link 5 frame 7)
+    Ethernet: 02:00:00:00:00:06 → 02:21:00:00:00:03
+    ARP: 10.9.0.10 → 10.9.0.1
+    ARP Reply; ingress port 2.
+    ARP cache updated: 10.9.0.10 = 02:00:00:00:00:06.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+90.000 ms  [ICMP] Wide → PC-8 · Echo Request  (ok, from 3 to 6 link 5 frame 8)
+    Ethernet: 02:21:00:00:00:03 → 02:00:00:00:00:06
+    IPv4: 10.1.0.10 → 10.9.0.10, TTL 62
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+100.000 ms  [ICMP] PC-8 → Wide · Echo Reply  (ok, from 6 to 3 link 5 frame 9)
+    Ethernet: 02:00:00:00:00:06 → 02:21:00:00:00:03
+    IPv4: 10.9.0.10 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 2.
+    Route: 0.0.0.0/0 via 172.16.1.1, port 1. TTL 64 → 63.
+    Forwarded from port 1 to 02:21:00:00:00:02.
+110.000 ms  [ICMP] Wide → Core · Echo Reply  (ok, from 3 to 2 link 2 frame 10)
+    Ethernet: 02:20:00:00:00:03 → 02:21:00:00:00:02
+    IPv4: 10.9.0.10 → 10.1.0.10, TTL 63
+    Echo Reply; ingress port 2.
+    Route: 10.1.0.10 is on the connected network 10.1.0.0/24, port 1. It is the longest prefix that matches: 10.0.0.0/8 matches too, but is shorter. TTL 63 → 62.
+    Forwarded from port 1 to 02:00:00:00:00:01.
+120.000 ms  [ICMP] Ping succeeded · 10.9.0.10 → PC-A  (ok, from 2 to 1 link 1 frame 11)
+    Ethernet: 02:20:00:00:00:02 → 02:00:00:00:00:01
+    IPv4: 10.9.0.10 → 10.1.0.10, TTL 62
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable. Round trip: 120.000 ms.
+130.000 ms  [ICMP] PC-A → Core · Echo Request  (ok, from 1 to 2 link 1 frame 12)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:02
+    IPv4: 10.1.0.10 → 10.20.9.10, TTL 64
+    Echo Request; ingress port 1.
+    Route: 10.20.0.0/16 via 172.16.2.2, port 3. It is the longest prefix that matches: 10.0.0.0/8 matches too, but is shorter. TTL 64 → 63.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 172.16.2.2 on port 3.
+140.000 ms  [ARP] Core → Middle · ARP Request  (ok, from 2 to 4 link 3 frame 13)
+    Ethernet: 02:22:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 172.16.2.1 → 172.16.2.2
+    ARP Request; ingress port 1.
+    ARP cache updated: 172.16.2.1 = 02:22:00:00:00:02.
+    This router owns the requested IP: it sends a unicast ARP reply.
+150.000 ms  [ARP] Middle → Core · ARP Reply  (ok, from 4 to 2 link 3 frame 14)
+    Ethernet: 02:20:00:00:00:04 → 02:22:00:00:00:02
+    ARP: 172.16.2.2 → 172.16.2.1
+    ARP Reply; ingress port 3.
+    ARP cache updated: 172.16.2.2 = 02:20:00:00:00:04.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+160.000 ms  [ICMP] Core → Middle · Echo Request  (ok, from 2 to 4 link 3 frame 15)
+    Ethernet: 02:22:00:00:00:02 → 02:20:00:00:00:04
+    IPv4: 10.1.0.10 → 10.20.9.10, TTL 63
+    Echo Request; ingress port 1.
+    Route: 10.20.9.10 is on the connected network 10.20.9.0/24, port 2. It is the longest prefix that matches: 0.0.0.0/0 matches too, but is shorter. TTL 63 → 62.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 10.20.9.10 on port 2.
+170.000 ms  [ARP] Middle → PC-16 · ARP Request  (ok, from 4 to 7 link 6 frame 16)
+    Ethernet: 02:21:00:00:00:04 → ff:ff:ff:ff:ff:ff
+    ARP: 10.20.9.1 → 10.20.9.10
+    ARP Request; ingress port 1.
+    ARP cache updated: 10.20.9.1 = 02:21:00:00:00:04.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+180.000 ms  [ARP] PC-16 → Middle · ARP Reply  (ok, from 7 to 4 link 6 frame 17)
+    Ethernet: 02:00:00:00:00:07 → 02:21:00:00:00:04
+    ARP: 10.20.9.10 → 10.20.9.1
+    ARP Reply; ingress port 2.
+    ARP cache updated: 10.20.9.10 = 02:00:00:00:00:07.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+190.000 ms  [ICMP] Middle → PC-16 · Echo Request  (ok, from 4 to 7 link 6 frame 18)
+    Ethernet: 02:21:00:00:00:04 → 02:00:00:00:00:07
+    IPv4: 10.1.0.10 → 10.20.9.10, TTL 62
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+200.000 ms  [ICMP] PC-16 → Middle · Echo Reply  (ok, from 7 to 4 link 6 frame 19)
+    Ethernet: 02:00:00:00:00:07 → 02:21:00:00:00:04
+    IPv4: 10.20.9.10 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 2.
+    Route: 0.0.0.0/0 via 172.16.2.1, port 1. TTL 64 → 63.
+    Forwarded from port 1 to 02:22:00:00:00:02.
+210.000 ms  [ICMP] Middle → Core · Echo Reply  (ok, from 4 to 2 link 3 frame 20)
+    Ethernet: 02:20:00:00:00:04 → 02:22:00:00:00:02
+    IPv4: 10.20.9.10 → 10.1.0.10, TTL 63
+    Echo Reply; ingress port 3.
+    Route: 10.1.0.10 is on the connected network 10.1.0.0/24, port 1. It is the longest prefix that matches: 10.0.0.0/8 matches too, but is shorter. TTL 63 → 62.
+    Forwarded from port 1 to 02:00:00:00:00:01.
+220.000 ms  [ICMP] Ping succeeded · 10.20.9.10 → PC-A  (ok, from 2 to 1 link 1 frame 21)
+    Ethernet: 02:20:00:00:00:02 → 02:00:00:00:00:01
+    IPv4: 10.20.9.10 → 10.1.0.10, TTL 62
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable. Round trip: 100.000 ms.
+230.000 ms  [ICMP] PC-A → Core · Echo Request  (ok, from 1 to 2 link 1 frame 22)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:02
+    IPv4: 10.1.0.10 → 10.20.30.10, TTL 64
+    Echo Request; ingress port 1.
+    Route: 10.20.30.0/24 via 172.16.3.2, port 4. It is the longest prefix that matches: 10.0.0.0/8, 10.20.0.0/16 match too, but are shorter. TTL 64 → 63.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 172.16.3.2 on port 4.
+240.000 ms  [ARP] Core → Narrow · ARP Request  (ok, from 2 to 5 link 4 frame 23)
+    Ethernet: 02:23:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 172.16.3.1 → 172.16.3.2
+    ARP Request; ingress port 1.
+    ARP cache updated: 172.16.3.1 = 02:23:00:00:00:02.
+    This router owns the requested IP: it sends a unicast ARP reply.
+250.000 ms  [ARP] Narrow → Core · ARP Reply  (ok, from 5 to 2 link 4 frame 24)
+    Ethernet: 02:20:00:00:00:05 → 02:23:00:00:00:02
+    ARP: 172.16.3.2 → 172.16.3.1
+    ARP Reply; ingress port 4.
+    ARP cache updated: 172.16.3.2 = 02:20:00:00:00:05.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+260.000 ms  [ICMP] Core → Narrow · Echo Request  (ok, from 2 to 5 link 4 frame 25)
+    Ethernet: 02:23:00:00:00:02 → 02:20:00:00:00:05
+    IPv4: 10.1.0.10 → 10.20.30.10, TTL 63
+    Echo Request; ingress port 1.
+    Route: 10.20.30.10 is on the connected network 10.20.30.0/24, port 2. It is the longest prefix that matches: 0.0.0.0/0 matches too, but is shorter. TTL 63 → 62.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 10.20.30.10 on port 2.
+270.000 ms  [ARP] Narrow → PC-24 · ARP Request  (ok, from 5 to 8 link 7 frame 26)
+    Ethernet: 02:21:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 10.20.30.1 → 10.20.30.10
+    ARP Request; ingress port 1.
+    ARP cache updated: 10.20.30.1 = 02:21:00:00:00:05.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+280.000 ms  [ARP] PC-24 → Narrow · ARP Reply  (ok, from 8 to 5 link 7 frame 27)
+    Ethernet: 02:00:00:00:00:08 → 02:21:00:00:00:05
+    ARP: 10.20.30.10 → 10.20.30.1
+    ARP Reply; ingress port 2.
+    ARP cache updated: 10.20.30.10 = 02:00:00:00:00:08.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+290.000 ms  [ICMP] Narrow → PC-24 · Echo Request  (ok, from 5 to 8 link 7 frame 28)
+    Ethernet: 02:21:00:00:00:05 → 02:00:00:00:00:08
+    IPv4: 10.1.0.10 → 10.20.30.10, TTL 62
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+300.000 ms  [ICMP] PC-24 → Narrow · Echo Reply  (ok, from 8 to 5 link 7 frame 29)
+    Ethernet: 02:00:00:00:00:08 → 02:21:00:00:00:05
+    IPv4: 10.20.30.10 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 2.
+    Route: 0.0.0.0/0 via 172.16.3.1, port 1. TTL 64 → 63.
+    Forwarded from port 1 to 02:23:00:00:00:02.
+310.000 ms  [ICMP] Narrow → Core · Echo Reply  (ok, from 5 to 2 link 4 frame 30)
+    Ethernet: 02:20:00:00:00:05 → 02:23:00:00:00:02
+    IPv4: 10.20.30.10 → 10.1.0.10, TTL 63
+    Echo Reply; ingress port 4.
+    Route: 10.1.0.10 is on the connected network 10.1.0.0/24, port 1. It is the longest prefix that matches: 10.0.0.0/8 matches too, but is shorter. TTL 63 → 62.
+    Forwarded from port 1 to 02:00:00:00:00:01.
+320.000 ms  [ICMP] Ping succeeded · 10.20.30.10 → PC-A  (ok, from 2 to 1 link 1 frame 31)
+    Ethernet: 02:20:00:00:00:02 → 02:00:00:00:00:01
+    IPv4: 10.20.30.10 → 10.1.0.10, TTL 62
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable. Round trip: 100.000 ms.

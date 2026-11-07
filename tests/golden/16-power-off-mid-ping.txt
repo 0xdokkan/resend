@@ -103,32 +103,32 @@ frame 5 link 1  Switch-01 port 1 > PC-A port 1  1030.000 ms .. 1040.000 ms  reco
     MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
 50.000 ms  [ICMP] PC-A → Switch-01 · Echo Request  (ok, from 1 to 3 link 1 frame 2)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     Unicast on port 2.
 60.000 ms  [ICMP] Switch-01 → PC-B · Echo Request  (ok, from 3 to 2 link 2 frame 2)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     ICMP Echo Request received: an Echo Reply with the same identifier is generated.
 70.000 ms  [ICMP] PC-B → Switch-01 · Echo Reply  (ok, from 2 to 3 link 2 frame 3)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 2.
     Unicast on port 1.
 80.000 ms  [ICMP] Reply 1/3 · 192.168.1.20 → PC-A  (ok, from 3 to 1 link 1 frame 3)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 1.
     Echo Reply for request 1 of the ping. Round trip: 80.000 ms.
 1010.000 ms  [ICMP] PC-A → Switch-01 · Echo Request  (ok, from 1 to 3 link 1 frame 4)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     Unicast on port 2.
 1020.000 ms  [ICMP] Switch-01 → PC-B · Echo Request  (ok, from 3 to 2 link 2 frame 4)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     ICMP Echo Request received: an Echo Reply with the same identifier is generated.
 1020.000 ms  [EDIT] PC-A powered off  (ok, from - to 1 link - frame -)
@@ -139,12 +139,12 @@ frame 5 link 1  Switch-01 port 1 > PC-A port 1  1030.000 ms .. 1040.000 ms  reco
     Ping from PC-A to 192.168.1.20: 2 requests, 1 reply, 50% loss. Round trip min/avg/max: 80.000/80.000/80.000 ms.
 1030.000 ms  [ICMP] PC-B → Switch-01 · Echo Reply  (ok, from 2 to 3 link 2 frame 5)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 2.
     Unicast on port 1.
 1040.000 ms  [ICMP] Switch-01 → PC-A · Echo Reply  (failed, from 3 to 1 link 1 frame 5)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 1.
     Cannot be received: the device is powered off.
 1500.000 ms  [EDIT] PC-A powered on  (ok, from - to 1 link - frame -)

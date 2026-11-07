@@ -88,7 +88,8 @@ component PortLight inherits Rectangle {
 component Card inherits Rectangle {
     in property <NodeView> node;
     property <float> zoom: UiCanvas.zoom;
-    property <bool> switch-kind: root.node.kind == "switch";
+    // Switches and routers have a row of ports, a host one.
+    property <bool> port-row: root.node.kind != "host";
     x: (root.node.x * root.zoom + UiCanvas.pan-x) * 1px;
     y: (root.node.y * root.zoom + UiCanvas.pan-y) * 1px;
     width: Geometry.card-width * 1px * root.zoom;
@@ -110,8 +111,7 @@ component Card inherits Rectangle {
     DeviceIcon {
         x: 12px * root.zoom; y: (UiCanvas.compact ? 16px : 13px) * root.zoom;
         width: 27px * root.zoom; height: 25px * root.zoom;
-        switch-kind: root.switch-kind;
-        tint: root.switch-kind ? Theme.blue : Theme.mint;
+        kind: root.node.kind;
     }
     // Small cards keep a readable name, under the icon across the card.
     Text {
@@ -125,11 +125,11 @@ component Card inherits Rectangle {
     }
     if !UiCanvas.compact: Text {
         x: 47px * root.zoom; y: 33px * root.zoom;
-        text: root.switch-kind ? @tr("SWITCH L2") : @tr("HOST");
+        text: root.node.kind == "switch" ? @tr("SWITCH L2") : root.node.kind == "router" ? @tr("ROUTER L3") : @tr("HOST");
         font-size: 8px * root.zoom; font-weight: 600; color: Theme.muted; letter-spacing: 1px * root.zoom;
     }
     if !UiCanvas.compact: Rectangle { x: 12px * root.zoom; y: 53px * root.zoom; width: 136px * root.zoom; height: 1px; background: #2b4153; }
-    if !UiCanvas.compact && !root.switch-kind: Text {
+    if !UiCanvas.compact && !root.port-row: Text {
         x: 12px * root.zoom; y: 66px * root.zoom; width: 94px * root.zoom;
         text: root.node.address; overflow: elide; color: Theme.muted; font-size: 10px * root.zoom;
     }
@@ -137,7 +137,7 @@ component Card inherits Rectangle {
     // starts from a light; C++ hit-tests the same boxes (scene.cpp).
     if !UiCanvas.compact: Rectangle {
         for i in root.node.port-count: PortLight {
-            x: (root.switch-kind ? 12 + 14 * i : 112) * 1px * root.zoom;
+            x: (root.port-row ? 12 + 14 * i : 112) * 1px * root.zoom;
             y: 69px * root.zoom;
             width: 11px * root.zoom; height: 8px * root.zoom;
             connected: Math.mod(Math.floor(root.node.connected-ports / Math.pow(2, i)), 2) == 1;
@@ -330,7 +330,7 @@ export component Canvas inherits Rectangle {
     if UiCanvas.nodes.length == 0: VerticalLayout {
         padding: 60px; alignment: center; spacing: 12px;
         Text { text: @tr("A network starts\nwith a connection."); color: Theme.ink; font-size: 28px; font-weight: 600; horizontal-alignment: center; }
-        Text { text: @tr("Add a host or a switch from the panel on the left."); color: Theme.muted; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; }
+        Text { text: @tr("Add a host, a switch or a router from the panel on the left."); color: Theme.muted; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; }
     }
 
     // Keys, once a press on the canvas gave it the focus. Under the touch

@@ -1,6 +1,7 @@
 #include "explain/explain.hpp"
 
 #include "core/text.hpp"
+#include "sim/routing.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -25,9 +26,24 @@ std::string type_name(PduKind kind) {
     case PduKind::ArpReply: return tr("ARP Reply");
     case PduKind::EchoRequest: return tr("Echo Request");
     case PduKind::EchoReply: return tr("Echo Reply");
+    case PduKind::TimeExceeded: return tr("Time Exceeded");
+    case PduKind::Unreachable: return tr("Destination Unreachable");
     case PduKind::OtherIcmp: break;
     }
     return tr("ICMP message");
+}
+
+// An ICMP error by its type and code: "Destination Unreachable (host)".
+std::string error_name(const Ipv4Packet& packet) {
+    const auto& message = packet.icmp;
+    if (message.type == icmp::destination_unreachable && message.code == icmp::net_unreachable) return tr("Destination Unreachable (network)");
+    if (message.type == icmp::destination_unreachable && message.code == icmp::host_unreachable) return tr("Destination Unreachable (host)");
+    return type_name(kind_of(EthernetFrame{{}, {}, packet}));
+}
+
+bool is_router(const Simulation& simulation, DeviceId id) {
+    const auto* device = simulation.known_device(id);
+    return device && device->kind == DeviceKind::Router;
 }
 
 std::string device_name(const Simulation& simulation, std::optional<DeviceId> id) {
@@ -90,14 +106,52 @@ std::string statistics(const PingStatus& ping) {
     return out;
 }
 
-std::string loss_detail(Reason reason, const PingStatus* ping) {
+// A traceroute's hops, one line each, as traceroute prints them:
+// "2  10.0.2.1  40.000 ms", or "3  *" for a hop that did not answer.
+std::string hops(const PingStatus& ping) {
+    std::string out;
+    for (const auto& echo : ping.echoes) {
+        if (!out.empty()) out += "\n";
+        out += std::to_string(echo.sequence) + "  ";
+        if (echo.state == EchoState::Waiting) out += "…";
+        else if (echo.responder == Ipv4Address{}) out += "*";
+        else out += echo.responder.to_string() + "  " + format_ms(echo.finished - echo.sent);
+    }
+    return out;
+}
+
+std::string loss_detail(const Simulation& simulation, Reason reason, const PingStatus* ping, const EchoStatus* echo = nullptr) {
+    const auto destination = ping ? ping->destination.to_string() : std::string("?");
+    const auto responder = echo && echo->responder != Ipv4Address{} ? echo->responder.to_string() : std::string("?");
     switch (reason) {
     case Reason::NoRoute:
-        return tr("The destination {0} is outside the local subnet. This prototype has no routers or gateways yet, "
-                  "so no ARP request is sent for the remote host.", {ping ? ping->destination.to_string() : std::string("?")});
-    case Reason::ArpUnresolved:
+        return tr("The destination {0} is outside the local subnet and the PC has no default gateway, so the request has "
+                  "nowhere to go and no ARP request is sent. Give the PC a gateway: a router's address on its subnet.", {destination});
+    case Reason::GatewayOffLink: {
+        const auto* source = ping ? simulation.known_device(ping->source) : nullptr;
+        const auto gateway = source && source->gateway ? source->gateway->to_string() : std::string("?");
+        return tr("The destination {0} is outside the local subnet, and so is the default gateway {1}: the PC can reach only "
+                  "its own subnet. The gateway must be another address of the PC's subnet, usually a router's.", {destination, gateway});
+    }
+    case Reason::TtlExceeded:
+        return tr("{0} discarded the request because its TTL ran out, and sent back a Time Exceeded. The datagram went round a "
+                  "routing loop, or the path is longer than the TTL.", {responder});
+    case Reason::NetUnreachable:
+        return tr("{0} has no route to {1} and sent back a Destination Unreachable (network). Check that router's routes, "
+                  "or its default route.", {responder, destination});
+    case Reason::HostUnreachable:
+        return tr("{0} got no answer to its ARP requests for {1} and sent back a Destination Unreachable (host): no device "
+                  "on that network has the address, or it is off.", {responder, destination});
+    case Reason::ArpUnresolved: {
+        // Through the gateway, the PC was asking for the gateway.
+        const auto* source = ping ? simulation.known_device(ping->source) : nullptr;
+        const auto& address = source && !source->ports.empty() ? source->ports.front().ipv4 : std::nullopt;
+        if (source && source->gateway && address && !address->contains(ping->destination))
+            return tr("No reply after three ARP requests for the default gateway {0}: nobody on the subnet has that address. "
+                      "Check the PC's gateway, and that the router is on and cabled. No ICMP was sent.", {source->gateway->to_string()});
         return tr("No reply after three ARP requests. Check the address, the cables and that the devices are on. "
                   "No ICMP was sent.");
+    }
     case Reason::ArpQueueFull:
         return tr("More datagrams were waiting for the same ARP answer than the PC keeps ({0}): the oldest was discarded "
                   "to keep the latest.", {std::to_string(arp_queue_limit)});
@@ -112,6 +166,10 @@ std::string loss_detail(Reason reason, const PingStatus* ping) {
 std::string loss_summary(Reason reason) {
     switch (reason) {
     case Reason::NoRoute: return tr("no route");
+    case Reason::GatewayOffLink: return tr("gateway outside the subnet");
+    case Reason::TtlExceeded: return tr("TTL exceeded");
+    case Reason::NetUnreachable: return tr("network unreachable");
+    case Reason::HostUnreachable: return tr("host unreachable");
     case Reason::ArpUnresolved: return tr("ARP resolution timed out");
     case Reason::ArpQueueFull: return tr("ARP queue full");
     case Reason::DeviceDown: return tr("the PC is off");
@@ -121,7 +179,8 @@ std::string loss_summary(Reason reason) {
 
 std::string loss_protocol(Reason reason) {
     switch (reason) {
-    case Reason::NoRoute: return "IPv4";
+    case Reason::NoRoute:
+    case Reason::GatewayOffLink: return "IPv4";
     case Reason::ArpUnresolved:
     case Reason::ArpQueueFull: return "ARP";
     default: return "ICMP";
@@ -171,7 +230,15 @@ void arrival(const Simulation& simulation, std::span<const TraceRecord> records,
     event.summary = device_name(simulation, event.from) + " → " + device_name(simulation, event.to) + " · " + type;
     auto& detail = event.detail;
     detail = "Ethernet: " + frame.src.to_string() + " → " + frame.dst.to_string() + "\n" + (arp ? "ARP: " : "IPv4: ") +
-        src_ip + " → " + dst_ip + "\n" + tr("{0}; ingress port {1}.", {type, port_name(first.port)});
+        src_ip + " → " + dst_ip + (packet ? ", TTL " + std::to_string(packet->ttl) : std::string()) + "\n" +
+        tr("{0}; ingress port {1}.", {type, port_name(first.port)});
+    if (packet && packet->icmp.original) {
+        const auto& original = *packet->icmp.original;
+        detail += "\n" + tr("It is about this datagram: {0} {1} → {2}, TTL {3}.",
+                              {type_name(kind_of(EthernetFrame{{}, {}, unquote(original)})), original.src.to_string(),
+                               original.dst.to_string(), std::to_string(original.ttl)});
+    }
+    const bool router = is_router(simulation, first.device);
     if (first.kind == TraceKind::FrameDropped) {
         detail += "\n" + (first.reason == Reason::LinkDown
                                ? tr("Lost on the way: the cable was disabled, unplugged or moved while the frame was on it.")
@@ -183,12 +250,14 @@ void arrival(const Simulation& simulation, std::span<const TraceRecord> records,
 
     std::vector<Event> guards;
     bool resolved = false;
+    // A router forwarding the datagram, or sending an error about it: the
+    // next frame it builds is that datagram, or the ARP request it waits for.
+    bool routed = false, erring = false;
     // An ARP answer releases the datagrams waiting for it.
     const auto released = [&](std::size_t from) {
         return std::count_if(records.begin() + static_cast<std::ptrdiff_t>(from), records.end(), [&](const auto& item) {
             if (!item.pdu || item.pdu == first.pdu || item.kind != TraceKind::FrameSent) return false;
-            const auto kind = kind_of(trace.pdu(*item.pdu));
-            return kind == PduKind::EchoRequest || kind == PduKind::EchoReply;
+            return !is_arp(kind_of(trace.pdu(*item.pdu)));
         });
     };
     for (std::size_t i = 1; i < records.size(); ++i) {
@@ -198,29 +267,42 @@ void arrival(const Simulation& simulation, std::span<const TraceRecord> records,
             (record.kind == TraceKind::FrameSent || (record.kind == TraceKind::FrameDropped && record.reason == Reason::NoCarrier));
         if (response) {
             const auto& built = trace.pdu(*record.pdu);
-            switch (kind_of(built)) {
-            case PduKind::ArpReply:
-                detail += "\n" + tr("This PC owns the requested IP: it sends a unicast ARP reply.");
-                break;
-            case PduKind::EchoRequest:
-            case PduKind::EchoReply:
-                if (!arp) {
-                    detail += "\n" + tr("ICMP Echo Request received: an Echo Reply with the same identifier is generated.");
-                } else if (!resolved) {
+            const auto out = port_name(record.port);
+            const auto kind = kind_of(built);
+            if (kind == PduKind::ArpReply) {
+                detail += "\n" + (router ? tr("This router owns the requested IP: it sends a unicast ARP reply.")
+                                          : tr("This PC owns the requested IP: it sends a unicast ARP reply."));
+            } else if (kind == PduKind::ArpRequest) {
+                const auto target = built.arp()->target_ip.to_string();
+                if (routed || erring)
+                    detail += "\n" + (routed ? tr("The next hop's MAC address is not in the ARP cache: the datagram waits while an "
+                                                   "ARP request asks for {0} on port {1}.", {target, out})
+                                              : tr("The ICMP error waits while an ARP request asks for {0} on port {1}.", {target, out}));
+                else if (packet && built.arp()->target_ip != packet->src)
+                    detail += "\n" + tr("ICMP Echo Request received from another subnet: the Echo Reply goes to the default "
+                                         "gateway, and waits while an ARP request asks for {0}.", {target});
+                else
+                    detail += "\n" + tr("ICMP Echo Request received, but there is no ARP entry for the sender: the Echo Reply "
+                                         "waits while an ARP request asks for {0}.", {target});
+                routed = erring = false;
+            } else if (arp) {
+                if (!resolved) {
                     const auto count = released(i);
                     detail += "\n" + (count > 1 ? tr("MAC resolved: the {0} IPv4 datagrams waiting for it can be sent.", {std::to_string(count)})
-                                       : kind_of(built) == PduKind::EchoRequest
+                                       : kind == PduKind::EchoRequest
                                        ? tr("MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.")
-                                       : tr("MAC resolved: the waiting Echo Reply can be sent."));
+                                       : kind == PduKind::EchoReply ? tr("MAC resolved: the waiting Echo Reply can be sent.")
+                                                                    : tr("MAC resolved: the waiting {0} can be sent.", {type_name(kind)}));
                     resolved = true;
                 }
-                break;
-            case PduKind::ArpRequest:
-                detail += "\n" + tr("ICMP Echo Request received, but there is no ARP entry for the sender: the Echo Reply "
-                                     "waits while an ARP request asks for {0}.", {built.arp()->target_ip.to_string()});
-                break;
-            case PduKind::OtherIcmp:
-                break;
+            } else if (routed) {
+                detail += "\n" + tr("Forwarded from port {0} to {1}.", {out, built.dst.to_string()});
+                routed = false;
+            } else if (is_icmp_error(kind)) {
+                detail += "\n" + tr("{0} sent back to {1} from port {2}.", {error_name(*built.ipv4()), built.ipv4()->dst.to_string(), out});
+                erring = false;
+            } else if (kind == PduKind::EchoReply) {
+                detail += "\n" + tr("ICMP Echo Request received: an Echo Reply with the same identifier is generated.");
             }
             continue;
         }
@@ -261,11 +343,48 @@ void arrival(const Simulation& simulation, std::span<const TraceRecord> records,
         case TraceKind::ArpEntryExpired:
             detail += "\n" + tr("The ARP entry for {0} has expired: no update for 60 s.", {Ipv4Address(record.value).to_string()});
             break;
+        case TraceKind::DatagramRouted: {
+            routed = true;
+            const auto hop = Ipv4Address(record.value);
+            const auto egress = i + 1 < records.size() ? port_name(records[i + 1].port) : std::string("?");
+            const auto route = record.route ? record.route->to_string() : std::string("?");
+            detail += "\n" + (hop == packet->dst ? tr("Route: {0} is on the connected network {1}, port {2}.", {dst_ip, route, egress})
+                                                  : tr("Route: {0} via {1}, port {2}.", {route, hop.to_string(), egress}));
+            // The shorter routes that match too: the longest prefix wins.
+            std::string shorter;
+            int others = 0;
+            if (const auto* device = simulation.known_device(record.device); device && record.route) {
+                for (const auto& entry : routing_table(*device)) {
+                    if (!entry.active() || !entry.destination.contains(packet->dst) || entry.destination.length() >= record.route->length()) continue;
+                    shorter += (shorter.empty() ? "" : ", ") + entry.destination.to_string();
+                    ++others;
+                }
+            }
+            if (others == 1) detail += " " + tr("It is the longest prefix that matches: {0} matches too, but is shorter.", {shorter});
+            if (others > 1) detail += " " + tr("It is the longest prefix that matches: {0} match too, but are shorter.", {shorter});
+            detail += " " + tr("TTL {0} → {1}.", {std::to_string(packet->ttl), std::to_string(packet->ttl - 1)});
+            break;
+        }
         case TraceKind::FrameDropped:
             switch (record.reason) {
             case Reason::NotForUs:
                 detail += "\n" + tr("Frame ignored: the destination MAC is not the local MAC.");
                 break;
+            case Reason::NoAddress:
+                detail += "\n" + tr("Frame ignored: the port has no IPv4 address.");
+                event.success = false;
+                break;
+            case Reason::UnmatchedError:
+                detail += "\n" + tr("ICMP error ignored: no request is waiting for it. Its request already timed out, or its ping ended.");
+                event.success = false;
+                break;
+            case Reason::GatewayOffLink: {
+                const auto* device = simulation.known_device(record.device);
+                detail += "\n" + tr("Echo received from another subnet, but the default gateway {0} is not on the local subnet: "
+                                     "no reply can be sent.", {device && device->gateway ? device->gateway->to_string() : std::string("?")});
+                event.success = false;
+                break;
+            }
             case Reason::ArpForOtherHost:
                 detail += "\n" + tr("Request for another address: no reply.");
                 break;
@@ -278,8 +397,8 @@ void arrival(const Simulation& simulation, std::span<const TraceRecord> records,
                 event.success = false;
                 break;
             case Reason::NoRoute:
-                detail += "\n" + tr("Echo received, but there is no return route: the source is outside the local subnet. "
-                                     "Routers and gateways are not implemented yet.");
+                detail += "\n" + tr("Echo received, but there is no return route: the source is outside the local subnet "
+                                     "and the PC has no default gateway.");
                 event.success = false;
                 break;
             default:
@@ -287,14 +406,49 @@ void arrival(const Simulation& simulation, std::span<const TraceRecord> records,
             }
             break;
         case TraceKind::DatagramDropped:
-            detail += "\n" + tr("An Echo Reply waiting for ARP was discarded: {0}.", {describe(record.reason)});
             event.success = false;
+            if (!router) {
+                detail += "\n" + tr("An Echo Reply waiting for ARP was discarded: {0}.", {describe(record.reason)});
+                break;
+            }
+            switch (record.reason) {
+            case Reason::TtlExceeded:
+                detail += "\n" + tr("TTL {0}: forwarding would take it to 0, so the router discards the datagram (RFC 1812 §5.3.1).",
+                                     {std::to_string(packet->ttl)});
+                erring = true;
+                break;
+            case Reason::NoRoute:
+                detail += "\n" + (record.pdu ? tr("No route matches {0}, and there is no default route: the router discards the datagram.", {dst_ip})
+                                              : tr("The router has no route back to {0}: the ICMP error cannot be sent.",
+                                                   {Ipv4Address(record.value).to_string()}));
+                erring = record.pdu.has_value();
+                break;
+            case Reason::DirectedBroadcast:
+                detail += "\n" + tr("{0} is the broadcast address of a network of this router: routers do not forward directed "
+                                     "broadcasts (RFC 2644).", {dst_ip});
+                break;
+            case Reason::ArpQueueFull:
+                detail += "\n" + tr("More datagrams were waiting for the same ARP answer than the router keeps ({0}): the oldest "
+                                     "was discarded, without an ICMP error.", {std::to_string(arp_queue_limit)});
+                break;
+            default:
+                detail += "\n" + tr("The datagram was discarded: {0}.", {describe(record.reason)});
+                break;
+            }
+            if (erring && packet && icmp::is_error(packet->icmp.type)) {
+                detail += " " + tr("No ICMP error is sent about an ICMP error (RFC 1122 §3.2.2).");
+                erring = false;
+            }
             break;
         case TraceKind::PingReply: {
             const auto* ping = simulation.ping(PingId{record.value});
             const auto* echo = echo_of(ping, record);
             const auto rtt = echo ? ms(echo->finished - echo->sent) + " ms" : std::string("?");
-            if (ping && ping->options.count > 1) {
+            if (ping && ping->options.traceroute) {
+                const auto hop = echo ? std::to_string(echo->sequence) : std::string("?");
+                event.summary = tr("Hop {0} · {1} reached", {hop, src_ip});
+                detail += "\n" + tr("Echo Reply from the destination itself: it is {0} hops away. Round trip: {1}.", {hop, rtt});
+            } else if (ping && ping->options.count > 1) {
                 const auto number = echo ? std::to_string(echo->sequence) : std::string("?");
                 event.summary = tr("Reply {0}/{1} · {2} → {3}", {number, std::to_string(ping->options.count), src_ip, device_name(simulation, event.to)});
                 detail += "\n" + tr("Echo Reply for request {0} of the ping. Round trip: {1}.", {number, rtt});
@@ -304,10 +458,31 @@ void arrival(const Simulation& simulation, std::span<const TraceRecord> records,
             }
             break;
         }
+        case TraceKind::PingLost: {
+            // An ICMP error about a request.
+            const auto* ping = simulation.ping(PingId{record.value});
+            const auto* echo = echo_of(ping, record);
+            const auto number = echo ? std::to_string(echo->sequence) : std::string("?");
+            const bool hop = ping && ping->options.traceroute && record.reason == Reason::TtlExceeded;
+            event.success = hop;
+            if (hop) {
+                event.summary = tr("Hop {0} · {1}", {number, src_ip});
+                detail += "\n" + tr("Time Exceeded from {0}: the request sent with TTL {1} ran out there, so {0} is hop {1} "
+                                     "on the way to {2}.", {src_ip, number, ping->destination.to_string()});
+                break;
+            }
+            if (ping && ping->options.traceroute) event.summary = tr("Hop {0} · {1} · {2}", {number, src_ip, loss_summary(record.reason)});
+            else if (ping && ping->options.count > 1)
+                event.summary = tr("Request {0}/{1} lost · {2}", {number, std::to_string(ping->options.count), loss_summary(record.reason)});
+            else event.summary = tr("Ping failed · {0}", {loss_summary(record.reason)});
+            detail += "\n" + loss_detail(simulation, record.reason, ping, echo);
+            break;
+        }
         case TraceKind::PingSucceeded:
         case TraceKind::PingFailed: {
             const auto* ping = simulation.ping(PingId{record.value});
-            if (ping && ping->options.count > 1) detail += "\n" + tr("Ping finished: {0}", {statistics(*ping)});
+            if (ping && ping->options.traceroute) detail += "\n" + tr("Traceroute finished:") + "\n" + hops(*ping);
+            else if (ping && ping->options.count > 1) detail += "\n" + tr("Ping finished: {0}", {statistics(*ping)});
             break;
         }
         case TraceKind::SimulatorGuard:
@@ -328,7 +503,18 @@ Event ping_end(const Simulation& simulation, const TraceRecord& record) {
     const bool single = !ping || ping->options.count == 1;
     const bool succeeded = record.kind == TraceKind::PingSucceeded;
     event.success = succeeded;
-    if (single && succeeded) {
+    if (ping && ping->options.traceroute) {
+        event.protocol = succeeded ? "ICMP" : loss_protocol(record.reason);
+        event.summary = succeeded ? tr("Traceroute finished · {0} reached", {ping->destination.to_string()})
+                                  : tr("Traceroute failed · {0}", {loss_summary(record.reason)});
+        event.detail = tr("Traceroute from {0} to {1}:", {device_name(simulation, record.device), ping->destination.to_string()}) + "\n" + hops(*ping);
+        if (!succeeded) {
+            const auto& last = ping->echoes.empty() ? nullptr : &ping->echoes.back();
+            event.detail += "\n" + (record.reason == Reason::TtlExceeded || record.reason == Reason::EchoTimeout
+                                         ? tr("No answer from {0} within {1} hops.", {ping->destination.to_string(), std::to_string(ping->options.count)})
+                                         : loss_detail(simulation, record.reason, ping, last));
+        }
+    } else if (single && succeeded) {
         event.protocol = "ICMP";
         event.summary = tr("Local ping succeeded");
         event.detail = tr("The destination is the PC's own address: no frame crosses the cables.");
@@ -336,13 +522,13 @@ Event ping_end(const Simulation& simulation, const TraceRecord& record) {
     } else if (single) {
         event.protocol = loss_protocol(record.reason);
         event.summary = tr("Ping failed · {0}", {loss_summary(record.reason)});
-        event.detail = loss_detail(record.reason, ping);
+        event.detail = loss_detail(simulation, record.reason, ping);
     } else {
         event.protocol = "ICMP";
         event.summary = succeeded ? tr("Ping finished · {0}/{1} replies", {std::to_string(ping->replies()), std::to_string(ping->echoes.size())})
                                   : tr("Ping failed · no reply");
         event.detail = tr("Ping from {0} to {1}: {2}", {device_name(simulation, record.device), ping->destination.to_string(), statistics(*ping)});
-        if (!succeeded) event.detail += "\n" + loss_detail(record.reason, ping);
+        if (!succeeded) event.detail += "\n" + loss_detail(simulation, record.reason, ping);
     }
     return event;
 }
@@ -360,18 +546,28 @@ void timers(const Simulation& simulation, std::span<const TraceRecord> records, 
             (record.kind == TraceKind::FrameSent || record.kind == TraceKind::FrameDropped);
         if (attempt) {
             const bool sent = record.kind == TraceKind::FrameSent;
+            const auto target = trace.pdu(*record.pdu).arp()->target_ip;
+            const auto* device = simulation.known_device(record.device);
+            // A ping that starts in this episode, if any.
+            const auto started = std::find_if(records.begin(), records.end(), [](const auto& item) { return item.kind == TraceKind::PingStarted; });
+            const auto* starting = started != records.end() ? simulation.ping(PingId{started->value}) : nullptr;
+            const bool via_gateway = device && device->kind == DeviceKind::Host && device->gateway == target &&
+                (!starting || starting->destination != target);
             event.protocol = "ARP";
-            event.summary = tr("{0} · who has {1}?", {source, trace.pdu(*record.pdu).arp()->target_ip.to_string()});
+            event.summary = tr("{0} · who has {1}?", {source, target.to_string()});
             event.detail = tr("ARP Request sent to broadcast ({0}). Attempt {1}/{2}.",
                               {MacAddress::broadcast().to_string(), std::to_string(record.value), std::to_string(arp_attempts)}) + "\n" +
-                (sent ? tr("The destination is in the local subnet. Looking for its MAC address.")
-                      : tr("The port has no active link: no frame can leave."));
+                (!sent ? tr("The port has no active link: no frame can leave.")
+                 : device && device->kind == DeviceKind::Router ? tr("Looking for the MAC address of the next hop on port {0}.", {port_name(record.port)})
+                 : via_gateway ? tr("The destination is outside the local subnet: the datagram goes to the default gateway. Looking for its MAC address.")
+                               : tr("The destination is in the local subnet. Looking for its MAC address."));
             event.pdu = record.pdu;
             event.success = sent;
         } else if (record.kind == TraceKind::ArpTimeout && record.value < arp_attempts) {
             event.protocol = "ARP";
             event.summary = tr("No ARP reply · retrying");
-            event.detail = tr("One simulated second has passed. The PC repeats the ARP request.");
+            event.detail = is_router(simulation, record.device) ? tr("One simulated second has passed. The router repeats the ARP request.")
+                                                                 : tr("One simulated second has passed. The PC repeats the ARP request.");
         } else if (record.kind == TraceKind::ArpEntryExpired) {
             event.protocol = "ARP";
             event.summary = tr("{0} · ARP entry for {1} expired", {source, Ipv4Address(record.value).to_string()});
@@ -382,16 +578,51 @@ void timers(const Simulation& simulation, std::span<const TraceRecord> records, 
             event.summary = tr("Local reply {0}/{1}", {echo ? std::to_string(echo->sequence) : std::string("?"), std::to_string(ping->options.count)});
             event.detail = tr("The destination is the PC's own address: no frame crosses the cables.");
             event.to = record.device;
+        } else if (record.kind == TraceKind::PingLost && ping && ping->options.traceroute) {
+            const auto* echo = echo_of(ping, record);
+            const auto number = echo ? std::to_string(echo->sequence) : std::string("?");
+            event.protocol = loss_protocol(record.reason);
+            if (record.reason == Reason::EchoTimeout) {
+                event.summary = tr("Hop {0} · no answer", {number});
+                event.detail = tr("Nothing came back within the timeout for the request with TTL {0}: traceroute shows * and "
+                                  "tries the next hop.", {number});
+            } else {
+                event.summary = tr("Hop {0} · {1}", {number, loss_summary(record.reason)});
+                event.detail = loss_detail(simulation, record.reason, ping, echo);
+            }
+            event.pdu = record.pdu;
+            event.success = false;
         } else if (record.kind == TraceKind::PingLost && !single) {
             const auto* echo = echo_of(ping, record);
             event.protocol = loss_protocol(record.reason);
             event.summary = tr("Request {0}/{1} lost · {2}", {echo ? std::to_string(echo->sequence) : std::string("?"),
                                                               std::to_string(ping->options.count), loss_summary(record.reason)});
-            event.detail = loss_detail(record.reason, ping);
+            event.detail = loss_detail(simulation, record.reason, ping, echo);
             event.pdu = record.pdu;
             event.success = false;
         } else if (record.kind == TraceKind::PingSucceeded || record.kind == TraceKind::PingFailed) {
             event = ping_end(simulation, record);
+        } else if (record.kind == TraceKind::DatagramDropped && record.reason == Reason::NoRoute && !record.port) {
+            event.protocol = "IPv4";
+            event.summary = tr("{0} · no route to {1}", {source, Ipv4Address(record.value).to_string()});
+            event.detail = tr("The router has no route back to {0}: the ICMP error cannot be sent.", {Ipv4Address(record.value).to_string()});
+            event.success = false;
+        } else if (record.kind == TraceKind::DatagramDropped && is_router(simulation, record.device)) {
+            // The router's ARP requests for a next hop went unanswered, or
+            // its port lost its address: each datagram waiting is dropped,
+            // with a Destination Unreachable (host) back to its source.
+            const auto destination = Ipv4Address(record.value).to_string();
+            event.protocol = "ARP";
+            event.summary = tr("{0} · datagram for {1} discarded", {source, destination});
+            event.detail = record.reason == Reason::ArpUnresolved
+                ? tr("Three ARP requests for the next hop went unanswered, so the router cannot deliver the datagram.")
+                : tr("The datagram waited for ARP, but {0}.", {describe(record.reason)});
+            const auto error = std::find_if(&record + 1, records.data() + records.size(), [&](const auto& item) {
+                return item.kind == TraceKind::DatagramDropped || (item.pdu && !is_arp(kind_of(trace.pdu(*item.pdu))));
+            });
+            if (error != records.data() + records.size() && error->kind != TraceKind::DatagramDropped && error->pdu)
+                event.detail += " " + tr("A Destination Unreachable (host) goes back to {0}.", {trace.pdu(*error->pdu).ipv4()->dst.to_string()});
+            event.success = false;
         } else if (record.kind == TraceKind::DatagramDropped) {
             event.protocol = "ARP";
             event.summary = tr("{0} · Echo Reply to {1} discarded", {source, Ipv4Address(record.value).to_string()});
@@ -438,11 +669,17 @@ Event edit_event(const Simulation& simulation, const TraceRecord& record) {
                                                    : tr("Its caches, tables and pings are gone; frames reaching it are dropped.");
                    },
                    [&](const SetAddress& edit) {
-                       const auto old = entry.device && entry.device->ports.at(edit.port.port).ipv4
-                           ? entry.device->ports.at(edit.port.port).ipv4->to_string() : std::string("?");
-                       event.summary = tr("{0} · address {1}", {name, edit.address.to_string()});
-                       event.detail = tr("It was {0}. The PC does not announce the change: other hosts keep the old "
-                                         "mapping in their ARP caches until the entry expires.", {old});
+                       const auto old = entry.device && edit.port.port < entry.device->ports.size() && entry.device->ports[edit.port.port].ipv4
+                           ? entry.device->ports[edit.port.port].ipv4->to_string() : tr("none");
+                       const auto address = edit.address ? edit.address->to_string() : tr("none");
+                       if (entry.device && entry.device->kind == DeviceKind::Router) {
+                           event.summary = tr("{0} · address {1}", {port_text(simulation, edit.port), address});
+                           event.detail = tr("It was {0}. The router's connected networks, and the routes through them, change at once.", {old});
+                       } else {
+                           event.summary = tr("{0} · address {1}", {name, address});
+                           event.detail = tr("It was {0}. The PC does not announce the change: other hosts keep the old "
+                                             "mapping in their ARP caches until the entry expires.", {old});
+                       }
                    },
                    [&](const SetAgeing& edit) {
                        event.summary = tr("{0} · ageing time {1}", {name, duration_text(edit.ageing)});
@@ -475,6 +712,22 @@ Event edit_event(const Simulation& simulation, const TraceRecord& record) {
                        event.summary = tr("Cable plugged back · {0}", {cable_text(simulation, edit.link)});
                        event.detail = tr("It is back as it was before it was unplugged. Frames take {0} from one end to the other.",
                                          {format_ms(edit.link.delay)});
+                   },
+                   [&](const SetGateway& edit) {
+                       event.summary = tr("{0} · default gateway {1}", {name, edit.gateway ? edit.gateway->to_string() : tr("none")});
+                       event.detail = edit.gateway ? tr("Datagrams for other subnets now go to {0}.", {edit.gateway->to_string()})
+                                                   : tr("Without a default gateway the PC reaches only its own subnet.");
+                   },
+                   [&](const SetRoutes& edit) {
+                       const auto count = edit.routes.size();
+                       event.summary = tr("{0} · routes changed", {name});
+                       event.detail = (count == 1 ? tr("The router now has 1 static route.")
+                                                  : tr("The router now has {0} static routes.", {std::to_string(count)})) + " " +
+                           tr("The next datagrams it forwards follow them.");
+                   },
+                   [&](const SetPorts& edit) {
+                       event.summary = tr("{0} · {1} ports", {name, std::to_string(edit.ports.size())});
+                       event.detail = tr("The router's ports changed; their connected networks and routes change with them.");
                    },
                    [&](const RestoreDevice& edit) {
                        const auto cables = edit.links.size();
@@ -523,7 +776,7 @@ std::string describe(Problem problem) {
     case Problem::DuplicateDeviceId: return tr("Two devices have the same id.");
     case Problem::InvalidDeviceId: return tr("Device ids start from 1.");
     case Problem::InvalidName: return tr("Use a name of 1 to 48 characters, without control characters.");
-    case Problem::WrongPortCount: return tr("A PC has one port, a switch has eight.");
+    case Problem::WrongPortCount: return tr("A PC has one port, a switch eight, a router two to eight.");
     case Problem::MissingAddress: return tr("Every PC needs an IPv4 address.");
     case Problem::InvalidHostAddress:
         return tr("Invalid IPv4 host address: network, broadcast, loopback and multicast addresses are excluded.");
@@ -539,9 +792,15 @@ std::string describe(Problem problem) {
     case Problem::InvalidDelay: return tr("A cable's delay goes from 1 µs to 10 s.");
     case Problem::InvalidAgeing: return tr("A switch's ageing time goes from 10 s to 1,000,000 s.");
     case Problem::TooManyDevices: return tr("A network holds at most 100 devices.");
-    case Problem::NoFreePort: return tr("No free port: a PC has one port, a switch has eight.");
+    case Problem::NoFreePort: return tr("No free port: every port of the device has a cable.");
     case Problem::NotAHost: return tr("Select a PC to configure IPv4.");
     case Problem::NotASwitch: return tr("Only switches have an ageing time.");
+    case Problem::NotARouter: return tr("Only routers have routes and a choice of ports.");
+    case Problem::InvalidGateway: return tr("A default gateway is a unicast IPv4 address, and only PCs have one.");
+    case Problem::InvalidRoute:
+        return tr("A route goes to a network, with no host bits set, through a unicast next hop; only routers have routes.");
+    case Problem::DuplicateRoute: return tr("Two routes go to the same network.");
+    case Problem::TooManyRoutes: return tr("A router holds at most 32 static routes.");
     case Problem::SourceNotHost: return tr("Select a PC as the ping source.");
     case Problem::SourcePoweredOff: return tr("The source PC is powered off.");
     case Problem::InvalidDestination: return tr("Enter a valid unicast IPv4 address.");
@@ -561,11 +820,18 @@ std::string describe(Reason reason) {
     case Reason::NotForUs: return tr("the destination MAC belongs to another device");
     case Reason::ArpForOtherHost: return tr("the ARP request asks for another address");
     case Reason::Ipv4NotForUs: return tr("the destination IP belongs to another device");
-    case Reason::NoRoute: return tr("the address is outside the local subnet, and there are no routers yet");
+    case Reason::NoRoute: return tr("there is no route to the destination");
     case Reason::ArpUnresolved: return tr("three ARP requests went unanswered");
     case Reason::EchoTimeout: return tr("no Echo Reply within the timeout");
     case Reason::ArpQueueFull: return tr("newer datagrams for the same address took its place in the ARP queue");
     case Reason::UnmatchedReply: return tr("no request is waiting for this Echo Reply");
+    case Reason::TtlExceeded: return tr("its TTL ran out at a router");
+    case Reason::NetUnreachable: return tr("a router has no route to the destination");
+    case Reason::HostUnreachable: return tr("the last router got no ARP reply from the destination");
+    case Reason::GatewayOffLink: return tr("the default gateway is not on the local subnet");
+    case Reason::NoAddress: return tr("the router port has no IPv4 address");
+    case Reason::UnmatchedError: return tr("no request is waiting for this ICMP error");
+    case Reason::DirectedBroadcast: return tr("routers do not forward to a network's broadcast address");
     }
     return {};
 }
@@ -591,6 +857,7 @@ std::string_view name(TraceKind kind) {
     case TraceKind::DatagramDropped: return "DatagramDropped";
     case TraceKind::EditApplied: return "EditApplied";
     case TraceKind::SimulatorGuard: return "SimulatorGuard";
+    case TraceKind::DatagramRouted: return "DatagramRouted";
     }
     return "Unknown";
 }
@@ -609,6 +876,13 @@ std::string_view name(Reason reason) {
     case Reason::EchoTimeout: return "EchoTimeout";
     case Reason::ArpQueueFull: return "ArpQueueFull";
     case Reason::UnmatchedReply: return "UnmatchedReply";
+    case Reason::TtlExceeded: return "TtlExceeded";
+    case Reason::NetUnreachable: return "NetUnreachable";
+    case Reason::HostUnreachable: return "HostUnreachable";
+    case Reason::GatewayOffLink: return "GatewayOffLink";
+    case Reason::NoAddress: return "NoAddress";
+    case Reason::UnmatchedError: return "UnmatchedError";
+    case Reason::DirectedBroadcast: return "DirectedBroadcast";
     }
     return "Unknown";
 }

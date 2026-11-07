@@ -8,7 +8,7 @@ This document describes how resend simulates a network: the scenario that descri
 |---|---|
 | `src/core/` | Values with no behaviour: `Ipv4Address`, `Ipv4Prefix`, `MacAddress`, typed ids (`DeviceId`, `LinkId`, `PduId`), `SimTime` and durations, a seeded `Rng`, a strict JSON reader and writer, the `Problem` codes, and the translation catalogs (`text::`) |
 | `src/scenario/` | What the user builds, saves and shares: `Scenario`, `validate()`, editing operations and their inverses (`edit::`) and the JSON format |
-| `src/sim/` | The simulation: scheduler, layered frames, trace, the cables (`Medium`), the nodes and their modules |
+| `src/sim/` | The simulation: scheduler, layered frames, trace, the cables (`Medium`), the nodes (host, switch, router), their modules and the routing table |
 | `src/wire/` | Frames as bytes (Ethernet II, ARP, IPv4, ICMP), their fields as Wireshark shows them, and pcap captures |
 | `src/explain/` | Text for people: events built from the records, and descriptions of problems and reasons |
 | `src/app/` | The workspace (commands, replay, undo), the canvas controller, playback, what the canvas shows at an instant, event filters and files; no Slint dependency |
@@ -28,10 +28,12 @@ Dependencies point downwards only: `core` depends on nothing, `scenario` on `cor
 ┌──────────▼──────────────┐  Simulation(scenario)  ┌─▼─────────────────────────────┐
 │ scenario                ├───────────────────────►│ sim                           │
 │ devices, ports, cables, │                        │ Scheduler: Delivery, Timer    │
-│ layout, notes, seed     │                        │ Medium: cables and carrier    │
-│ validate() → issues     │                        │ Host: Nic · Arp · IPv4 · ICMP │
-│ JSON, version 1         │                        │       · PingApp               │
-└─────────────────────────┘                        │ Bridge (switch)               │
+│ layout, notes, seed,    │                        │ Medium: cables and carrier    │
+│ gateways, routes        │                        │ Host: Nic · Arp · IPv4 · ICMP │
+│ validate() → issues     │                        │       · PingApp               │
+│ JSON, version 2         │                        │ Bridge (switch)               │
+└─────────────────────────┘                        │ Router: Arp per port · routing│
+                                                   │       table · ICMP errors     │
                                                    │ Trace: records, frames,       │
                                                    │        transmissions          │
                                                    └───────┬──────────────┬────────┘
@@ -40,25 +42,24 @@ Dependencies point downwards only: `core` depends on nothing, `scenario` on `cor
                                                    │ records →    │ │ pcap files   │
                                                    │ events       │ │              │
                                                    └──────────────┘ └──────────────┘
- Planned: Router and routing (M5).
 ```
 
 ## Scenario
 
 A `Scenario` holds a title, notes, a seed, the devices and the cables (`src/scenario/scenario.hpp`).
 
-- A **device** has an id, a kind (host or switch), a name, a power state, a position on the canvas and its **ports**: one for a host, eight for a switch. A port has a MAC address, an administrative state and, on hosts, an IPv4 address with its prefix (`Ipv4Prefix`, from /1 to /32; /31 and /32 follow RFC 3021). A switch also has its MAC **ageing time**, from 10 s to 1,000,000 s (300 s by default, as IEEE 802.1Q recommends).
+- A **device** has an id, a kind (host, switch or router), a name, a power state, a position on the canvas and its **ports**: one for a host, eight for a switch, two to eight for a router (four when added). A port has a MAC address, an administrative state and, on hosts and routers, an IPv4 address with its prefix (`Ipv4Prefix`, from /1 to /32; /31 and /32 follow RFC 3021), required on a host and optional on each router port. A switch also has its MAC **ageing time**, from 10 s to 1,000,000 s (300 s by default, as IEEE 802.1Q recommends). A host may have a **default gateway**; a router has up to 32 **static routes**, each a network and a next hop (`Route`).
 - A **cable** joins two ports (`PortRef`: a device and a zero-based port), has a delay from 1 µs to 10 s (10 ms by default) and can be down.
 
-`validate()` returns every problem that makes a scenario impossible to simulate, each with the device or cable it concerns: duplicate or zero ids, invalid names, a wrong number of ports, hosts without an address or with a network, broadcast, loopback or multicast address, addresses on switch ports, cables to missing devices or ports, two cables on one port, a cable between two ports of one device, delays or ageing times out of range, and more than 100 devices. Valid but questionable networks pass: two hosts with the same address, masks that disagree and Ethernet loops are lessons, not errors.
+`validate()` returns every problem that makes a scenario impossible to simulate, each with the device or cable it concerns: duplicate or zero ids, invalid names, a wrong number of ports, hosts without an address, a network, broadcast, loopback or multicast address on a host or router port, addresses on switch ports, a gateway that is not unicast or not on a host, routes on a device that is not a router, a route with host bits set or a next hop that is not unicast, two routes to the same network, more than 32 routes, cables to missing devices or ports, two cables on one port, a cable between two ports of one device, delays or ageing times out of range, and more than 100 devices. Valid but questionable networks pass: two hosts with the same address, masks that disagree, Ethernet loops, a gateway on another subnet, missing return routes and routing loops are lessons, not errors.
 
 ### Edits
 
-A change to a network is a value, `Edit` (`src/scenario/edit.hpp`): a cable up or down (`SetLinkUp`), its delay (`SetDelay`), a port enabled or disabled (`SetPortUp`), power (`SetPowered`), a host's address (`SetAddress`), a switch's ageing time (`SetAgeing`), a name (`Rename`), a position (`MoveDevice`), a new cable (`Connect`), a cable removed (`Disconnect`) or moved to another port (`Replug`), a device added (`AddDevice`) or removed with its cables (`RemoveDevice`).
+A change to a network is a value, `Edit` (`src/scenario/edit.hpp`): a cable up or down (`SetLinkUp`), its delay (`SetDelay`), a port enabled or disabled (`SetPortUp`), power (`SetPowered`), the address of a host or router port, or its removal from a router port (`SetAddress`), a switch's ageing time (`SetAgeing`), a host's default gateway (`SetGateway`), a router's static routes (`SetRoutes`) or its ports (`SetPorts`, refused while a port it removes has a cable), a name (`Rename`), a position (`MoveDevice`), a new cable (`Connect`), a cable removed (`Disconnect`) or moved to another port (`Replug`), a device added (`AddDevice`) or removed with its cables (`RemoveDevice`).
 
 Two more edits exist for undo: `RestoreLink` puts back a cable as it was, at its place in the list, and `RestoreDevice` a device with the cables that were plugged into it. `edit::inverse(before, edit)` gives the edit that takes the scenario back to `before` once `edit` is made on it, exactly, down to the order of devices and cables: `MoveDevice` gives the old position, `Disconnect` a `RestoreLink`, `RemoveDevice` a `RestoreDevice`, `AddDevice` and `Connect` their removal. New devices and cables must carry their ids for that, and `Simulation::resolve()` gives an edit the ids `apply()` would choose, never used before in that simulation.
 
-`edit::apply(scenario, edit)` makes the change, or leaves the scenario unchanged and returns a `Problem`. The other `edit::` functions are the shorthands the interface uses: `add_device` names a host `PC-<id>` and gives it 192.168.1.10/24 onwards, `connect` uses the first free port of each device, `configure_host` checks a name and an address together. Problems are codes; `explain::describe()` turns them into text.
+`edit::apply(scenario, edit)` makes the change, or leaves the scenario unchanged and returns a `Problem`. The other `edit::` functions are the shorthands the interface uses: `add_device` names a host `PC-<id>` and gives it 192.168.1.10/24 onwards, and a router `Router-<id>` with four ports and no addresses; `connect` uses the first free port of each device, `configure_host` checks a name and an address together, `resized_ports` gives a router more or fewer ports, the new ones with their default MAC. Problems are codes; `explain::describe()` turns them into text.
 
 ## Simulation
 
@@ -94,9 +95,11 @@ Each device is a node that receives frames and timers through a `Context`, which
 - **Host**, built from modules:
   - `Nic`: the port, its MAC and address. It accepts frames for its MAC or broadcast and drops the others with `NotForUs`.
   - `Arp` (RFC 826, RFC 1122 §2.3.2): the cache and the resolutions in progress, described below.
-  - IPv4, limited to the local subnet: a destination outside it fails with `NoRoute` until routers exist (M5). Every datagram leaves with TTL 64, and datagrams are numbered per host as they leave, from 1.
-  - ICMP echo responder (RFC 792): an Echo Request gets an Echo Reply with the same identifier, sequence and data. The reply goes through ARP like any datagram: a host that has no entry for the sender, after a reboot for example, asks for it first, and the reply waits. If that fails the reply is discarded (`DatagramDropped`). If the sender is outside the subnet there is no route back (`NoRoute`).
+  - IPv4 (RFC 1122 §3.3.1): a destination on the local subnet is the next hop itself; any other goes to the default gateway, whose MAC address ARP resolves. Without a gateway such a datagram fails with `NoRoute`; with a gateway outside the subnet, or the host's own address, with `GatewayOffLink`, as no ARP request could reach it. Every datagram leaves with TTL 64 unless a ping asks for another, and datagrams are numbered per host as they leave, from 1.
+  - ICMP echo responder (RFC 792): an Echo Request gets an Echo Reply with the same identifier, sequence and data. The reply goes through ARP like any datagram: a host that has no entry for its next hop, after a reboot for example, asks for it first, and the reply waits. If that fails the reply is discarded (`DatagramDropped`). A reply that cannot leave, as for a request, is dropped with `NoRoute` or `GatewayOffLink`.
+  - ICMP errors (Time Exceeded, Destination Unreachable) go to `PingApp`, which matches them to its requests by the datagram they quote; an error no request is waiting for is dropped with `UnmatchedError`.
   - `PingApp`, described below.
+- **Router** (RFC 1812), described below.
 
 ### ARP
 
@@ -108,11 +111,27 @@ The cache maps addresses to MAC addresses; an entry expires a minute after its l
 
 `arp_cache(device)` lists the reachable entries with their expiry and the incomplete ones with the number of datagrams waiting.
 
+### Routers
+
+A router has an IPv4 interface on each port with an address, an ARP cache on each, and a routing table built from its configuration (`src/sim/routing.hpp`):
+
+- **The table** (`routing_table()`): a connected route for each port with an address, in port order, then the static routes in the order configured. A static route is used only if its next hop is on one of the connected networks and is not one of the router's own addresses, as a router installs a route only through a neighbour it reaches directly; it goes out of the port whose network holds the next hop, the longest such network if several do. A static route to the same network as a connected one is not used: the connected one wins, as on Linux. Changing an address, the ports or the routes changes the table at once.
+- **Lookup** (`lookup()`, RFC 1812 §5.2.4.3): of the routes in use that match the destination, the one with the longest prefix (RFC 4632); between equal prefixes, the first in the table. `0.0.0.0/0` matches everything, so it is the default route.
+- **Forwarding**: a datagram for one of the router's addresses goes to its echo responder, which answers from the address the request was sent to. A datagram for the network or broadcast address of one of its networks is dropped (`DirectedBroadcast`, RFC 2644). Otherwise the router looks up the route first, as Linux does: without one the datagram is dropped with `NoRoute` and a Destination Unreachable (network) goes back. Then the TTL (RFC 1812 §5.3.1): a datagram that would leave with TTL 0 is dropped with `TtlExceeded` and a Time Exceeded goes back. Otherwise the router records `DatagramRouted`, lowers the TTL by one and sends the datagram to its next hop, the destination itself on a connected network, resolving it with ARP like a host: queued, at most three datagrams for one address, the oldest dropped without an error (`ArpQueueFull`). After three ARP requests without a reply each waiting datagram is dropped with `ArpUnresolved`, and a Destination Unreachable (host) goes back for each.
+- **ICMP errors** (RFC 792, RFC 1122 §3.2.2, RFC 1812 §4.3.2): an error carries the whole datagram it is about, header and data, as it arrived (or as it was about to leave, for an ARP failure); its source is the address of the port it leaves from, toward the datagram's source (RFC 1812 §4.3.2.4). No error is sent about an ICMP error, a datagram to a broadcast address or from an address that is not one host's, or a datagram the router sent itself, nor for a frame that came as a link-layer broadcast. Errors leave with TTL 64 and follow the router's table like any datagram; without a route back to the source they are dropped with `NoRoute`.
+- A frame reaching a port without an address is dropped with `NoAddress`. A router runs no pings.
+
+`arp_cache(router)` lists the entries of every port, with the port.
+
+`scripts/compare-linux.py` builds the example networks with Linux network namespaces (a veth pair for each cable, a bridge for each switch, forwarding and static routes for each router), runs the same pings and traceroutes there and in `resend-cli`, captures every cable with tcpdump and with `--pcap-link`, and compares what crossed each cable frame by frame: Ethernet addresses, ARP operations, IPv4 addresses and TTL, ICMP type and code and the datagram an error quotes. Linux is set up as resend models it: no IPv6, no multicast on the bridges, no reverse path filter, no ICMP redirects or rate limits. Timing may differ, the order on a cable may not; all sixteen cases match. It runs without root in a user namespace and in CI as root.
+
 ### Ping
 
 `PingApp` works as the `ping` command. A ping sends `count` Echo Requests (1 to 1,000), one every `interval` (10 ms to 60 s, 1 s by default), with the ping's id as identifier, sequence numbers from 1 and 56 bytes of data. Each request waits `timeout` (10 ms to 60 s, 1 s by default) for its reply, counted from the moment it leaves the host, so the wait for ARP is not counted; its round trip is counted from the moment the ping sent it, so the first one includes ARP, as with `ping`.
 
-Each request ends with `PingReply`, or with `PingLost` and the reason: `EchoTimeout`, `ArpUnresolved`, `ArpQueueFull`, `NoRoute` or `DeviceDown`. When every request has ended the ping ends with `PingSucceeded` if at least one was answered, as `ping`'s exit status, and with `PingFailed` otherwise, whose reason is the first loss. A reply that arrives after its request timed out is ignored (`FrameDropped` with `UnmatchedReply`), as a ping with a per-request timeout does. A ping to the host's own address is answered at once, without a frame.
+Each request ends with `PingReply`, or with `PingLost` and the reason: `EchoTimeout`, `ArpUnresolved`, `ArpQueueFull`, `NoRoute`, `GatewayOffLink` or `DeviceDown` when it fails at the source, `TtlExceeded`, `NetUnreachable` or `HostUnreachable` when an ICMP error about it comes back, which ends the request at once, as `ping` prints it. When every request has ended the ping ends with `PingSucceeded` if at least one was answered, as `ping`'s exit status, and with `PingFailed` otherwise, whose reason is the first loss. A reply that arrives after its request timed out is ignored (`FrameDropped` with `UnmatchedReply`), as a ping with a per-request timeout does; so is a late error (`UnmatchedError`). A ping to the host's own address is answered at once, without a frame. The requests' TTL is 64 unless the options give another, from 1 to 255.
+
+**Traceroute** is a ping with `options.traceroute`: request n leaves with TTL n, one at a time, so router n on the way answers it with a Time Exceeded. The next request leaves as soon as an answer comes back, or after the timeout (shown as `*`). It stops at the destination's Echo Reply, at a Destination Unreachable, at a failure at the source, or after `count` hops, at most 255 (`resend-cli` and the app try 30 unless told otherwise). Each request records the address that answered and its round trip, as `traceroute -I` prints them; the traceroute succeeds if the destination answered, and otherwise fails with its last loss. Through a routing loop the same two routers answer in turn until the hops run out.
 
 ### The storm guard
 
@@ -141,7 +160,7 @@ Ethernet frames have no TTL: in a loop of switches a broadcast is copied round f
 
 The trace is an append-only sequence of records, plus the archive of the frames the records refer to and the transmissions on the cables. A frame is archived once, when it is created, and keeps its `PduId` along its whole path: the copies a switch forwards or floods are the same frame, so a frame can be followed across the network by its id.
 
-Frames are layered values (`src/sim/pdu.hpp`): an `EthernetFrame` carries an `ArpPacket` or an `Ipv4Packet`, which carries an `IcmpMessage`.
+Frames are layered values (`src/sim/pdu.hpp`): an `EthernetFrame` carries an `ArpPacket` or an `Ipv4Packet`, which carries an `IcmpMessage`. An ICMP error also carries the datagram it is about, as a `QuotedDatagram`: its header fields and its Echo's identifier, sequence and data size, from which the bytes are rebuilt exactly.
 
 Every `FrameSent` also adds a **transmission**: the frame, the cable, the sending and receiving device and port, the instant it leaves and the instant it arrives, and the position of its `FrameSent` record. Transmissions are kept in the order they start. They are what the animation interpolates; what happens on arrival is in the records at that instant. The storm guard is the only thing that changes one afterwards: it marks it `stopped` and moves its arrival to the instant it was removed.
 
@@ -162,7 +181,8 @@ Records contain no text, so the tests check facts, and rewording or translating 
 | `port` | Port of `device`, from 0. For switch decisions it is the ingress port; the egress ports appear in the `FrameSent` records that follow |
 | `link` | The cable crossed, if any |
 | `pdu` | The frame involved, if any |
-| `value` | The attempt for ARP requests sent or dropped and for `ArpTimeout`; the ping's id for every `Ping*` record; an IPv4 address, as 32 bits, for `ArpEntryExpired` (the expired entry) and `DatagramDropped` (the datagram's destination); the edit's index in `edits()` for `EditApplied`; the copies sent for `SimulatorGuard`; 0 otherwise |
+| `value` | The attempt for ARP requests sent or dropped and for `ArpTimeout`; the ping's id for every `Ping*` record; an IPv4 address, as 32 bits, for `ArpEntryExpired` (the expired entry), `DatagramDropped` (the datagram's destination) and `DatagramRouted` (the next hop); the edit's index in `edits()` for `EditApplied`; the copies sent for `SimulatorGuard`; 0 otherwise |
+| `route` | For `DatagramRouted`, the destination of the route that matched |
 
 ### Record kinds
 
@@ -180,7 +200,8 @@ Records contain no text, so the tests check facts, and rewording or translating 
 | `ArpCacheUpdated` | The receiver maps the ARP sender's IP address to its MAC | RFC 826, "merge" step |
 | `ArpTimeout` | The retransmission interval passes without a reply; `port` is the interface | RFC 1122 §2.3.2.1, at most one request per second |
 | `ArpEntryExpired` | A host needs an entry and finds it expired | RFC 1122 §2.3.2.1, cache timeout |
-| `DatagramDropped` | A datagram that is not a ping request cannot leave: an Echo Reply whose destination ARP did not resolve | |
+| `DatagramDropped` | A datagram that is not a ping request cannot leave: an Echo Reply whose destination ARP did not resolve; at a router, a datagram it cannot forward, or an error it cannot send | RFC 1812 §5.3.1, §5.2.4.3 |
+| `DatagramRouted` | A router forwards a datagram: `port` is the ingress port, `value` the next hop, `route` the route that matched; the `FrameSent` that follows, if ARP is resolved, names the egress port | RFC 1812 §5.2.4.3 |
 | `PingReply` | An Echo Reply answers one request of a ping | RFC 792 |
 | `PingLost` | One request of a ping gets no reply; the reason says why; `pdu` is the request when it was sent | |
 | `PingSucceeded` | The ping ends with at least one reply | |
@@ -198,11 +219,18 @@ Records contain no text, so the tests check facts, and rewording or translating 
 | `NotForUs` | The destination MAC is neither the local MAC nor broadcast | `FrameDropped` |
 | `ArpForOtherHost` | The ARP request asks for an address the receiver does not own | `FrameDropped` |
 | `Ipv4NotForUs` | The destination IPv4 address is not the local address | `FrameDropped` |
-| `NoRoute` | The destination is outside the subnet and there are no routers yet. With `PingLost` it concerns the request, with `FrameDropped` the reply | `PingLost`, `PingFailed`, `FrameDropped` |
+| `NoRoute` | At a host, the destination is outside the subnet and there is no gateway; at a router, no route matches the destination (or, for an error, its source). With `PingLost` it concerns the request, with `FrameDropped` the reply | `PingLost`, `PingFailed`, `FrameDropped`, `DatagramDropped` |
 | `ArpUnresolved` | Three ARP requests without a reply | `PingLost`, `PingFailed`, `DatagramDropped` |
 | `ArpQueueFull` | Newer datagrams for the same unresolved address took its place | `PingLost`, `PingFailed`, `DatagramDropped` |
 | `EchoTimeout` | No matching Echo Reply within the timeout | `PingLost`, `PingFailed` |
 | `UnmatchedReply` | An Echo Reply that no request is waiting for: it timed out, or its ping ended | `FrameDropped` |
+| `TtlExceeded` | A router would have sent the datagram on with TTL 0; for a ping, a Time Exceeded came back | `DatagramDropped`, `PingLost`, `PingFailed` |
+| `NetUnreachable` | A Destination Unreachable (network) came back: a router had no route | `PingLost`, `PingFailed` |
+| `HostUnreachable` | A Destination Unreachable (host) came back: the last router got no ARP reply | `PingLost`, `PingFailed` |
+| `GatewayOffLink` | The host's default gateway is outside its subnet, or its own address: nothing can reach it | `PingLost`, `PingFailed`, `FrameDropped` |
+| `NoAddress` | The router port has no IPv4 address, or lost it while a datagram waited for ARP | `FrameDropped`, `DatagramDropped` |
+| `UnmatchedError` | An ICMP error that no request is waiting for | `FrameDropped` |
+| `DirectedBroadcast` | To the broadcast or network address of one of the router's networks: not forwarded (RFC 2644) | `DatagramDropped` |
 
 ### Example: the first ping of the sample network
 
@@ -244,9 +272,9 @@ The app does not change the simulation directly: a `Workspace` (`src/app/workspa
 
 ## Bytes and captures
 
-`wire::encode()` (`src/wire/wire.hpp`) gives the bytes of a frame in network order, as they would cross the cable without preamble and FCS: Ethernet II; ARP for IPv4 over Ethernet (RFC 826); IPv4 with a 20-byte header, no options, no flags and its checksum (RFC 791); ICMP with its checksum (RFC 792), and echo data 0x00, 0x01, ..., the pattern `ping` uses after its timestamp. Frames shorter than 60 bytes are padded with zeros. `wire::decode()` reads them back, refusing anything the model cannot represent, and `wire::checksum()` is the Internet checksum (RFC 1071).
+`wire::encode()` (`src/wire/wire.hpp`) gives the bytes of a frame in network order, as they would cross the cable without preamble and FCS: Ethernet II; ARP for IPv4 over Ethernet (RFC 826); IPv4 with a 20-byte header, no options, no flags and its checksum (RFC 791); ICMP with its checksum (RFC 792), and echo data 0x00, 0x01, ..., the pattern `ping` uses after its timestamp. An ICMP error has four unused zero bytes, then the datagram it quotes, whole: resend's datagrams fit in the 576 bytes RFC 1812 §4.3.2.3 allows. Frames shorter than 60 bytes are padded with zeros. `wire::decode()` reads them back, refusing anything the model cannot represent, and `wire::checksum()` is the Internet checksum (RFC 1071).
 
-`wire::dissect()` lists the layers and fields of those bytes as Wireshark shows them: for each field its label, its display-filter name (`eth.dst`, `arp.opcode`, `ip.checksum`, `icmp.seq`), its offset and length, its value printed as tshark prints it and what the value means ("Broadcast", "request"). The frame view of the app shows exactly these rows. CTest `dissection-tshark` (`tests/dissect_tshark.cpp`) compares them with tshark's own dissection, position, size and value, for every frame of every example scenario; it is skipped when tshark is missing.
+`wire::dissect()` lists the layers and fields of those bytes as Wireshark shows them: for each field its label, its display-filter name (`eth.dst`, `arp.opcode`, `ip.checksum`, `icmp.seq`), its offset and length, its value printed as tshark prints it and what the value means ("Broadcast", "request"). The frame view of the app shows exactly these rows; the layers of a quoted datagram are marked "quoted". CTest `dissection-tshark` (`tests/dissect_tshark.cpp`) compares them with tshark's own dissection, position, size and value, for every frame of every example scenario, with pings to every address, to an unknown one and a traceroute, so that every ICMP error appears; it is skipped when tshark is missing.
 
 `wire::write_pcap()` writes a capture in the pcap format with nanosecond timestamps (link type Ethernet): every transmission in the order it started, for the whole network or one cable, at the simulated time it left. Simulated time 0 is the Unix epoch. A frame crossing three cables appears three times, as with a capture on every cable; `resend-cli --pcap FILE [--pcap-link ID]` writes one. Wireshark's expert system reports no errors or warnings on these files, checksums included (CTest `pcap-wireshark-expert`).
 
@@ -285,14 +313,16 @@ Given the same scenario and the same commands at the same times, the trace must 
 | `tests/scenario_tests.cpp` | The JSON reader and writer, `Rng`, every validation rule, the edits and their exact inverses, the example files byte for byte, errors in files |
 | `tests/sim_tests.cpp` | Concurrent pings, shared ARP resolutions, refused pings, carrier and delays, episodes, /31 and /32, the lesson of each example file, the 1,000-network hash |
 | `tests/live_tests.cpp` | Edits while running (cables, delays, ports, power, removal, ids), ARP states, expiry, the merge rule and the queue, MAC ageing, replies that resolve the sender, the ping application, late replies, the storm guard, and conservation of frames at every step of 300 random edited networks |
-| `tests/wire_tests.cpp` | Checksums, known frames byte for byte, round trips, refused bytes, pcap files, the fields of known frames |
-| `tests/regression_tests.cpp` | Twenty-three scenarios, the prototype's fourteen and nine for live faults, against the golden files in `tests/golden/`; `RESEND_UPDATE_GOLDEN=1` rewrites them after an intended change, to be reviewed in the diff |
+| `tests/routing_tests.cpp` | Routing tables and the longest prefix match, two LANs and a router, gateways, every ICMP error and when none is sent, routing loops and traceroute, router ports and live edits, the explanations, and 200 random routed networks, where every frame sent arrives and the trace hash is a constant |
+| `tests/wire_tests.cpp` | Checksums, known frames byte for byte, round trips, ICMP errors and their quotes, refused bytes, pcap files, the fields of known frames |
+| `tests/regression_tests.cpp` | Thirty scenarios, the prototype's fourteen, nine for live faults and seven with routers, against the golden files in `tests/golden/`; `RESEND_UPDATE_GOLDEN=1` rewrites them after an intended change, to be reviewed in the diff |
 | `tests/app_tests.cpp` | Playback and what the canvas shows, edits and storms included |
 | `tests/canvas_tests.cpp` | The canvas controller: view, hit testing, dragging, cables, removal, refusals in the past |
 | `tests/workspace_tests.cpp` | Edits before and after the first event, gestures, commands, travel in time, event filters, 50 random commands and their undos |
 | `tests/files_tests.cpp` | Saving and opening byte for byte, the built-in examples, autosave and recovery, the state folder, the file dialog's listing |
 | `tests/translation_tests.cpp` | Every text translated in every built-in language, with the same placeholders, and no unused entries |
 | `tests/gui_tests.cpp` | The interface on Slint's testing backend |
-| CTest `cli-*` | `resend-cli` exit codes and output, scenario files, concurrent pings, timed changes, loops |
+| CTest `cli-*` | `resend-cli` exit codes and output, scenario files, concurrent pings, timed changes, loops, routers, ICMP errors and traceroute |
 | CTest `pcap-wireshark-expert` | Captures checked by `tshark -z expert`; skipped when tshark is missing |
 | CTest `dissection-tshark` | Every field of every frame of the examples compared with tshark's dissection; skipped when tshark is missing |
+| `scripts/compare-linux.py` | The router examples on the Linux network stack, cable by cable, frame by frame (see [Routers](#routers)); run in CI |

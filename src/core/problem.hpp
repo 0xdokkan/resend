@@ -12,7 +12,7 @@ enum class Problem : std::uint8_t {
     DuplicateDeviceId,
     InvalidDeviceId,
     InvalidName,
-    WrongPortCount,
+    WrongPortCount,       // a host has 1 port, a switch 8, a router 2 to 8
     MissingAddress,       // a host port without an IPv4 address
     InvalidHostAddress,   // network, broadcast, loopback, multicast, /0
     InvalidPrefix,        // a prefix length outside 1..32
@@ -35,7 +35,13 @@ enum class Problem : std::uint8_t {
     SourcePoweredOff,
     InvalidDestination,   // not a unicast address
     BroadcastDestination, // the network or broadcast address of the source's subnet
-    InvalidPingOptions,   // count, interval or timeout out of range
+    InvalidPingOptions,   // count, interval, timeout or TTL out of range
+    // Routing; new codes go at the end, as tests hash them
+    NotARouter,
+    InvalidGateway,       // not a unicast address, or on a device that is not a host
+    InvalidRoute,         // host bits in the destination, a next hop that is not unicast, or not on a router
+    DuplicateRoute,       // two routes of a router to the same destination
+    TooManyRoutes,
 };
 
 constexpr bool ok(Problem problem) { return problem == Problem::None; }

@@ -1,0 +1,142 @@
+{
+  "format": "resend-scenario",
+  "version": 2,
+  "title": "Routing loop",
+  "notes": "R1 and R2 send everything they have no route for to each other. Ping 10.9.9.9 from PC-A: the request goes back and forth until its TTL runs out, and a Time Exceeded comes back. A traceroute to 10.9.9.9 shows the two routers taking turns.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "host",
+      "name": "PC-A",
+      "powered": true,
+      "x": 40,
+      "y": 200,
+      "gateway": "10.1.0.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:01",
+          "up": true,
+          "ipv4": "10.1.0.10/24"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "router",
+      "name": "R1",
+      "powered": true,
+      "x": 250,
+      "y": 200,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:02",
+          "up": true,
+          "ipv4": "10.1.0.1/24"
+        },
+        {
+          "mac": "02:21:00:00:00:02",
+          "up": true,
+          "ipv4": "10.12.0.1/30"
+        }
+      ],
+      "routes": [
+        {
+          "destination": "10.2.0.0/24",
+          "via": "10.12.0.2"
+        },
+        {
+          "destination": "0.0.0.0/0",
+          "via": "10.12.0.2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "router",
+      "name": "R2",
+      "powered": true,
+      "x": 460,
+      "y": 200,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:03",
+          "up": true,
+          "ipv4": "10.12.0.2/30"
+        },
+        {
+          "mac": "02:21:00:00:00:03",
+          "up": true,
+          "ipv4": "10.2.0.1/24"
+        }
+      ],
+      "routes": [
+        {
+          "destination": "10.1.0.0/24",
+          "via": "10.12.0.1"
+        },
+        {
+          "destination": "0.0.0.0/0",
+          "via": "10.12.0.1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "host",
+      "name": "PC-B",
+      "powered": true,
+      "x": 670,
+      "y": 200,
+      "gateway": "10.2.0.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:04",
+          "up": true,
+          "ipv4": "10.2.0.20/24"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 1,
+        "port": 1
+      },
+      "b": {
+        "device": 2,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 2,
+        "port": 2
+      },
+      "b": {
+        "device": 3,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 3,
+      "a": {
+        "device": 3,
+        "port": 2
+      },
+      "b": {
+        "device": 4,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    }
+  ]
+}

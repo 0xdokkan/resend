@@ -11,12 +11,18 @@ export global Theme {
     out property <color> mint: #7ce3c0;
     out property <color> blue: #82b8fb;
     out property <color> amber: #f1c47b;
+    out property <color> lime: #c2df7e;
     out property <color> red: #f58f8f;
     // The simulator's own interventions, never network behaviour.
     out property <color> violet: #c6a8f8;
     out property <color> canvas: #0d1520;
     out property <color> hover: #253347;
     out property <color> selection: #243b43;
+
+    // The colour of a device kind: "host", "switch" or "router".
+    public pure function device-color(kind: string) -> color {
+        return kind == "switch" ? Theme.blue : kind == "router" ? Theme.lime : Theme.mint;
+    }
 
     // The colour of an event's or a packet's protocol.
     public pure function protocol-color(protocol: string) -> color {

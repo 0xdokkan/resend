@@ -281,7 +281,7 @@ void edit_values() {
     refused(netsim::SetDelay{LinkId{1}, 11s}, Problem::InvalidDelay);
     refused(netsim::SetPortUp{PortRef{sw, 8}, false}, Problem::NoSuchPort);
     refused(netsim::SetPortUp{PortRef{DeviceId{9}, 0}, false}, Problem::NoSuchDevice);
-    refused(netsim::SetAddress{PortRef{sw, 0}, *netsim::Ipv4Prefix::parse("10.0.0.1/8")}, Problem::NotAHost);
+    refused(netsim::SetAddress{PortRef{sw, 0}, *netsim::Ipv4Prefix::parse("10.0.0.1/8")}, Problem::AddressOnSwitch);
     refused(netsim::SetAddress{PortRef{a, 0}, *netsim::Ipv4Prefix::parse("10.0.0.0/8")}, Problem::InvalidHostAddress);
     refused(netsim::SetAddress{PortRef{a, 0}, netsim::Ipv4Prefix(*netsim::Ipv4Address::parse("10.0.0.1"), 0)}, Problem::InvalidPrefix);
     refused(netsim::SetAgeing{a, 60s}, Problem::NotASwitch);
@@ -538,14 +538,30 @@ void scenario_file_errors() {
     CHECK(failure("[]") == "file: expected an object");
     CHECK(failure(R"({"format": "other", "version": 1})") == "format: this is not a resend scenario file");
     CHECK(failure(R"({"version": 1})") == "file: missing member \"format\"");
-    CHECK(failure(R"({"format": "resend-scenario", "version": 2, "devices": [], "links": []})") ==
-          "version: this file needs a newer version of resend (format 2)");
+    CHECK(failure(R"({"format": "resend-scenario", "version": 3, "devices": [], "links": []})") ==
+          "version: this file needs a newer version of resend (format 3)");
     CHECK(failure(R"({"format": "resend-scenario", "version": 0})") == "file.version: expected a whole number from 1 to 2147483647");
     CHECK(failure(head + R"("devices": [], "links": [], "extra": 1})") == "file: unknown member \"extra\"");
     CHECK(failure(head + R"("links": []})") == "file: missing member \"devices\"");
     CHECK(failure(head + R"("devices": {}, "links": []})") == "devices: expected an array");
-    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "router", "name": "R"}], "links": []})") ==
-          "devices[0].kind: expected \"host\" or \"switch\"");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "hub", "name": "H"}], "links": []})") ==
+          "devices[0].kind: expected \"host\", \"switch\" or \"router\"");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "router", "name": "R", "ports": [{}]}], "links": []})") ==
+          "devices[0].ports: a router has 2 to 8 ports");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "switch", "name": "S", "gateway": "10.0.0.1"}], "links": []})") ==
+          "devices[0].gateway: only hosts have a default gateway");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "host", "name": "A", "gateway": "10.0.0.1/24"}], "links": []})") ==
+          "devices[0].gateway: expected an IPv4 address such as 192.168.1.1");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "host", "name": "A", "routes": []}], "links": []})") ==
+          "devices[0].routes: only routers have routes");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "router", "name": "R", "routes": [{"destination": "10.0.0.0"}]}], "links": []})") ==
+          "devices[0].routes[0]: missing member \"via\"");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "router", "name": "R", "routes": [{"destination": "10.0.0.0", "via": "10.0.0.1"}]}], "links": []})") ==
+          "devices[0].routes[0].destination: expected a network with its prefix, such as 10.1.0.0/16");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "router", "name": "R", "routes": [{"destination": "0.0.0.0/0", "via": "x"}]}], "links": []})") ==
+          "devices[0].routes[0].via: expected an IPv4 address such as 192.168.1.1");
+    CHECK(failure(head + R"("devices": [{"id": 1, "kind": "router", "name": "R", "routes": [{"destination": "0.0.0.0/0", "via": "10.0.0.1", "metric": 1}]}], "links": []})") ==
+          "devices[0].routes[0]: unknown member \"metric\"");
     CHECK(failure(head + R"("devices": [{"id": 0, "kind": "host", "name": "A"}], "links": []})") ==
           "devices[0].id: expected a whole number from 1 to 4294967295");
     CHECK(failure(head + R"("devices": [{"id": 1, "kind": "host", "name": "A", "powered": 1}], "links": []})") ==
@@ -578,6 +594,114 @@ void scenario_file_errors() {
 }
 } // namespace
 
+// Routers, default gateways and routes: the rules of the model, the edits
+// that change them with their exact inverses, and the file format.
+void routing_configuration() {
+    namespace edit = netsim::edit;
+    using netsim::Ipv4Address;
+    using netsim::Ipv4Prefix;
+    using netsim::PortRef;
+    using netsim::Route;
+    const auto prefix = [](const char* text) { return *Ipv4Prefix::parse(text); };
+    const auto address = [](const char* text) { return *Ipv4Address::parse(text); };
+
+    // A router has 2 to 8 ports, 4 when added, with MACs 02:2p:<id> and no
+    // address; addresses are optional but must be usable.
+    auto scenario = netsim::sample_lan();
+    DeviceId router{};
+    CHECK(edit::add_device(scenario, DeviceKind::Router, 0, 0, &router) == Problem::None);
+    const auto* added = scenario.device(router);
+    CHECK(added->name == "Router-4" && added->ports.size() == 4 && added->routes.empty() && !added->gateway);
+    CHECK(added->ports[3].mac.to_string() == "02:23:00:00:00:04" && !added->ports[0].ipv4);
+    CHECK(netsim::validate(scenario).empty());
+    CHECK(netsim::valid_port_count(DeviceKind::Router, 2) && netsim::valid_port_count(DeviceKind::Router, 8));
+    CHECK(!netsim::valid_port_count(DeviceKind::Router, 1) && !netsim::valid_port_count(DeviceKind::Router, 9));
+    const auto broken = [&](auto change) {
+        auto copy = scenario;
+        change(*copy.device(router));
+        return netsim::validate(copy);
+    };
+    CHECK(has(broken([](auto& r) { r.ports.resize(1); }), Problem::WrongPortCount, "Router-4"));
+    CHECK(has(broken([&](auto& r) { r.ports[1].ipv4 = prefix("10.0.0.255/24"); }), Problem::InvalidHostAddress, "Router-4 10.0.0.255/24"));
+    CHECK(broken([&](auto& r) { r.ports[1].ipv4 = prefix("10.0.0.1/24"); }).empty());
+    CHECK(has(broken([&](auto& r) { r.gateway = address("10.0.0.1"); }), Problem::InvalidGateway, "Router-4"));
+    CHECK(has(broken([&](auto& r) { r.routes = {{prefix("10.1.0.1/16"), address("10.0.0.2")}}; }), Problem::InvalidRoute));
+    CHECK(has(broken([&](auto& r) { r.routes = {{prefix("10.1.0.0/16"), address("224.0.0.1")}}; }), Problem::InvalidRoute));
+    CHECK(has(broken([&](auto& r) { r.routes = {{prefix("10.1.0.0/16"), address("10.0.0.2")}, {prefix("10.1.0.0/16"), address("10.0.0.3")}}; }),
+              Problem::DuplicateRoute));
+    CHECK(has(broken([&](auto& r) { r.routes.assign(33, Route{}); }), Problem::TooManyRoutes));
+    // A next hop on none of the router's networks is valid: the route is
+    // simply not used.
+    CHECK(broken([&](auto& r) { r.routes = {{prefix("0.0.0.0/0"), address("172.16.0.1")}}; }).empty());
+    CHECK(has(netsim::validate([&] {
+              auto copy = scenario;
+              copy.devices[0].routes = {{prefix("0.0.0.0/0"), address("192.168.1.1")}};
+              return copy;
+          }()), Problem::InvalidRoute, "PC-A"));
+    CHECK(has(netsim::validate([&] {
+              auto copy = scenario;
+              copy.devices[0].gateway = address("255.255.255.255");
+              return copy;
+          }()), Problem::InvalidGateway, "PC-A"));
+
+    // The edits, refused with the reason, or made with an exact inverse.
+    const auto made = [&](const netsim::Edit& change) {
+        const auto before = scenario;
+        const auto back = edit::inverse(before, change);
+        const auto problem = edit::apply(scenario, change);
+        if (!netsim::ok(problem)) {
+            CHECK(scenario == before && !back);
+            return problem;
+        }
+        CHECK(back.has_value() && netsim::validate(scenario).empty());
+        auto undone = scenario;
+        CHECK(back && edit::apply(undone, *back) == Problem::None && undone == before);
+        return problem;
+    };
+    CHECK(made(netsim::SetGateway{DeviceId{3}, address("192.168.1.1")}) == Problem::NotAHost);
+    CHECK(made(netsim::SetGateway{DeviceId{1}, address("0.0.0.0")}) == Problem::InvalidGateway);
+    CHECK(made(netsim::SetGateway{DeviceId{1}, address("192.168.1.1")}) == Problem::None);
+    CHECK(scenario.device(DeviceId{1})->gateway == address("192.168.1.1"));
+    CHECK(made(netsim::SetGateway{DeviceId{1}, std::nullopt}) == Problem::None);
+    CHECK(!scenario.device(DeviceId{1})->gateway);
+    CHECK(made(netsim::SetRoutes{DeviceId{1}, {}}) == Problem::NotARouter);
+    CHECK(made(netsim::SetRoutes{router, {{prefix("10.0.0.0/8"), address("10.0.0.1")}, {prefix("10.0.0.0/8"), address("10.0.0.2")}}}) ==
+          Problem::DuplicateRoute);
+    CHECK(made(netsim::SetRoutes{router, {{prefix("0.0.0.0/0"), address("192.168.1.254")}}}) == Problem::None);
+    CHECK(scenario.device(router)->routes.size() == 1);
+    CHECK(made(netsim::SetAddress{PortRef{router, 0}, prefix("192.168.1.1/24")}) == Problem::None);
+    CHECK(made(netsim::SetAddress{PortRef{router, 0}, std::nullopt}) == Problem::None);
+    CHECK(made(netsim::SetAddress{PortRef{router, 0}, prefix("192.168.1.1/24")}) == Problem::None);
+    CHECK(made(netsim::SetAddress{PortRef{router, 4}, prefix("10.0.0.1/24")}) == Problem::NoSuchPort);
+    CHECK(made(netsim::SetAddress{PortRef{DeviceId{1}, 0}, std::nullopt}) == Problem::MissingAddress);
+    CHECK(made(netsim::SetAddress{PortRef{router, 1}, prefix("10.0.0.0/24")}) == Problem::InvalidHostAddress);
+    // Ports: more, fewer, but never fewer than 2 nor one that has a cable.
+    const auto* current = scenario.device(router);
+    CHECK(made(netsim::SetPorts{router, edit::resized_ports(*current, 8)}) == Problem::None);
+    current = scenario.device(router);
+    CHECK(current->ports.size() == 8 && current->ports[7].mac == netsim::default_mac(DeviceKind::Router, router, 7));
+    CHECK(current->ports[0].ipv4 == prefix("192.168.1.1/24"));
+    CHECK(made(netsim::SetPorts{router, edit::resized_ports(*current, 9)}) == Problem::WrongPortCount);
+    CHECK(made(netsim::SetPorts{DeviceId{3}, edit::resized_ports(*scenario.device(DeviceId{3}), 4)}) == Problem::NotARouter);
+    CHECK(made(netsim::Connect{PortRef{router, 5}, PortRef{DeviceId{3}, 5}, 10ms, LinkId{3}}) == Problem::None);
+    CHECK(made(netsim::SetPorts{router, edit::resized_ports(*scenario.device(router), 4)}) == Problem::PortInUse);
+    CHECK(made(netsim::SetPorts{router, edit::resized_ports(*scenario.device(router), 6)}) == Problem::None);
+    CHECK(scenario.device(router)->ports.size() == 6);
+
+    // In a file: "router" with its ports and routes, "gateway" on hosts.
+    scenario.devices[0].gateway = address("192.168.1.1");
+    const auto text = netsim::scenario_to_json(scenario);
+    CHECK(text.find("\"version\": 2") != std::string::npos && text.find("\"kind\": \"router\"") != std::string::npos);
+    CHECK(text.find("\"gateway\": \"192.168.1.1\"") != std::string::npos);
+    CHECK(text.find("\"destination\": \"0.0.0.0/0\",\n          \"via\": \"192.168.1.254\"") != std::string::npos);
+    std::string error;
+    const auto again = netsim::scenario_from_json(text, error);
+    CHECK(again.has_value() && *again == scenario);
+    // Version 1 files still open, without routers.
+    const auto old = netsim::scenario_from_json(R"({"format": "resend-scenario", "version": 1, "devices": [], "links": []})", error);
+    CHECK(old.has_value());
+}
+
 int main() {
     json_values();
     random_numbers();
@@ -589,5 +713,6 @@ int main() {
     scenario_files();
     documented_examples();
     scenario_file_errors();
+    routing_configuration();
     std::cout << "Scenario tests passed: " << test::checks << " checks.\n";
 }

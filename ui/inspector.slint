@@ -1,20 +1,26 @@
-import { ScrollView, StandardTableView } from "std-widgets.slint";
+import { LineEdit, ScrollView, StandardTableView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Action, Caption, Divider, Field, PanelHeader } from "widgets.slint";
 
-// A port of the selected device: its admin state and where its cable goes.
+// A port of the selected device: its admin state, where its cable goes and,
+// on a router, its address with the prefix length ("" for none).
 export struct PortView {
-    index: int, label: string, mac: string, up: bool, cable: string, link-id: int,
+    index: int, label: string, mac: string, up: bool, cable: string, link-id: int, address: string,
+}
+// A static route of the selected router; `note` says why it is inactive.
+export struct RouteView {
+    index: int, destination: string, via: string, active: bool, note: string,
 }
 
 // The properties of the selected device or cable (src/app_inspector.cpp).
 export global UiInspector {
-    // "host", "switch", "cable", or "" for the network as a whole.
+    // "host", "switch", "router", "cable", or "" for the network as a whole.
     in property <string> kind;
     in property <string> heading;
     in-out property <string> name;
     in-out property <string> address;
     in-out property <string> prefix;
+    in-out property <string> gateway;
     in-out property <string> ageing;
     in-out property <string> delay;
     in property <bool> powered: true;
@@ -22,8 +28,17 @@ export global UiInspector {
     in property <string> cable-a;
     in property <string> cable-b;
     in property <[PortView]> ports;
-    // The ARP cache of a host, the MAC table of a switch.
+    // A router's ports: how many, and how many it may have.
+    in property <int> port-count;
+    in property <int> min-ports;
+    in property <int> max-ports;
+    in property <[RouteView]> routes;
+    in-out property <string> route-destination;
+    in-out property <string> route-via;
+    // The ARP cache of a host or a router, the MAC table of a switch.
     in property <[[StandardListViewItem]]> table-rows;
+    // A router's routing table: connected networks, then static routes.
+    in property <[[StandardListViewItem]]> routing-rows;
     in property <string> table-note;
     // The network as a whole, when nothing is selected.
     in property <string> summary;
@@ -32,6 +47,11 @@ export global UiInspector {
     callback toggle-power();
     callback remove-device();
     callback set-port-up(int, bool);
+    // A router port's address as typed, applied with the rest.
+    callback port-address-edited(int, string);
+    callback set-port-count(int);
+    callback add-route();
+    callback remove-route(int);
     callback select-cable(int);
     callback apply-cable();
     callback toggle-cable();
@@ -64,6 +84,45 @@ component PortRow inherits Rectangle {
             accessible-text: root.port.label;
             toggle: true; checked: root.port.up; small: true; width: 44px;
             clicked => { UiInspector.set-port-up(root.port.index, !root.port.up); }
+        }
+    }
+}
+
+// A router port: its row, then its address.
+component RouterPortRow inherits VerticalLayout {
+    in property <PortView> port;
+    spacing: 4px;
+    PortRow { port: root.port; }
+    LineEdit {
+        min-width: 40px;
+        text: root.port.address;
+        placeholder-text: @tr("No address, e.g. 10.1.0.1/24");
+        accessible-label: @tr("IPv4 address of {0}", root.port.label);
+        edited(text) => { UiInspector.port-address-edited(root.port.index, text); }
+        accepted => { UiInspector.apply(); }
+    }
+}
+
+component RouteRow inherits Rectangle {
+    in property <RouteView> route;
+    height: row.preferred-height;
+    row := HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 1px;
+            Text {
+                text: root.route.destination + " → " + root.route.via;
+                color: root.route.active ? Theme.ink : Theme.muted; font-size: 11px; font-weight: 600; overflow: elide;
+            }
+            if !root.route.active: Text { text: root.route.note; color: Theme.amber; font-size: 10px; wrap: word-wrap; }
+        }
+        Action {
+            text: "✕";
+            accessible-text: @tr("Remove the route to {0}", root.route.destination);
+            small: true; quiet: true; danger: true; width: 28px;
+            clicked => { UiInspector.remove-route(root.route.index); }
         }
     }
 }
@@ -116,6 +175,11 @@ export component Inspector inherits Rectangle {
                             accepted => { UiInspector.apply(); }
                         }
                     }
+                    if UiInspector.kind == "host": Field {
+                        label: @tr("Default gateway"); placeholder: @tr("None, e.g. 192.168.1.1");
+                        text <=> UiInspector.gateway;
+                        accepted => { UiInspector.apply(); }
+                    }
                     if UiInspector.kind == "switch": Field {
                         label: @tr("MAC ageing time"); placeholder: "300s";
                         text <=> UiInspector.ageing;
@@ -153,6 +217,99 @@ export component Inspector inherits Rectangle {
                             { title: @tr("MAC address"), min-width: 128px, horizontal-stretch: 3 },
                             { title: @tr("Port"), min-width: 44px, horizontal-stretch: 1 },
                             { title: @tr("Age"), min-width: 60px, horizontal-stretch: 1 },
+                        ];
+                        rows: UiInspector.table-rows;
+                    }
+                    Text { text: UiInspector.table-note; color: Theme.muted; font-size: 10px; wrap: word-wrap; }
+                }
+
+                if UiInspector.kind == "router": VerticalLayout {
+                    spacing: 10px;
+                    Caption { text: @tr("IPv4 ROUTER"); }
+                    Field { label: @tr("Name"); text <=> UiInspector.name; accepted => { UiInspector.apply(); } }
+                    Action { text: @tr("Apply"); accessible-text: @tr("Apply the configuration"); clicked => { UiInspector.apply(); } }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Action { text: UiInspector.powered ? @tr("Power off") : @tr("Power on"); clicked => { UiInspector.toggle-power(); } }
+                        Action { text: @tr("Delete device"); danger: true; quiet: true; clicked => { UiInspector.remove-device(); } }
+                    }
+                    Divider { }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Caption { text: @tr("PORTS"); vertical-alignment: center; horizontal-stretch: 1; }
+                        Action {
+                            text: "−"; accessible-text: @tr("Remove the last port"); small: true; width: 28px;
+                            enabled: UiInspector.port-count > UiInspector.min-ports;
+                            clicked => { UiInspector.set-port-count(UiInspector.port-count - 1); }
+                        }
+                        Text { text: UiInspector.port-count; color: Theme.ink; font-size: 11px; vertical-alignment: center; }
+                        Action {
+                            text: "+"; accessible-text: @tr("Add a port"); small: true; width: 28px;
+                            enabled: UiInspector.port-count < UiInspector.max-ports;
+                            clicked => { UiInspector.set-port-count(UiInspector.port-count + 1); }
+                        }
+                    }
+                    for port in UiInspector.ports: RouterPortRow { port: port; }
+                    Text {
+                        text: @tr("Each address makes its network a connected route. Apply saves the addresses typed.");
+                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
+                    }
+                    Divider { }
+                    Caption { text: @tr("STATIC ROUTES"); }
+                    for route in UiInspector.routes: RouteRow { route: route; }
+                    if UiInspector.routes.length == 0: Text {
+                        text: @tr("No static routes: the router reaches only its connected networks.");
+                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Field {
+                            horizontal-stretch: 1;
+                            label: @tr("Network"); placeholder: @tr("e.g. {0}", "10.2.0.0/24");
+                            text <=> UiInspector.route-destination;
+                            accepted => { UiInspector.add-route(); }
+                        }
+                        Field {
+                            horizontal-stretch: 1;
+                            label: @tr("Next hop"); placeholder: @tr("e.g. {0}", "10.12.0.2");
+                            text <=> UiInspector.route-via;
+                            accepted => { UiInspector.add-route(); }
+                        }
+                    }
+                    Action { text: @tr("Add route"); accessible-text: @tr("Add the static route"); clicked => { UiInspector.add-route(); } }
+                    Text {
+                        text: @tr("0.0.0.0/0 is the default route, for every address no other route matches.");
+                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
+                    }
+                    Divider { }
+                    Caption { text: @tr("ROUTING TABLE"); }
+                    StandardTableView {
+                        // The style's minimum would push the panel wider.
+                        min-width: 120px;
+                        height: 150px;
+                        columns: [
+                            { title: @tr("Network"), min-width: 104px },
+                            { title: @tr("Next hop"), min-width: 92px },
+                            { title: @tr("Port"), min-width: 44px },
+                            { title: @tr("State"), min-width: 76px },
+                        ];
+                        rows: UiInspector.routing-rows;
+                    }
+                    Text {
+                        text: @tr("A datagram follows the longest prefix that matches its destination.");
+                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
+                    }
+                    Divider { }
+                    Caption { text: @tr("ARP CACHE"); }
+                    StandardTableView {
+                        min-width: 120px;
+                        height: 150px;
+                        columns: [
+                            { title: @tr("Address"), min-width: 100px },
+                            { title: "MAC", min-width: 128px },
+                            { title: @tr("Port"), min-width: 44px },
+                            { title: @tr("State"), min-width: 84px },
+                            { title: @tr("Expires in"), min-width: 84px },
                         ];
                         rows: UiInspector.table-rows;
                     }

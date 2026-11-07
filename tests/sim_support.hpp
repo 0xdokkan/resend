@@ -129,6 +129,8 @@ struct Hash {
 };
 
 // Everything a run produced: records, frames, transmissions and pings.
+// What routing added is hashed only where it is present, so networks
+// without routers keep the hashes they had before.
 inline void add_trace(Hash& hash, const Simulation& simulation) {
     const auto& trace = simulation.trace();
     for (const auto& record : trace.records()) {
@@ -143,6 +145,10 @@ inline void add_trace(Hash& hash, const Simulation& simulation) {
         hash.add(record.link);
         hash.add(record.pdu);
         hash.add(record.value);
+        if (record.route) {
+            hash.add(record.route->address());
+            hash.add(static_cast<std::uint64_t>(record.route->length()));
+        }
     }
     for (const auto& frame : trace.pdus()) {
         hash.add(frame.dst);
@@ -166,6 +172,15 @@ inline void add_trace(Hash& hash, const Simulation& simulation) {
             hash.add(packet.icmp.identifier);
             hash.add(packet.icmp.sequence);
             hash.add(packet.icmp.data_size);
+            if (const auto& quoted = packet.icmp.original) {
+                hash.add(quoted->src);
+                hash.add(quoted->dst);
+                hash.add(quoted->ttl);
+                hash.add(quoted->identification);
+                hash.add(quoted->type);
+                hash.add(quoted->identifier);
+                hash.add(quoted->sequence);
+            }
         }
     }
     for (const auto& sent : trace.transmissions()) {
@@ -193,6 +208,10 @@ inline void add_trace(Hash& hash, const Simulation& simulation) {
             hash.add(echo.sent);
             hash.add(echo.finished);
             hash.add(echo.record);
+            if (status.options.traceroute || status.options.ttl != netsim::default_ttl) {
+                hash.add(echo.ttl);
+                hash.add(echo.responder);
+            }
         }
     }
 }

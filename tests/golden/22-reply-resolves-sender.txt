@@ -124,22 +124,22 @@ frame 7 link 1  Switch-01 port 1 > PC-A port 1  1070.000 ms .. 1080.000 ms  reco
     MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
 50.000 ms  [ICMP] PC-A → Switch-01 · Echo Request  (ok, from 1 to 3 link 1 frame 2)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     Unicast on port 2.
 60.000 ms  [ICMP] Switch-01 → PC-B · Echo Request  (ok, from 3 to 2 link 2 frame 2)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     ICMP Echo Request received: an Echo Reply with the same identifier is generated.
 70.000 ms  [ICMP] PC-B → Switch-01 · Echo Reply  (ok, from 2 to 3 link 2 frame 3)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 2.
     Unicast on port 1.
 80.000 ms  [ICMP] Ping succeeded · 192.168.1.20 → PC-A  (ok, from 3 to 1 link 1 frame 3)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 1.
     Echo Reply matching the current ping. The destination is reachable. Round trip: 80.000 ms.
 1000.000 ms  [EDIT] PC-B powered off  (ok, from - to 2 link - frame -)
@@ -148,12 +148,12 @@ frame 7 link 1  Switch-01 port 1 > PC-A port 1  1070.000 ms .. 1080.000 ms  reco
     It starts with empty tables, as after a reboot.
 1010.000 ms  [ICMP] PC-A → Switch-01 · Echo Request  (ok, from 1 to 3 link 1 frame 4)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     Unicast on port 2.
 1020.000 ms  [ICMP] Switch-01 → PC-B · Echo Request  (ok, from 3 to 2 link 2 frame 4)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     ICMP Echo Request received, but there is no ARP entry for the sender: the Echo Reply waits while an ARP request asks for 192.168.1.10.
 1030.000 ms  [ARP] PC-B → Switch-01 · ARP Request  (ok, from 2 to 3 link 2 frame 5)
@@ -180,11 +180,11 @@ frame 7 link 1  Switch-01 port 1 > PC-A port 1  1070.000 ms .. 1080.000 ms  reco
     MAC resolved: the waiting Echo Reply can be sent.
 1070.000 ms  [ICMP] PC-B → Switch-01 · Echo Reply  (ok, from 2 to 3 link 2 frame 7)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 2.
     Unicast on port 1.
 1080.000 ms  [ICMP] Ping succeeded · 192.168.1.20 → PC-A  (ok, from 3 to 1 link 1 frame 7)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 1.
     Echo Reply matching the current ping. The destination is reachable. Round trip: 80.000 ms.

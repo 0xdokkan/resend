@@ -45,6 +45,25 @@ std::string speed_text(double speed) {
     return out.str();
 }
 
+const char* kind_name(netsim::DeviceKind kind) {
+    switch (kind) {
+    case netsim::DeviceKind::Host: return "host";
+    case netsim::DeviceKind::Switch: return "switch";
+    case netsim::DeviceKind::Router: return "router";
+    }
+    return "host";
+}
+
+// The address line of a card: a host's address, a router's, or its ports.
+std::string device_address(const netsim::DeviceConfig& device) {
+    if (device.kind == netsim::DeviceKind::Switch) return tr("{0} Ethernet ports", {std::to_string(device.ports.size())});
+    std::string addresses;
+    for (const auto& port : device.ports)
+        if (port.ipv4) addresses += (addresses.empty() ? "" : ", ") + port.ipv4->to_string();
+    if (addresses.empty()) return tr("no IPv4 address");
+    return addresses;
+}
+
 const char* tone_name(Tone tone) {
     switch (tone) {
     case Tone::Learn: return "learn";
@@ -100,7 +119,9 @@ AppController::AppController(slint::ComponentHandle<AppWindow> ui, Options optio
       fields_(std::make_shared<slint::VectorModel<FieldRow>>()),
       hex_(std::make_shared<slint::VectorModel<HexRow>>()),
       ports_(std::make_shared<slint::VectorModel<PortView>>()),
+      routes_(std::make_shared<slint::VectorModel<RouteView>>()),
       table_(std::make_shared<slint::VectorModel<std::shared_ptr<slint::Model<slint::StandardListViewItem>>>>()),
+      routing_(std::make_shared<slint::VectorModel<std::shared_ptr<slint::Model<slint::StandardListViewItem>>>>()),
       recovery_(state_directory_) {
     const auto& geometry = ui_->global<Geometry>();
     geometry.set_card_width(card_width);
@@ -114,7 +135,9 @@ AppController::AppController(slint::ComponentHandle<AppWindow> ui, Options optio
     ui_->global<UiFrame>().set_rows(fields_);
     ui_->global<UiFrame>().set_hex(hex_);
     ui_->global<UiInspector>().set_ports(ports_);
+    ui_->global<UiInspector>().set_routes(routes_);
     ui_->global<UiInspector>().set_table_rows(table_);
+    ui_->global<UiInspector>().set_routing_rows(routing_);
     ui_->global<UiApp>().set_version(RESEND_VERSION);
     playback_.set_reduced_motion(settings_.reduced_motion);
 
@@ -242,10 +265,8 @@ void AppController::refresh_topology() {
         NodeView row;
         row.id = id;
         row.title = device.name.c_str();
-        row.kind = device.kind == netsim::DeviceKind::Host ? "host" : "switch";
-        const auto address = device.kind == netsim::DeviceKind::Host ? device.ports.front().ipv4->to_string()
-                                                                     : tr("{0} Ethernet ports", {std::to_string(device.ports.size())});
-        row.address = address.c_str();
+        row.kind = kind_name(device.kind);
+        row.address = device_address(device).c_str();
         row.x = static_cast<float>(device.x);
         row.y = static_cast<float>(device.y);
         row.powered = device.powered;
@@ -275,8 +296,9 @@ void AppController::refresh_topology() {
         row.bx = segment->b.x;
         row.by = segment->b.y;
         row.up = link.up;
-        row.a_port = a->kind == netsim::DeviceKind::Switch ? std::to_string(link.a.port + 1).c_str() : "";
-        row.b_port = b->kind == netsim::DeviceKind::Switch ? std::to_string(link.b.port + 1).c_str() : "";
+        // Port numbers where there is more than one port.
+        row.a_port = a->kind != netsim::DeviceKind::Host ? std::to_string(link.a.port + 1).c_str() : "";
+        row.b_port = b->kind != netsim::DeviceKind::Host ? std::to_string(link.b.port + 1).c_str() : "";
         link_rows.push_back(row);
     }
     replace_rows(links_, link_rows);
@@ -627,8 +649,10 @@ void AppController::start_ping() {
     const auto& run = ui_->global<UiRun>();
     const auto destination = netsim::Ipv4Address::parse(std::string(run.get_target()));
     netsim::PingOptions options;
-    const std::string count_text(run.get_count());
-    int count = 1;
+    // A traceroute's count is the hops it tries.
+    options.traceroute = run.get_traceroute();
+    const std::string count_text(options.traceroute ? run.get_hops() : run.get_count());
+    int count = options.traceroute ? netsim::default_max_hops : 1;
     if (!count_text.empty()) {
         std::size_t consumed = 0;
         try {
@@ -638,7 +662,11 @@ void AppController::start_ping() {
         }
         if (consumed != count_text.size()) count = 0;
     }
-    if (count < 1 || count > netsim::max_ping_count) {
+    if (options.traceroute && (count < 1 || count > netsim::max_hops)) {
+        status(tr("A traceroute tries 1 to 255 hops."));
+        return;
+    }
+    if (!options.traceroute && (count < 1 || count > netsim::max_ping_count)) {
         status(tr("Send 1 to 1000 Echo Requests per ping."));
         return;
     }
@@ -664,7 +692,10 @@ void AppController::start_ping() {
         return;
     }
     follow_events_ = true;
-    status(playback_.playing() ? tr("Ping started.") : tr("Ping ready. Press Step or Run to advance simulated time."));
+    if (options.traceroute)
+        status(playback_.playing() ? tr("Traceroute started.") : tr("Traceroute ready. Press Step or Run to advance simulated time."));
+    else
+        status(playback_.playing() ? tr("Ping started.") : tr("Ping ready. Press Step or Run to advance simulated time."));
     sync();
     refresh_events();
     refresh_scene();
@@ -697,10 +728,18 @@ void AppController::redo() {
     if (report(outcome, tr("Redo {0}", {label}), before)) network_changed();
 }
 
+bool AppController::select_device(std::string_view name) {
+    const auto& devices = scenario().devices;
+    const auto found = std::find_if(devices.begin(), devices.end(), [&](const auto& device) { return device.name == name; });
+    if (found == devices.end()) return false;
+    canvas_changed(canvas_.select({Selection::Kind::Device, found->id.value}));
+    return true;
+}
+
 void AppController::add_device(netsim::DeviceKind kind) {
     const auto place = canvas_.new_card_place();
     const netsim::AddDevice edit{kind, static_cast<int>(std::lround(place.x)), static_cast<int>(std::lround(place.y))};
-    const auto label = kind == netsim::DeviceKind::Host ? tr("Add a host") : tr("Add a switch");
+    const auto label = kind == netsim::DeviceKind::Host ? tr("Add a host") : kind == netsim::DeviceKind::Switch ? tr("Add a switch") : tr("Add a router");
     const auto before = workspace_.commands().size();
     if (!report(workspace_.change(edit, label), label, before)) return;
     canvas_.select({Selection::Kind::Device, scenario().devices.back().id.value});
@@ -849,7 +888,8 @@ void AppController::bind_callbacks() {
     app.on_undo([this] { undo(); });
     app.on_redo([this] { redo(); });
     app.on_add_device([this](slint::SharedString kind) {
-        add_device(std::string_view(kind) == "switch" ? netsim::DeviceKind::Switch : netsim::DeviceKind::Host);
+        const std::string_view name(kind);
+        add_device(name == "switch" ? netsim::DeviceKind::Switch : name == "router" ? netsim::DeviceKind::Router : netsim::DeviceKind::Host);
     });
     app.on_delete_selection([this] { canvas_changed(canvas_.key(CanvasController::Key::Delete)); });
     app.on_toggle_motion([this] {

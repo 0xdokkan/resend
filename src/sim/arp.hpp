@@ -28,7 +28,10 @@ public:
     // The retry timer for `next_hop`: asks again, or after the last attempt
     // gives up and returns the datagrams that waited.
     std::vector<Outgoing> retry(Context& context, const Nic& nic, Ipv4Address next_hop);
-    std::vector<ArpCacheEntry> entries(SimTime now) const;
+    // Stops resolving `next_hop` without asking again, for an interface
+    // that lost its address, and returns the datagrams that waited.
+    std::vector<Outgoing> abandon(Ipv4Address next_hop);
+    std::vector<ArpCacheEntry> entries(SimTime now, std::uint8_t port = 0) const;
 
     // The timer key for a resolution on an interface.
     static std::uint64_t timer_key(const Nic& nic, Ipv4Address next_hop) {

@@ -35,9 +35,10 @@ struct SetPowered {
     bool powered = true;
     bool operator==(const SetPowered&) const = default;
 };
+// A port's IPv4 address. Hosts need one; a router port may have none.
 struct SetAddress {
     PortRef port;
-    Ipv4Prefix address;
+    std::optional<Ipv4Prefix> address;
     bool operator==(const SetAddress&) const = default;
 };
 struct SetAgeing {
@@ -75,7 +76,9 @@ struct Replug {
     bool operator==(const Replug&) const = default;
 };
 // A device with its defaults: a host gets 192.168.x.y/24 derived from its
-// id (192.168.1.10 for id 1), names are "PC-<id>" and "Switch-<id>".
+// id (192.168.1.10 for id 1) and no gateway, a router four ports without
+// addresses and no routes; names are "PC-<id>", "Switch-<id>" and
+// "Router-<id>".
 // Without an id it gets the next free one; a running simulation never gives
 // out the id of a device it removed, so its records keep their meaning.
 struct AddDevice {
@@ -106,8 +109,29 @@ struct RestoreDevice {
     bool operator==(const RestoreDevice&) const = default;
 };
 
+// A host's default gateway; nullopt removes it.
+struct SetGateway {
+    DeviceId device{};
+    std::optional<Ipv4Address> gateway;
+    bool operator==(const SetGateway&) const = default;
+};
+// Replaces a router's static routes.
+struct SetRoutes {
+    DeviceId device{};
+    std::vector<Route> routes;
+    bool operator==(const SetRoutes&) const = default;
+};
+// Replaces a router's ports, 2 to 8: how many it has and their
+// configuration. A port that goes away must have no cable.
+struct SetPorts {
+    DeviceId device{};
+    std::vector<PortConfig> ports;
+    bool operator==(const SetPorts&) const = default;
+};
+
+// New alternatives go at the end: traces refer to edits by index.
 using Edit = std::variant<SetLinkUp, SetDelay, SetPortUp, SetPowered, SetAddress, SetAgeing, Rename, MoveDevice, Connect,
-                          Disconnect, Replug, AddDevice, RemoveDevice, RestoreLink, RestoreDevice>;
+                          Disconnect, Replug, AddDevice, RemoveDevice, RestoreLink, RestoreDevice, SetGateway, SetRoutes, SetPorts>;
 
 // Whether the edit changes how the network behaves. Names and positions do
 // not: a running simulation takes them without recording anything.
@@ -140,6 +164,10 @@ Problem rename(Scenario& scenario, DeviceId id, std::string_view name);
 Problem set_link_up(Scenario& scenario, LinkId id, bool up);
 Problem set_powered(Scenario& scenario, DeviceId id, bool powered);
 Problem move(Scenario& scenario, DeviceId id, int x, int y);
+
+// The ports a router has with `count` of them: its own, cut short or
+// followed by new ones with their defaults.
+std::vector<PortConfig> resized_ports(const DeviceConfig& device, std::size_t count);
 
 // The address change configure_host() makes, after the same checks.
 std::optional<SetAddress> host_address(const Scenario& scenario, DeviceId id, std::string_view address, int prefix, Problem& problem);

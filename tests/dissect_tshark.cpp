@@ -1,5 +1,6 @@
 // The exit check of milestone M4: the inspector's fields match tshark's,
-// position, size and value, for every frame of the example scenarios.
+// position, size and value, for every frame of the example scenarios,
+// ICMP errors and the datagrams they quote included (M5).
 // Prints SKIPPED without tshark.
 #include "check.hpp"
 #include "scenario/scenario_json.hpp"
@@ -12,6 +13,8 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -22,14 +25,17 @@
 
 namespace {
 namespace fs = std::filesystem;
+using namespace std::chrono_literals;
 using namespace simtest;
 
 struct Shown {
     std::size_t pos = 0, size = 0;
     std::string show, bytes;
 };
-// Per frame, from 1, the fields tshark shows by name.
-using Dissection = std::map<int, std::map<std::string, Shown>>;
+// Per frame, from 1, the fields tshark shows by name. A name can come back
+// at another position: an ICMP error has the quoted datagram's ip.* and
+// icmp.* fields after its own.
+using Dissection = std::map<int, std::multimap<std::string, Shown>>;
 
 std::string attribute(const std::string& line, const std::string& name) {
     const auto key = " " + name + "=\"";
@@ -77,18 +83,30 @@ std::string hex(const std::vector<std::uint8_t>& bytes, std::size_t offset, std:
     return text;
 }
 
-// Pings from the first host to every address of the network, twice.
+// Pings from the first host to every address of the network, twice, to an
+// address of no network and to a free one on the last host's subnet; then a
+// traceroute to the last host. Through routers that gives every ICMP error
+// resend sends.
 Simulation run(const netsim::Scenario& scenario) {
     Simulation simulation(scenario);
     const netsim::DeviceConfig* source = nullptr;
+    std::optional<netsim::Ipv4Prefix> last;
+    Problem problem{};
     for (const auto& device : scenario.devices) {
-        if (device.kind != netsim::DeviceKind::Host) continue;
-        if (!source) {
+        if (device.kind == netsim::DeviceKind::Host && !source) {
             source = &device;
             continue;
         }
-        Problem problem{};
-        simulation.start_ping(source->id, device.ports[0].ipv4->address(), problem, {.count = 2});
+        for (const auto& port : device.ports) {
+            if (!port.ipv4 || !source) continue;
+            simulation.start_ping(source->id, port.ipv4->address(), problem, {.count = 2});
+            if (device.kind == netsim::DeviceKind::Host) last = port.ipv4;
+        }
+    }
+    if (source && last) {
+        simulation.start_ping(source->id, ip("203.0.113.1"), problem, {.count = 2});
+        simulation.start_ping(source->id, Ipv4Address(last->broadcast().bits() - 1), problem, {.timeout = 5s});
+        simulation.start_ping(source->id, last->address(), problem, {.count = 8, .traceroute = true});
     }
     drain(simulation);
     return simulation;
@@ -103,6 +121,7 @@ int main() {
     const auto folder = fs::temp_directory_path() / "resend-dissect";
     fs::create_directories(folder);
     int frames = 0, fields = 0;
+    std::set<std::pair<int, int>> errors;  // the ICMP errors seen, by type and code
     for (const auto& item : fs::directory_iterator(RESEND_EXAMPLES_DIR)) {
         if (item.path().extension() != ".json") continue;
         std::ifstream file(item.path(), std::ios::binary);
@@ -122,15 +141,20 @@ int main() {
         for (const auto& sent : simulation.trace().transmissions()) {
             ++number;
             ++frames;
-            const auto bytes = netsim::wire::encode(simulation.trace().pdu(sent.pdu));
+            const auto& frame = simulation.trace().pdu(sent.pdu);
+            const auto bytes = netsim::wire::encode(frame);
+            if (const auto* packet = frame.ipv4(); packet && netsim::icmp::is_error(packet->icmp.type))
+                errors.emplace(packet->icmp.type, packet->icmp.code);
             const auto found = shown.find(number);
             CHECK(found != shown.end());
             if (found == shown.end()) continue;
             for (const auto& layer : netsim::wire::dissect(bytes)) {
                 for (const auto& field : layer.fields) {
                     ++fields;
-                    const auto it = found->second.find(field.name);
-                    const bool same = it != found->second.end() && it->second.pos == field.offset && it->second.size == field.length &&
+                    auto [it, last] = found->second.equal_range(field.name);
+                    while (it != last && it->second.pos != field.offset) ++it;
+                    if (it == last) it = found->second.end();
+                    const bool same = it != found->second.end() && it->second.size == field.length &&
                         it->second.show == field.value && it->second.bytes == hex(bytes, field.offset, field.length);
                     CHECK(same);
                     if (!same) std::cout << "  " << item.path().filename().string() << " frame " << number << " " << field.name << ": ours " << field.offset
@@ -142,6 +166,6 @@ int main() {
         }
     }
     fs::remove_all(folder);
-    CHECK(frames > 100);
+    CHECK(frames > 100 && errors == (std::set<std::pair<int, int>>{{3, 0}, {3, 1}, {11, 0}}));
     std::cout << "Dissection matches tshark: " << frames << " frames, " << fields << " fields, " << test::checks << " checks.\n";
 }

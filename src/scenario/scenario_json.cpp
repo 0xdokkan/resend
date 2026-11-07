@@ -12,7 +12,14 @@ namespace {
 using json::Value;
 using text::tr;
 
-const char* kind_name(DeviceKind kind) { return kind == DeviceKind::Host ? "host" : "switch"; }
+const char* kind_name(DeviceKind kind) {
+    switch (kind) {
+    case DeviceKind::Host: return "host";
+    case DeviceKind::Switch: return "switch";
+    case DeviceKind::Router: return "router";
+    }
+    return "host";
+}
 
 Value port_ref(PortRef port) {
     Value out = Value::object();
@@ -108,10 +115,11 @@ std::string scenario_to_json(const Scenario& scenario) {
         item.set("x", device.x);
         item.set("y", device.y);
         if (device.kind == DeviceKind::Switch) item.set("ageing", format_duration(device.mac_ageing));
+        if (device.gateway) item.set("gateway", device.gateway->to_string());
         bool all_default = true;
         for (std::size_t i = 0; i < device.ports.size(); ++i) all_default = all_default && default_port(device, i);
         // Switch ports are written only when one differs from the default.
-        if (!all_default || device.kind == DeviceKind::Host) {
+        if (!all_default || device.kind != DeviceKind::Switch) {
             auto& ports = item.set("ports", Value::array());
             for (const auto& port : device.ports) {
                 Value entry = Value::object();
@@ -119,6 +127,15 @@ std::string scenario_to_json(const Scenario& scenario) {
                 entry.set("up", port.admin_up);
                 if (port.ipv4) entry.set("ipv4", port.ipv4->to_string());
                 ports.push(std::move(entry));
+            }
+        }
+        if (device.kind == DeviceKind::Router) {
+            auto& routes = item.set("routes", Value::array());
+            for (const auto& route : device.routes) {
+                Value entry = Value::object();
+                entry.set("destination", route.destination.to_string());
+                entry.set("via", route.next_hop.to_string());
+                routes.push(std::move(entry));
             }
         }
         devices.push(std::move(item));
@@ -180,20 +197,21 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
     for (std::size_t index = 0; index < devices->array_items()->size(); ++index) {
         const auto& item = (*devices->array_items())[index];
         const auto path = "devices[" + std::to_string(index) + "]";
-        if (!read.object(item, path) || !read.only(item, path, {"id", "kind", "name", "powered", "x", "y", "ageing", "ports"}))
+        if (!read.object(item, path) ||
+            !read.only(item, path, {"id", "kind", "name", "powered", "x", "y", "ageing", "gateway", "ports", "routes"}))
             return finish();
         DeviceConfig device;
         std::int64_t id = 0, x = 0, y = 0;
-        std::string kind, ageing;
+        std::string kind, ageing, gateway;
         if (!read.number(item, "id", path, 1, std::numeric_limits<std::uint32_t>::max(), id) ||
             !read.text(item, "kind", path, kind) || !read.text(item, "name", path, device.name) ||
             !read.flag(item, "powered", path, device.powered) ||
             !read.number(item, "x", path, -max_coordinate, max_coordinate, x, false) ||
             !read.number(item, "y", path, -max_coordinate, max_coordinate, y, false) ||
-            !read.text(item, "ageing", path, ageing, false))
+            !read.text(item, "ageing", path, ageing, false) || !read.text(item, "gateway", path, gateway, false))
             return finish();
-        if (kind != "host" && kind != "switch") {
-            read.fail(path + ".kind", tr("expected \"host\" or \"switch\""));
+        if (kind != "host" && kind != "switch" && kind != "router") {
+            read.fail(path + ".kind", tr("expected \"host\", \"switch\" or \"router\""));
             return finish();
         }
         if (item.find("ageing")) {
@@ -208,8 +226,19 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
             }
             device.mac_ageing = *parsed;
         }
+        if (item.find("gateway")) {
+            if (kind != "host") {
+                read.fail(path + ".gateway", tr("only hosts have a default gateway"));
+                return finish();
+            }
+            device.gateway = Ipv4Address::parse(gateway);
+            if (!device.gateway) {
+                read.fail(path + ".gateway", tr("expected an IPv4 address such as 192.168.1.1"));
+                return finish();
+            }
+        }
         device.id = DeviceId{static_cast<std::uint32_t>(id)};
-        device.kind = kind == "host" ? DeviceKind::Host : DeviceKind::Switch;
+        device.kind = kind == "host" ? DeviceKind::Host : kind == "switch" ? DeviceKind::Switch : DeviceKind::Router;
         device.x = static_cast<int>(x);
         device.y = static_cast<int>(y);
         device.ports = default_ports(device.kind, device.id);
@@ -218,11 +247,14 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
                 read.fail(path + ".ports", tr("expected an array"));
                 return finish();
             }
-            if (static_cast<int>(ports->array_items()->size()) != port_count(device.kind)) {
-                read.fail(path + ".ports", device.kind == DeviceKind::Host ? tr("a host has {0} port", {std::to_string(port_count(device.kind))})
-                                                                           : tr("a switch has {0} ports", {std::to_string(port_count(device.kind))}));
+            if (!valid_port_count(device.kind, ports->array_items()->size())) {
+                read.fail(path + ".ports", device.kind == DeviceKind::Host     ? tr("a host has {0} port", {std::to_string(host_ports)})
+                                               : device.kind == DeviceKind::Switch ? tr("a switch has {0} ports", {std::to_string(switch_ports)})
+                                                                                   : tr("a router has {0} to {1} ports", {std::to_string(min_router_ports), std::to_string(max_router_ports)}));
                 return finish();
             }
+            device.ports.resize(ports->array_items()->size());
+            for (std::size_t p = 0; p < device.ports.size(); ++p) device.ports[p].mac = default_mac(device.kind, device.id, static_cast<int>(p));
             for (std::size_t p = 0; p < ports->array_items()->size(); ++p) {
                 const auto& entry = (*ports->array_items())[p];
                 const auto port_path = path + ".ports[" + std::to_string(p) + "]";
@@ -247,6 +279,35 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
                         return finish();
                     }
                 }
+            }
+        }
+        if (const auto* routes = item.find("routes")) {
+            if (device.kind != DeviceKind::Router) {
+                read.fail(path + ".routes", tr("only routers have routes"));
+                return finish();
+            }
+            if (!routes->array_items()) {
+                read.fail(path + ".routes", tr("expected an array"));
+                return finish();
+            }
+            for (std::size_t r = 0; r < routes->array_items()->size(); ++r) {
+                const auto& entry = (*routes->array_items())[r];
+                const auto route_path = path + ".routes[" + std::to_string(r) + "]";
+                std::string destination, via;
+                if (!read.object(entry, route_path) || !read.only(entry, route_path, {"destination", "via"}) ||
+                    !read.text(entry, "destination", route_path, destination) || !read.text(entry, "via", route_path, via))
+                    return finish();
+                const auto network = Ipv4Prefix::parse(destination);
+                if (!network) {
+                    read.fail(route_path + ".destination", tr("expected a network with its prefix, such as 10.1.0.0/16"));
+                    return finish();
+                }
+                const auto next_hop = Ipv4Address::parse(via);
+                if (!next_hop) {
+                    read.fail(route_path + ".via", tr("expected an IPv4 address such as 192.168.1.1"));
+                    return finish();
+                }
+                device.routes.push_back({*network, *next_hop});
             }
         }
         scenario.devices.push_back(std::move(device));

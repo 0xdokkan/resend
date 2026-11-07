@@ -13,7 +13,14 @@ struct Overloaded : Visitors... {
     using Visitors::operator()...;
 };
 
-std::unique_ptr<Node> make_node(DeviceKind kind) { return kind == DeviceKind::Host ? make_host() : make_switch(); }
+std::unique_ptr<Node> make_node(DeviceKind kind) {
+    switch (kind) {
+    case DeviceKind::Host: return make_host();
+    case DeviceKind::Switch: return make_switch();
+    case DeviceKind::Router: return make_router();
+    }
+    return make_host();
+}
 } // namespace
 
 int PingStatus::replies() const {
@@ -145,6 +152,9 @@ Problem Simulation::apply(const Edit& requested) {
                        entry.device = item.device;
                        for (const auto& link : item.links) entry.links.push_back(link.link);
                    },
+                   [&](const SetGateway& item) { device(item.device); },
+                   [&](const SetRoutes& item) { device(item.device); },
+                   [&](const SetPorts& item) { device(item.device); },
                },
                edit);
     edits_.push_back(std::move(entry));
@@ -214,7 +224,8 @@ std::optional<PingId> Simulation::start_ping(DeviceId source, Ipv4Address destin
         const auto& address = *host->ports.front().ipv4;
         if (address.contains(destination) && !Ipv4Prefix(destination, address.length()).usable_host())
             problem = Problem::BroadcastDestination;
-        else if (options.count < 1 || options.count > max_ping_count || !in_range(options.interval) || !in_range(options.timeout))
+        else if (options.count < 1 || options.count > (options.traceroute ? max_hops : max_ping_count) || options.ttl < 1 ||
+                 !in_range(options.interval) || !in_range(options.timeout))
             problem = Problem::InvalidPingOptions;
     }
     if (!ok(problem)) return std::nullopt;
@@ -295,19 +306,32 @@ void Context::echo_replied(PingId id, std::uint16_t sequence, const Arrival* arr
     echo.state = EchoState::Replied;
     echo.finished = now();
     echo.record = record(entry);
+    echo.responder = ping(id).destination;
     settle(id, std::nullopt);
 }
 
-void Context::lose(PingId id, std::uint16_t sequence, Reason reason, std::optional<PduId> request) {
+EchoStatus& Context::lose(PingId id, std::uint16_t sequence, Reason reason, std::optional<PduId> request) {
     auto& echo = ping(id).echoes.at(sequence - 1U);
     echo.state = EchoState::Lost;
     echo.reason = reason;
     echo.finished = now();
     echo.record = record({.kind = TraceKind::PingLost, .reason = reason, .pdu = request, .value = id.value});
+    return echo;
 }
 
 void Context::echo_lost(PingId id, std::uint16_t sequence, Reason reason, std::optional<PduId> request) {
     lose(id, sequence, reason, request);
+    settle(id, std::nullopt);
+}
+
+void Context::echo_error(PingId id, std::uint16_t sequence, Reason reason, const Arrival& arrival, Ipv4Address from) {
+    auto& echo = ping(id).echoes.at(sequence - 1U);
+    echo.state = EchoState::Lost;
+    echo.reason = reason;
+    echo.finished = now();
+    echo.responder = from;
+    echo.record = record({.kind = TraceKind::PingLost, .reason = reason, .port = arrival.port, .link = arrival.link,
+                          .pdu = arrival.pdu, .value = id.value});
     settle(id, std::nullopt);
 }
 
@@ -323,11 +347,34 @@ void Context::settle(PingId id, std::optional<Reason> abort) {
     if (status.state != PingState::Running) return;
     const bool waiting = std::any_of(status.echoes.begin(), status.echoes.end(),
                                      [](const auto& echo) { return echo.state == EchoState::Waiting; });
-    if (!abort && (waiting || status.echoes.size() < status.options.count)) return;
+    if (!abort) {
+        if (waiting) return;
+        if (status.options.traceroute) {
+            // A traceroute goes on past the routers that answer and past
+            // the hops that do not answer at all.
+            const auto& last = status.echoes.back();
+            const bool onward = last.state == EchoState::Lost && (last.reason == Reason::TtlExceeded || last.reason == Reason::EchoTimeout);
+            if (onward && status.echoes.size() < status.options.count) {
+                schedule(SimTime{}, TimerKind::PingSend, id.value);
+                return;
+            }
+        } else if (status.echoes.size() < status.options.count) {
+            return;
+        }
+    }
     const bool replied = status.replies() > 0;
-    const auto loss = std::find_if(status.echoes.begin(), status.echoes.end(), [](const auto& echo) { return echo.state == EchoState::Lost; });
+    // A ping fails for its first loss, a traceroute for its last: where it stopped.
+    const auto lost = [](const EchoStatus& echo) { return echo.state == EchoState::Lost; };
+    const EchoStatus* loss = nullptr;
+    if (status.options.traceroute) {
+        const auto it = std::find_if(status.echoes.rbegin(), status.echoes.rend(), lost);
+        if (it != status.echoes.rend()) loss = &*it;
+    } else {
+        const auto it = std::find_if(status.echoes.begin(), status.echoes.end(), lost);
+        if (it != status.echoes.end()) loss = &*it;
+    }
     status.state = replied ? PingState::Succeeded : PingState::Failed;
-    status.reason = replied ? Reason::None : loss != status.echoes.end() ? loss->reason : abort.value_or(Reason::None);
+    status.reason = replied ? Reason::None : loss ? loss->reason : abort.value_or(Reason::None);
     status.finished = now();
     record({.kind = replied ? TraceKind::PingSucceeded : TraceKind::PingFailed, .reason = status.reason, .value = id.value});
 }

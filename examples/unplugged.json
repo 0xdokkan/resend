@@ -1,6 +1,6 @@
 {
   "format": "resend-scenario",
-  "version": 1,
+  "version": 2,
   "title": "Unplugged",
   "notes": "The cable to PC-B is down. The switch floods PC-A's ARP request, but no copy can reach PC-B: after three requests, one second apart, PC-A gives up without sending any ICMP.",
   "seed": 1,

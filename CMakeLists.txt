@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(resend VERSION 0.2.0 LANGUAGES CXX)
+project(resend VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -34,14 +34,15 @@ add_library(resend_core
     src/core/address.cpp src/core/json.cpp src/core/sim_time.cpp src/core/text.cpp ${CMAKE_CURRENT_BINARY_DIR}/catalogs_data.cpp
     src/scenario/scenario.cpp src/scenario/edit.cpp src/scenario/scenario_json.cpp
     src/sim/simulation.cpp src/sim/medium.cpp src/sim/arp.cpp src/sim/ping_app.cpp
-    src/sim/host.cpp src/sim/bridge.cpp
+    src/sim/host.cpp src/sim/bridge.cpp src/sim/router.cpp src/sim/routing.cpp
     src/explain/explain.cpp
     src/wire/wire.cpp)
 target_include_directories(resend_core PUBLIC src)
 target_compile_options(resend_core PRIVATE ${resend_warnings})
 
 # The examples, built into the app in the order of its menu.
-set(resend_examples sample-lan.json two-switches.json office-floor.json unplugged.json mismatched-masks.json switch-loop.json)
+set(resend_examples sample-lan.json two-switches.json office-floor.json unplugged.json mismatched-masks.json switch-loop.json
+    two-lans-router.json wrong-gateway.json missing-return-route.json routing-loop.json longest-prefix.json)
 list(TRANSFORM resend_examples PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_VARIABLE resend_example_files)
 string(REPLACE ";" "," resend_example_list "${resend_examples}")
 add_custom_command(
@@ -81,6 +82,10 @@ if(BUILD_TESTING)
     target_link_libraries(resend-live-tests PRIVATE resend_core)
     target_compile_options(resend-live-tests PRIVATE ${resend_warnings})
     add_test(NAME live-network COMMAND resend-live-tests)
+    add_executable(resend-routing-tests tests/routing_tests.cpp)
+    target_link_libraries(resend-routing-tests PRIVATE resend_core)
+    target_compile_options(resend-routing-tests PRIVATE ${resend_warnings})
+    add_test(NAME routing COMMAND resend-routing-tests)
     add_executable(resend-wire-tests tests/wire_tests.cpp)
     target_link_libraries(resend-wire-tests PRIVATE resend_core)
     target_compile_options(resend-wire-tests PRIVATE ${resend_warnings})
@@ -134,14 +139,29 @@ if(BUILD_TESTING)
         --ping PC-A 192.168.1.20)
     add_test(NAME cli-invalid-count COMMAND resend-cli --count 0)
     add_test(NAME cli-unknown-cable COMMAND resend-cli --link-down 9)
+    add_test(NAME cli-router COMMAND resend-cli --scenario ${examples}/two-lans-router.json --ping PC-A 10.2.0.20)
+    add_test(NAME cli-traceroute COMMAND resend-cli --scenario ${examples}/two-lans-router.json --traceroute PC-A 10.2.0.20)
+    add_test(NAME cli-ttl-exceeded COMMAND resend-cli --scenario ${examples}/two-lans-router.json --ttl 1 --ping PC-A 10.2.0.20)
+    add_test(NAME cli-net-unreachable COMMAND resend-cli --scenario ${examples}/two-lans-router.json --ping PC-A 203.0.113.1)
+    add_test(NAME cli-host-unreachable COMMAND resend-cli --scenario ${examples}/two-lans-router.json --timeout 5s --ping PC-A 10.2.0.99)
+    add_test(NAME cli-routing-loop COMMAND resend-cli --scenario ${examples}/routing-loop.json --ping PC-A 10.9.9.9)
+    add_test(NAME cli-wrong-gateway COMMAND resend-cli --scenario ${examples}/wrong-gateway.json --ping PC-C 10.2.0.20)
+    add_test(NAME cli-set-gateway COMMAND resend-cli --scenario ${examples}/wrong-gateway.json --set-gateway PC-C 10.1.0.1 --ping PC-C 10.2.0.20)
+    add_test(NAME cli-invalid-max-hops COMMAND resend-cli --max-hops 0 --traceroute PC-A 192.168.1.20)
     set_tests_properties(cli-ping-disconnected cli-ping-no-route cli-invalid-address
         cli-scenario-ping-fails cli-unknown-host cli-missing-file cli-cable-down-in-flight
-        cli-invalid-count cli-unknown-cable PROPERTIES WILL_FAIL TRUE)
+        cli-invalid-count cli-unknown-cable cli-wrong-gateway cli-invalid-max-hops PROPERTIES WILL_FAIL TRUE)
     # A regular expression to match replaces the exit status.
     set_tests_properties(cli-ping-count PROPERTIES PASS_REGULAR_EXPRESSION "3 packets transmitted, 3 received")
     set_tests_properties(cli-power-off-destination PROPERTIES PASS_REGULAR_EXPRESSION "2 packets transmitted, 1 received")
     set_tests_properties(cli-stale-address PROPERTIES PASS_REGULAR_EXPRESSION "icmp_seq=1 ttl=64.*icmp_seq=2 lost: no Echo Reply")
     set_tests_properties(cli-switch-loop PROPERTIES PASS_REGULAR_EXPRESSION "Storm protection: the simulator stopped 3 frames")
+    set_tests_properties(cli-router PROPERTIES PASS_REGULAR_EXPRESSION "icmp_seq=1 ttl=63")
+    set_tests_properties(cli-traceroute PROPERTIES PASS_REGULAR_EXPRESSION " 1  10\\.1\\.0\\.1  80\\.000 ms\n 2  10\\.2\\.0\\.20  120\\.000 ms\n")
+    set_tests_properties(cli-ttl-exceeded PROPERTIES PASS_REGULAR_EXPRESSION "From 10\\.1\\.0\\.1 icmp_seq=1 Time to live exceeded")
+    set_tests_properties(cli-net-unreachable PROPERTIES PASS_REGULAR_EXPRESSION "From 10\\.1\\.0\\.1 icmp_seq=1 Destination Net Unreachable")
+    set_tests_properties(cli-host-unreachable PROPERTIES PASS_REGULAR_EXPRESSION "From 10\\.1\\.0\\.1 icmp_seq=1 Destination Host Unreachable")
+    set_tests_properties(cli-routing-loop PROPERTIES PASS_REGULAR_EXPRESSION "From 10\\.12\\.0\\.2 icmp_seq=1 Time to live exceeded")
     # Wireshark's expert system checks the captures, and its dissection the
     # inspector's; skipped without tshark.
     find_program(TSHARK tshark)

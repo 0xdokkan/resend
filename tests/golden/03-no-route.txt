@@ -15,4 +15,4 @@
 
 ## events
 0.000 ms  [IPv4] Ping failed · no route  (failed, from 1 to - link - frame -)
-    The destination 10.0.0.1 is outside the local subnet. This prototype has no routers or gateways yet, so no ARP request is sent for the remote host.
+    The destination 10.0.0.1 is outside the local subnet and the PC has no default gateway, so the request has nowhere to go and no ARP request is sent. Give the PC a gateway: a router's address on its subnet.

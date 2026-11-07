@@ -1,6 +1,6 @@
 {
   "format": "resend-scenario",
-  "version": 1,
+  "version": 2,
   "title": "Office floor",
   "notes": "Six PCs on two switches. Start several pings at once and watch the switches fill their MAC tables. Printer-Room has its port disabled on the switch side.",
   "seed": 1,

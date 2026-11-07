@@ -1,6 +1,7 @@
 // Frames as bytes and pcap captures.
 
 #include "check.hpp"
+#include "routed_networks.hpp"
 #include "sim_support.hpp"
 #include "wire/wire.hpp"
 
@@ -31,6 +32,45 @@ Simulation sample_run() {
     ping(simulation, DeviceId{1}, ip("192.168.1.20"));
     drain(simulation);
     return simulation;
+}
+
+// Runs through routers, between them every ICMP error resend sends: Time
+// Exceeded from a routing loop, Destination Unreachable (network) from a
+// missing return route, (host) from a router whose ARP requests go
+// unanswered, and a traceroute.
+std::vector<Simulation> routed_runs() {
+    std::vector<Simulation> runs;
+    runs.emplace_back(routed::routing_loop());
+    ping(runs.back(), DeviceId{1}, ip("10.9.9.9"));
+    runs.emplace_back(routed::chain(false));
+    ping(runs.back(), DeviceId{1}, ip("10.2.0.20"));
+    runs.emplace_back(routed::two_lans());
+    CHECK(runs.back().apply(netsim::SetPowered{DeviceId{5}, false}) == Problem::None);
+    ping(runs.back(), DeviceId{1}, ip("10.2.0.20"), {.timeout = 5s});
+    runs.emplace_back(routed::longest_prefix());
+    ping(runs.back(), DeviceId{1}, ip("10.20.30.10"), {.count = 4, .traceroute = true});
+    for (auto& run : runs) drain(run);
+    return runs;
+}
+
+// The first frame of `kind` in a run.
+const netsim::EthernetFrame& first(const Simulation& run, netsim::PduKind kind) {
+    const auto& frames = run.trace().pdus();
+    const auto found = std::find_if(frames.begin(), frames.end(), [&](const auto& frame) { return netsim::kind_of(frame) == kind; });
+    CHECK(found != frames.end());
+    return *found;
+}
+
+// Puts back the IPv4 header checksum at `at` and the ICMP checksum after it.
+void fix_checksums(Bytes& bytes, std::size_t at, std::size_t length) {
+    bytes[at + 10] = bytes[at + 11] = 0;
+    auto sum = wire::checksum(std::span(bytes).subspan(at, 20));
+    bytes[at + 10] = static_cast<std::uint8_t>(sum >> 8);
+    bytes[at + 11] = static_cast<std::uint8_t>(sum);
+    bytes[at + 22] = bytes[at + 23] = 0;
+    sum = wire::checksum(std::span(bytes).subspan(at + 20, length - 20));
+    bytes[at + 22] = static_cast<std::uint8_t>(sum >> 8);
+    bytes[at + 23] = static_cast<std::uint8_t>(sum);
 }
 
 void checksums() {
@@ -79,6 +119,16 @@ void round_trips() {
             ++frames;
         }
     CHECK(frames > 20);
+    // ICMP errors carry the datagram they are about, quoted whole.
+    const auto routed = routed_runs();
+    int errors = 0;
+    for (const auto& run : routed)
+        for (const auto& frame : run.trace().pdus()) {
+            const auto back = wire::decode(wire::encode(frame));
+            CHECK(back.has_value() && *back == frame);
+            errors += netsim::is_icmp_error(netsim::kind_of(frame));
+        }
+    CHECK(errors >= 6);
     // Other data sizes too, odd ones included.
     auto frame = runs[0].trace().pdu(netsim::PduId{2});
     for (const std::uint16_t size : std::initializer_list<std::uint16_t>{0, 1, 17, 56, 1472}) {
@@ -114,6 +164,27 @@ void refused_bytes() {
     other[36] = static_cast<std::uint8_t>(sum >> 8);
     other[37] = static_cast<std::uint8_t>(sum);
     CHECK(!wire::decode(other));
+
+    // A Time Exceeded: 14 + 20 + 8 + the 84 bytes of the Echo Request.
+    const auto runs = routed_runs();
+    const auto error = wire::encode(first(runs[0], netsim::PduKind::TimeExceeded));
+    CHECK(error.size() == 14 + 20 + 8 + 84 && wire::decode(error));
+    const auto refused = [&](std::size_t at, std::uint8_t value) {
+        auto bytes = changed(error, at, value);
+        fix_checksums(bytes, 42, 84);  // the quoted datagram
+        fix_checksums(bytes, 14, 112);
+        return !wire::decode(bytes);
+    };
+    CHECK(!refused(14 + 1, 0));       // nothing changed: the checksums put back
+    CHECK(refused(38, 1));            // an unused byte not zero
+    CHECK(refused(42 + 2, 0x55));     // a quote shorter than its length says
+    CHECK(refused(42 + 9, 17));       // a quoted UDP datagram
+    CHECK(refused(42 + 20, 11));      // an error about an error
+    CHECK(!wire::decode(Bytes(error.begin(), error.end() - 1)));
+    auto quote_damaged = error;
+    quote_damaged[42 + 22] ^= 1;      // the quoted ICMP checksum no longer matches
+    fix_checksums(quote_damaged, 14, 112);
+    CHECK(!wire::decode(quote_damaged));
 }
 
 std::uint32_t le32(const std::string& bytes, std::size_t at) {
@@ -201,6 +272,36 @@ void dissection() {
     CHECK(echo[2].fields[2].meaning == "correct" && echo[3].fields[0].length == 56);
     CHECK(echo[3].fields[0].value.starts_with("00:01:02:03") && echo[3].fields[0].meaning == "56 bytes");
     CHECK(echo[0].fields.size() == 3);  // no padding
+
+    // A Time Exceeded: the error, then the quoted IPv4 header, ICMP header
+    // and data, each a layer of its own.
+    const auto runs = routed_runs();
+    for (const auto& routed_run : runs)
+        for (const auto& frame : routed_run.trace().pdus()) {
+            const auto bytes = wire::encode(frame);
+            std::vector<int> owners(bytes.size(), 0);
+            for (const auto& layer : wire::dissect(bytes))
+                for (const auto& field : layer.fields)
+                    if (field.name != "ip.hdr_len" && field.name != "ip.flags")
+                        for (std::size_t at = field.offset; at < field.offset + field.length; ++at) ++owners.at(at);
+            CHECK(std::all_of(owners.begin(), owners.end(), [](int count) { return count == 1; }));
+        }
+    const auto error = wire::dissect(wire::encode(first(runs[0], netsim::PduKind::TimeExceeded)));
+    CHECK(error.size() == 6 && error[2].name == "icmp" && error[3].name == "ip" && error[4].name == "icmp" && error[5].name == "data");
+    CHECK(error[1].fields[7].value == "64" && error[2].offset == 34 && error[2].length == 8 + 84);
+    CHECK((error[2].fields[0] == wire::Field{"Type", "icmp.type", 34, 1, "11", "Time-to-live exceeded"}));
+    CHECK((error[2].fields[1] == wire::Field{"Code", "icmp.code", 35, 1, "0", "Time to live exceeded in transit"}));
+    CHECK((error[2].fields[3] == wire::Field{"Unused", "icmp.unused", 38, 4, "00:00:00:00", ""}));
+    CHECK(error[3].label == "Internet Protocol Version 4, quoted" && error[3].offset == 42 && error[3].length == 20);
+    CHECK(error[3].fields[7].value == "1" && error[3].fields[11].value == "10.9.9.9");
+    CHECK(error[4].label == "Internet Control Message Protocol, quoted" && error[4].fields[0].meaning == "Echo (ping) request");
+    CHECK(error[5].fields[0].length == 56);
+    const auto unreachable = wire::dissect(wire::encode(first(runs[1], netsim::PduKind::Unreachable)));
+    CHECK((unreachable[2].fields[0] == wire::Field{"Type", "icmp.type", 34, 1, "3", "Destination unreachable"}));
+    CHECK((unreachable[2].fields[1] == wire::Field{"Code", "icmp.code", 35, 1, "0", "Network unreachable"}));
+    CHECK(unreachable[4].fields[0].meaning == "Echo (ping) reply");
+    const auto host = wire::dissect(wire::encode(first(runs[2], netsim::PduKind::Unreachable)));
+    CHECK(host[2].fields[1].value == "1" && host[2].fields[1].meaning == "Host unreachable");
 
     // A damaged checksum is not dissected, like anything decode() refuses.
     auto bytes = wire::encode(run.trace().pdu(netsim::PduId{2}));

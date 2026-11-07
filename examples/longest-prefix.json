@@ -1,0 +1,288 @@
+{
+  "format": "resend-scenario",
+  "version": 2,
+  "title": "Longest prefix match",
+  "notes": "Core has three routes that overlap: 10.0.0.0/8 to Wide, 10.20.0.0/16 to Middle and 10.20.30.0/24 to Narrow. Ping PC-8, PC-16 and PC-24 from PC-A, or trace the route to each: every address matches 10.0.0.0/8, and the longest prefix that matches decides.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "host",
+      "name": "PC-A",
+      "powered": true,
+      "x": 40,
+      "y": 260,
+      "gateway": "10.1.0.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:01",
+          "up": true,
+          "ipv4": "10.1.0.10/24"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "router",
+      "name": "Core",
+      "powered": true,
+      "x": 250,
+      "y": 260,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:02",
+          "up": true,
+          "ipv4": "10.1.0.1/24"
+        },
+        {
+          "mac": "02:21:00:00:00:02",
+          "up": true,
+          "ipv4": "172.16.1.1/30"
+        },
+        {
+          "mac": "02:22:00:00:00:02",
+          "up": true,
+          "ipv4": "172.16.2.1/30"
+        },
+        {
+          "mac": "02:23:00:00:00:02",
+          "up": true,
+          "ipv4": "172.16.3.1/30"
+        }
+      ],
+      "routes": [
+        {
+          "destination": "10.0.0.0/8",
+          "via": "172.16.1.2"
+        },
+        {
+          "destination": "10.20.0.0/16",
+          "via": "172.16.2.2"
+        },
+        {
+          "destination": "10.20.30.0/24",
+          "via": "172.16.3.2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "router",
+      "name": "Wide",
+      "powered": true,
+      "x": 470,
+      "y": 70,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:03",
+          "up": true,
+          "ipv4": "172.16.1.2/30"
+        },
+        {
+          "mac": "02:21:00:00:00:03",
+          "up": true,
+          "ipv4": "10.9.0.1/24"
+        }
+      ],
+      "routes": [
+        {
+          "destination": "0.0.0.0/0",
+          "via": "172.16.1.1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "router",
+      "name": "Middle",
+      "powered": true,
+      "x": 470,
+      "y": 260,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:04",
+          "up": true,
+          "ipv4": "172.16.2.2/30"
+        },
+        {
+          "mac": "02:21:00:00:00:04",
+          "up": true,
+          "ipv4": "10.20.9.1/24"
+        }
+      ],
+      "routes": [
+        {
+          "destination": "0.0.0.0/0",
+          "via": "172.16.2.1"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "router",
+      "name": "Narrow",
+      "powered": true,
+      "x": 470,
+      "y": 450,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:05",
+          "up": true,
+          "ipv4": "172.16.3.2/30"
+        },
+        {
+          "mac": "02:21:00:00:00:05",
+          "up": true,
+          "ipv4": "10.20.30.1/24"
+        }
+      ],
+      "routes": [
+        {
+          "destination": "0.0.0.0/0",
+          "via": "172.16.3.1"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "kind": "host",
+      "name": "PC-8",
+      "powered": true,
+      "x": 690,
+      "y": 70,
+      "gateway": "10.9.0.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:06",
+          "up": true,
+          "ipv4": "10.9.0.10/24"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "kind": "host",
+      "name": "PC-16",
+      "powered": true,
+      "x": 690,
+      "y": 260,
+      "gateway": "10.20.9.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:07",
+          "up": true,
+          "ipv4": "10.20.9.10/24"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "kind": "host",
+      "name": "PC-24",
+      "powered": true,
+      "x": 690,
+      "y": 450,
+      "gateway": "10.20.30.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:08",
+          "up": true,
+          "ipv4": "10.20.30.10/24"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 1,
+        "port": 1
+      },
+      "b": {
+        "device": 2,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 2,
+        "port": 2
+      },
+      "b": {
+        "device": 3,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 3,
+      "a": {
+        "device": 2,
+        "port": 3
+      },
+      "b": {
+        "device": 4,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 4,
+      "a": {
+        "device": 2,
+        "port": 4
+      },
+      "b": {
+        "device": 5,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 5,
+      "a": {
+        "device": 3,
+        "port": 2
+      },
+      "b": {
+        "device": 6,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 6,
+      "a": {
+        "device": 4,
+        "port": 2
+      },
+      "b": {
+        "device": 7,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 7,
+      "a": {
+        "device": 5,
+        "port": 2
+      },
+      "b": {
+        "device": 8,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    }
+  ]
+}

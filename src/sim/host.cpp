@@ -7,8 +7,9 @@
 namespace netsim {
 namespace {
 
-// A host with one interface: Ethernet, ARP, IPv4 limited to its own subnet,
-// the ICMP echo responder (RFC 792) and the ping command.
+// A host with one interface: Ethernet, ARP, IPv4 with a default gateway for
+// the other subnets (RFC 1122 §3.3.1), the ICMP echo responder (RFC 792)
+// and the ping and traceroute commands.
 class Host final : public Node {
 public:
     void receive(Context& context, const Arrival& arrival) override {
@@ -55,13 +56,19 @@ private:
             if (!pings_.reply(context, arrival, packet.src, message)) context.note(arrival, TraceKind::FrameDropped, Reason::UnmatchedReply);
             return;
         }
+        if (icmp::is_error(message.type)) {
+            if (!pings_.error(context, arrival, packet)) context.note(arrival, TraceKind::FrameDropped, Reason::UnmatchedError);
+            return;
+        }
         if (message.type != icmp::echo_request) return;
-        if (!self.contains(packet.src)) {
-            context.note(arrival, TraceKind::FrameDropped, Reason::NoRoute);
+        Reason reason{};
+        const auto hop = next_hop(context, packet.src, reason);
+        if (!hop) {
+            context.note(arrival, TraceKind::FrameDropped, reason);
             return;
         }
         const IcmpMessage reply{icmp::echo_reply, 0, message.identifier, message.sequence, message.data_size};
-        route(context, {Ipv4Packet{self.address(), packet.src, default_ttl, ip_protocol::icmp, 0, reply}, std::nullopt});
+        route(context, {Ipv4Packet{self.address(), packet.src, default_ttl, ip_protocol::icmp, 0, reply}, std::nullopt}, *hop);
     }
 
     void send_request(Context& context, PingId id) {
@@ -69,18 +76,30 @@ private:
         auto outgoing = pings_.request(context, id, self.address());
         const auto sequence = outgoing.packet.icmp.sequence;
         const auto destination = outgoing.packet.dst;
+        Reason reason{};
         if (destination == self.address()) {
             context.echo_replied(id, sequence, nullptr);
-        } else if (!self.contains(destination)) {
-            context.echo_lost(id, sequence, Reason::NoRoute);
+        } else if (const auto hop = next_hop(context, destination, reason)) {
+            route(context, std::move(outgoing), *hop);
         } else {
-            route(context, std::move(outgoing));
+            context.echo_lost(id, sequence, reason);
         }
     }
 
-    // Sends a datagram to a host of the subnet, resolving it first if needed.
-    void route(Context& context, Outgoing outgoing) {
-        const auto next_hop = outgoing.packet.dst;
+    // Where a datagram for `destination` goes first (RFC 1122 §3.3.1.1):
+    // straight to it on the local subnet, otherwise to the default gateway,
+    // which has to be another address of the subnet.
+    std::optional<Ipv4Address> next_hop(const Context& context, Ipv4Address destination, Reason& reason) const {
+        const auto self = nic_.address(context);
+        if (self.contains(destination)) return destination;
+        const auto& gateway = context.config().gateway;
+        if (gateway && self.contains(*gateway) && *gateway != self.address()) return *gateway;
+        reason = gateway ? Reason::GatewayOffLink : Reason::NoRoute;
+        return std::nullopt;
+    }
+
+    // Sends a datagram to its next hop, resolving it first if needed.
+    void route(Context& context, Outgoing outgoing, Ipv4Address next_hop) {
         if (const auto mac = arp_.lookup(context, nic_, next_hop)) leave(context, std::move(outgoing), *mac);
         else if (const auto dropped = arp_.resolve(context, nic_, next_hop, std::move(outgoing))) discard(context, *dropped, Reason::ArpQueueFull);
     }

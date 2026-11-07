@@ -59,6 +59,81 @@ private:
     bool ok_ = true;
 };
 
+// The length of an IPv4 datagram carrying ICMP, in bytes.
+std::size_t ipv4_size(const Ipv4Packet& packet) {
+    const auto& message = packet.icmp;
+    return ipv4_header + icmp_header + (message.original ? ipv4_size(unquote(*message.original)) : message.data_size);
+}
+
+// An IPv4 datagram: the header with its checksum, then the ICMP message
+// with its checksum. An error's 4 unused bytes are its zero identifier and
+// sequence, and the datagram it quotes follows them.
+void put_ipv4(std::vector<std::uint8_t>& out, const Ipv4Packet& packet) {
+    const auto& message = packet.icmp;
+    const auto start = out.size();
+    out.push_back(0x45);  // version 4, 5 words of header
+    out.push_back(0);     // DSCP and ECN
+    put16(out, static_cast<std::uint16_t>(ipv4_size(packet)));
+    put16(out, packet.identification);
+    put16(out, 0);        // no flags, no fragment offset
+    out.push_back(packet.ttl);
+    out.push_back(packet.protocol);
+    put16(out, 0);        // checksum, below
+    put32(out, packet.src.bits());
+    put32(out, packet.dst.bits());
+    store16(out, start + 10, checksum(std::span(out).subspan(start, ipv4_header)));
+
+    const auto icmp_start = out.size();
+    out.push_back(message.type);
+    out.push_back(message.code);
+    put16(out, 0);  // checksum, below
+    put16(out, message.identifier);
+    put16(out, message.sequence);
+    if (message.original) put_ipv4(out, unquote(*message.original));
+    else for (std::size_t i = 0; i < message.data_size; ++i) out.push_back(static_cast<std::uint8_t>(i));
+    store16(out, icmp_start + 2, checksum(std::span(out).subspan(icmp_start)));
+}
+
+// The IPv4 datagram at the start of `bytes`, which may be followed by
+// padding; a quoted one fills `bytes` exactly. Nothing for what put_ipv4()
+// would not write: options, fragments, a wrong checksum, another protocol,
+// other data, an error quoting part of a datagram or another error.
+std::optional<Ipv4Packet> read_ipv4(std::span<const std::uint8_t> bytes, bool quoted) {
+    Reader read(bytes);
+    if (read.u8() != 0x45 || read.u8() != 0) return std::nullopt;
+    const auto total = read.u16();
+    Ipv4Packet packet;
+    packet.identification = read.u16();
+    if (read.u16() != 0) return std::nullopt;
+    packet.ttl = read.u8();
+    packet.protocol = read.u8();
+    read.u16();
+    packet.src = Ipv4Address(read.u32());
+    packet.dst = Ipv4Address(read.u32());
+    if (!read.ok() || total < ipv4_header + icmp_header || total > bytes.size() || (quoted && total != bytes.size()) ||
+        packet.protocol != ip_protocol::icmp || checksum(bytes.subspan(0, ipv4_header)) != 0 ||
+        checksum(bytes.subspan(ipv4_header, total - ipv4_header)) != 0)
+        return std::nullopt;
+    auto& message = packet.icmp;
+    message.type = read.u8();
+    message.code = read.u8();
+    read.u16();
+    message.identifier = read.u16();
+    message.sequence = read.u16();
+    const auto rest = static_cast<std::size_t>(total - ipv4_header - icmp_header);
+    if (icmp::is_error(message.type)) {
+        if (quoted || message.identifier != 0 || message.sequence != 0) return std::nullopt;
+        const auto original = read_ipv4(bytes.subspan(ipv4_header + icmp_header, rest), true);
+        if (!original || icmp::is_error(original->icmp.type)) return std::nullopt;
+        message.original = quote(*original);
+        return packet;
+    }
+    message.data_size = static_cast<std::uint16_t>(rest);
+    for (std::size_t i = 0; i < message.data_size; ++i)
+        if (read.u8() != static_cast<std::uint8_t>(i)) return std::nullopt;
+    return read.ok() ? std::optional(packet) : std::nullopt;
+}
+
 void put_le32(std::ostream& out, std::uint32_t value) {
     const std::array<char, 4> bytes{static_cast<char>(value), static_cast<char>(value >> 8), static_cast<char>(value >> 16),
                                     static_cast<char>(value >> 24)};
@@ -97,29 +172,7 @@ std::vector<std::uint8_t> encode(const EthernetFrame& frame) {
         put(out, arp->target_mac);
         put32(out, arp->target_ip.bits());
     } else {
-        const auto& packet = *frame.ipv4();
-        const auto& message = packet.icmp;
-        const auto start = out.size();
-        out.push_back(0x45);  // version 4, 5 words of header
-        out.push_back(0);     // DSCP and ECN
-        put16(out, static_cast<std::uint16_t>(ipv4_header + icmp_header + message.data_size));
-        put16(out, packet.identification);
-        put16(out, 0);        // no flags, no fragment offset
-        out.push_back(packet.ttl);
-        out.push_back(packet.protocol);
-        put16(out, 0);        // checksum, below
-        put32(out, packet.src.bits());
-        put32(out, packet.dst.bits());
-        store16(out, start + 10, checksum(std::span(out).subspan(start, ipv4_header)));
-
-        const auto icmp_start = out.size();
-        out.push_back(message.type);
-        out.push_back(message.code);
-        put16(out, 0);  // checksum, below
-        put16(out, message.identifier);
-        put16(out, message.sequence);
-        for (std::size_t i = 0; i < message.data_size; ++i) out.push_back(static_cast<std::uint8_t>(i));
-        store16(out, icmp_start + 2, checksum(std::span(out).subspan(icmp_start)));
+        put_ipv4(out, *frame.ipv4());
     }
     if (out.size() < min_frame_size) out.resize(min_frame_size, 0);
     return out;
@@ -146,32 +199,10 @@ std::optional<EthernetFrame> decode(std::span<const std::uint8_t> bytes) {
         return read.ok() ? std::optional(frame) : std::nullopt;
     }
     if (type != ethertype::ipv4) return std::nullopt;
-
-    constexpr auto start = ethernet_header;
-    if (read.u8() != 0x45 || read.u8() != 0) return std::nullopt;
-    const auto total = read.u16();
-    Ipv4Packet packet;
-    packet.identification = read.u16();
-    if (read.u16() != 0) return std::nullopt;
-    packet.ttl = read.u8();
-    packet.protocol = read.u8();
-    read.u16();
-    packet.src = Ipv4Address(read.u32());
-    packet.dst = Ipv4Address(read.u32());
-    if (!read.ok() || total < ipv4_header + icmp_header || start + total > bytes.size() || packet.protocol != ip_protocol::icmp ||
-        checksum(bytes.subspan(start, ipv4_header)) != 0 || checksum(bytes.subspan(start + ipv4_header, total - ipv4_header)) != 0)
-        return std::nullopt;
-    auto& message = packet.icmp;
-    message.type = read.u8();
-    message.code = read.u8();
-    read.u16();
-    message.identifier = read.u16();
-    message.sequence = read.u16();
-    message.data_size = static_cast<std::uint16_t>(total - ipv4_header - icmp_header);
-    for (std::size_t i = 0; i < message.data_size; ++i)
-        if (read.u8() != static_cast<std::uint8_t>(i)) return std::nullopt;
-    frame.payload = packet;
-    return read.ok() ? std::optional(frame) : std::nullopt;
+    const auto packet = read_ipv4(bytes.subspan(ethernet_header), false);
+    if (!packet) return std::nullopt;
+    frame.payload = *packet;
+    return frame;
 }
 
 namespace {
@@ -203,6 +234,71 @@ Ipv4Address ipv4_at(std::span<const std::uint8_t> bytes, std::size_t at) {
     return Ipv4Address(static_cast<std::uint32_t>(read16(bytes, at)) << 16 | read16(bytes, at + 2));
 }
 std::string checked(std::span<const std::uint8_t> bytes) { return checksum(bytes) == 0 ? tr("correct") : tr("incorrect"); }
+
+std::string icmp_type_text(std::uint8_t type) {
+    switch (type) {
+    case icmp::echo_request: return tr("Echo (ping) request");
+    case icmp::echo_reply: return tr("Echo (ping) reply");
+    case icmp::time_exceeded: return tr("Time-to-live exceeded");
+    case icmp::destination_unreachable: return tr("Destination unreachable");
+    default: return {};
+    }
+}
+
+std::string icmp_code_text(std::uint8_t type, std::uint8_t code) {
+    if (type == icmp::time_exceeded && code == icmp::ttl_exceeded) return tr("Time to live exceeded in transit");
+    if (type == icmp::destination_unreachable && code == icmp::net_unreachable) return tr("Network unreachable");
+    if (type == icmp::destination_unreachable && code == icmp::host_unreachable) return tr("Host unreachable");
+    return {};
+}
+
+// The layers of the IPv4 datagram at `at`, and the offset after it: its
+// header, its ICMP message and the Echo data, or for an error the datagram
+// it quotes, whose layers are marked as quoted.
+std::size_t dissect_ipv4(std::span<const std::uint8_t> bytes, std::size_t at, const Ipv4Packet& packet, bool quoted,
+                         std::vector<Layer>& layers) {
+    const auto icmp_at = at + ipv4_header;
+    const auto total = read16(bytes, at + 2);
+    const auto label = [&](std::string name) { return quoted ? tr("{0}, quoted", {name}) : name; };
+    layers.push_back({label("Internet Protocol Version 4"), "ip", at, ipv4_header, {
+        {tr("Version"), "ip.version", at, 1, std::to_string(bytes[at] >> 4)},
+        {tr("Header length"), "ip.hdr_len", at, 1, std::to_string((bytes[at] & 0xfU) * 4), tr("bytes")},
+        {tr("Differentiated services"), "ip.dsfield", at + 1, 1, hex(bytes[at + 1], 2)},
+        {tr("Total length"), "ip.len", at + 2, 2, std::to_string(total), tr("bytes")},
+        {tr("Identification"), "ip.id", at + 4, 2, hex(read16(bytes, at + 4), 4)},
+        {tr("Flags"), "ip.flags", at + 6, 1, hex(static_cast<unsigned>(bytes[at + 6] >> 5) << 5, 2), tr("none")},
+        {tr("Fragment offset"), "ip.frag_offset", at + 6, 2, std::to_string(read16(bytes, at + 6) & 0x1fffU)},
+        {tr("Time to live"), "ip.ttl", at + 8, 1, std::to_string(packet.ttl), tr("hops left")},
+        {tr("Protocol"), "ip.proto", at + 9, 1, std::to_string(packet.protocol), "ICMP"},
+        {tr("Header checksum"), "ip.checksum", at + 10, 2, hex(read16(bytes, at + 10), 4), checked(bytes.subspan(at, ipv4_header))},
+        {tr("Source address"), "ip.src", at + 12, 4, packet.src.to_string()},
+        {tr("Destination address"), "ip.dst", at + 16, 4, packet.dst.to_string()},
+    }});
+    const auto& message = packet.icmp;
+    const std::size_t icmp_length = total - ipv4_header;
+    Layer icmp_layer{label("Internet Control Message Protocol"), "icmp", icmp_at, icmp_length, {
+        {tr("Type"), "icmp.type", icmp_at, 1, std::to_string(message.type), icmp_type_text(message.type)},
+        {tr("Code"), "icmp.code", icmp_at + 1, 1, std::to_string(message.code), icmp_code_text(message.type, message.code)},
+        {tr("Checksum"), "icmp.checksum", icmp_at + 2, 2, hex(read16(bytes, icmp_at + 2), 4), checked(bytes.subspan(icmp_at, icmp_length))},
+    }};
+    auto end = icmp_at + icmp_header;
+    if (message.original) {
+        icmp_layer.fields.push_back({tr("Unused"), "icmp.unused", icmp_at + 4, 4, colon_bytes(bytes.subspan(icmp_at + 4, 4))});
+        layers.push_back(std::move(icmp_layer));
+        return dissect_ipv4(bytes, end, unquote(*message.original), true, layers);
+    }
+    icmp_layer.fields.push_back({tr("Identifier"), "icmp.ident", icmp_at + 4, 2, std::to_string(message.identifier)});
+    icmp_layer.fields.push_back({tr("Sequence number"), "icmp.seq", icmp_at + 6, 2, std::to_string(message.sequence)});
+    layers.push_back(std::move(icmp_layer));
+    if (message.data_size > 0) {
+        const auto data = bytes.subspan(end, message.data_size);
+        layers.push_back({label("Data"), "data", end, message.data_size, {
+            {tr("Data"), "data.data", end, message.data_size, colon_bytes(data), tr("{0} bytes", {std::to_string(message.data_size)})},
+        }});
+        end += message.data_size;
+    }
+    return end;
+}
 } // namespace
 
 std::vector<Layer> dissect(std::span<const std::uint8_t> bytes) {
@@ -239,44 +335,8 @@ std::vector<Layer> dissect(std::span<const std::uint8_t> bytes) {
         }});
         end = at + 28;
     } else {
-        const auto& packet = *frame->ipv4();
-        constexpr std::size_t at = ethernet_header, icmp_at = ethernet_header + ipv4_header;
-        const auto total = read16(bytes, at + 2);
         layers.push_back(std::move(ethernet));
-        layers.push_back({"Internet Protocol Version 4", "ip", at, ipv4_header, {
-            {tr("Version"), "ip.version", at, 1, std::to_string(bytes[at] >> 4)},
-            {tr("Header length"), "ip.hdr_len", at, 1, std::to_string((bytes[at] & 0xfU) * 4), tr("bytes")},
-            {tr("Differentiated services"), "ip.dsfield", at + 1, 1, hex(bytes[at + 1], 2)},
-            {tr("Total length"), "ip.len", at + 2, 2, std::to_string(total), tr("bytes")},
-            {tr("Identification"), "ip.id", at + 4, 2, hex(read16(bytes, at + 4), 4)},
-            {tr("Flags"), "ip.flags", at + 6, 1, hex(static_cast<unsigned>(bytes[at + 6] >> 5) << 5, 2), tr("none")},
-            {tr("Fragment offset"), "ip.frag_offset", at + 6, 2, std::to_string(read16(bytes, at + 6) & 0x1fffU)},
-            {tr("Time to live"), "ip.ttl", at + 8, 1, std::to_string(packet.ttl), tr("hops left")},
-            {tr("Protocol"), "ip.proto", at + 9, 1, std::to_string(packet.protocol), "ICMP"},
-            {tr("Header checksum"), "ip.checksum", at + 10, 2, hex(read16(bytes, at + 10), 4), checked(bytes.subspan(at, ipv4_header))},
-            {tr("Source address"), "ip.src", at + 12, 4, packet.src.to_string()},
-            {tr("Destination address"), "ip.dst", at + 16, 4, packet.dst.to_string()},
-        }});
-        const auto& message = packet.icmp;
-        const std::size_t icmp_length = total - ipv4_header;
-        const auto kind = message.type == icmp::echo_request ? tr("Echo (ping) request")
-            : message.type == icmp::echo_reply ? tr("Echo (ping) reply") : std::string();
-        layers.push_back({"Internet Control Message Protocol", "icmp", icmp_at, icmp_header, {
-            {tr("Type"), "icmp.type", icmp_at, 1, std::to_string(message.type), kind},
-            {tr("Code"), "icmp.code", icmp_at + 1, 1, std::to_string(message.code)},
-            {tr("Checksum"), "icmp.checksum", icmp_at + 2, 2, hex(read16(bytes, icmp_at + 2), 4), checked(bytes.subspan(icmp_at, icmp_length))},
-            {tr("Identifier"), "icmp.ident", icmp_at + 4, 2, std::to_string(message.identifier)},
-            {tr("Sequence number"), "icmp.seq", icmp_at + 6, 2, std::to_string(message.sequence)},
-        }});
-        end = icmp_at + icmp_header;
-        if (message.data_size > 0) {
-            const auto data = bytes.subspan(end, message.data_size);
-            layers.back().length += message.data_size;
-            layers.push_back({"Data", "data", end, message.data_size, {
-                {tr("Data"), "data.data", end, message.data_size, colon_bytes(data), tr("{0} bytes", {std::to_string(message.data_size)})},
-            }});
-            end += message.data_size;
-        }
+        end = dissect_ipv4(bytes, ethernet_header, *frame->ipv4(), false, layers);
     }
     if (end < bytes.size()) {
         layers.front().fields.push_back({tr("Padding"), "eth.padding", end, bytes.size() - end, colon_bytes(bytes.subspan(end))});

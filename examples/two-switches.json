@@ -1,6 +1,6 @@
 {
   "format": "resend-scenario",
-  "version": 1,
+  "version": 2,
   "title": "Two switches",
   "notes": "PC-A reaches PC-B across two switches joined by a short cable. Each switch learns PC-A's MAC from the broadcast ARP request, so the reply is forwarded, never flooded. PC-C only sees the broadcast.",
   "seed": 1,

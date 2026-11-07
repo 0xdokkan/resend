@@ -19,7 +19,7 @@ namespace netsim {
 // configuration, the cables, and where the cards sit on the canvas.
 // The simulation is built from a scenario and never changes it.
 
-enum class DeviceKind : std::uint8_t { Host, Switch };
+enum class DeviceKind : std::uint8_t { Host, Switch, Router };
 
 struct PortRef {
     DeviceId device{};
@@ -30,8 +30,20 @@ struct PortRef {
 struct PortConfig {
     MacAddress mac;
     bool admin_up = true;
-    std::optional<Ipv4Prefix> ipv4;  // hosts: the interface address
+    // The interface address: required on hosts, optional on routers, where a
+    // port without one takes no part in IPv4.
+    std::optional<Ipv4Prefix> ipv4;
     bool operator==(const PortConfig&) const = default;
+};
+
+// A static route of a router: datagrams for `destination` go to
+// `next_hop`. 0.0.0.0/0 is the default route. The route is used only while
+// the next hop is on the subnet of one of the router's interfaces, as a
+// router installs a static route only when it can reach its next hop.
+struct Route {
+    Ipv4Prefix destination;  // a network: no host bits set
+    Ipv4Address next_hop;
+    bool operator==(const Route&) const = default;
 };
 
 // How long a switch keeps a MAC address it has not seen again: IEEE 802.1Q's
@@ -48,6 +60,9 @@ struct DeviceConfig {
     std::vector<PortConfig> ports;
     int x = 0, y = 0;  // top-left corner of the card, in canvas units
     SimTime mac_ageing = default_mac_ageing;  // switches only
+    // Hosts only: where datagrams for other subnets go (RFC 1122 §3.3.1).
+    std::optional<Ipv4Address> gateway{};
+    std::vector<Route> routes{};  // routers only, in the order configured
     bool operator==(const DeviceConfig&) const = default;
 };
 
@@ -82,17 +97,30 @@ struct Scenario {
 
 constexpr int host_ports = 1;
 constexpr int switch_ports = 8;
+// A router has 2 to 8 ports; a new one has 4.
+constexpr int min_router_ports = 2;
+constexpr int max_router_ports = 8;
+constexpr int router_ports = 4;
+constexpr std::size_t max_routes = 32;
 constexpr std::size_t max_devices = 100;
 constexpr SimTime min_delay = std::chrono::microseconds(1);
 constexpr SimTime max_delay = std::chrono::seconds(10);
 // Card positions, as in scenario files.
 constexpr int max_coordinate = 1'000'000;
 
+// The ports a new device has.
 int port_count(DeviceKind kind);
+bool valid_port_count(DeviceKind kind, std::size_t count);
 // The MAC a port gets by default: 02:00:<id> for host ports, so hosts keep
-// the addresses of the prototype, and 02:1p:<id> for switch port p.
+// the addresses of the prototype, 02:1p:<id> for switch port p and
+// 02:2p:<id> for router port p.
 MacAddress default_mac(DeviceKind kind, DeviceId id, int port);
 std::vector<PortConfig> default_ports(DeviceKind kind, DeviceId id);
+// A host's default gateway, or nullopt if it is not a unicast address.
+Problem check_gateway(const std::optional<Ipv4Address>& gateway);
+// A router's routes: each a network with a unicast next hop, no two to the
+// same network, at most max_routes.
+Problem check_routes(const std::vector<Route>& routes);
 // 1 to 48 characters with at least one visible one, no control characters.
 bool valid_name(std::string_view name);
 

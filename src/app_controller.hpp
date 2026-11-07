@@ -15,6 +15,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace resend {
@@ -58,6 +59,8 @@ public:
     void advance_playback(std::chrono::nanoseconds elapsed);
     // Shows a simulated instant at once, paused, earlier or later than now.
     void seek(netsim::SimTime time);
+    // Selects the device with this name. False if there is none.
+    bool select_device(std::string_view name);
     // Offers back a network an earlier session left unsaved. True if it asked.
     bool offer_recovery();
     // Writes the autosave file if the network has unsaved changes; the
@@ -112,6 +115,11 @@ private:
     void refresh_tables();
     void apply_device();
     void apply_cable();
+    void set_port_count(int count);
+    void add_route();
+    void remove_route(int index);
+    // The selected device, if a device is selected.
+    const netsim::DeviceConfig* selected_device() const;
     bool change(const std::vector<netsim::Edit>& edits, const std::string& label);
 
     // Files, dialogs, examples, settings (app_documents.cpp).
@@ -154,7 +162,9 @@ private:
     std::shared_ptr<slint::VectorModel<FieldRow>> fields_;
     std::shared_ptr<slint::VectorModel<HexRow>> hex_;
     std::shared_ptr<slint::VectorModel<PortView>> ports_;
+    std::shared_ptr<slint::VectorModel<RouteView>> routes_;
     std::shared_ptr<slint::VectorModel<std::shared_ptr<slint::Model<slint::StandardListViewItem>>>> table_;
+    std::shared_ptr<slint::VectorModel<std::shared_ptr<slint::Model<slint::StandardListViewItem>>>> routing_;
     slint::Timer frame_timer_;
     slint::Timer autosave_timer_;
     std::chrono::steady_clock::time_point last_frame_;
@@ -167,6 +177,8 @@ private:
     std::vector<std::size_t> shown_events_;  // event indexes, as listed
     std::size_t listed_ = 0;                 // events the filter has seen
     std::vector<std::vector<std::string>> shown_table_;
+    // A router's port addresses as typed and not yet applied, by port.
+    std::vector<std::optional<std::string>> typed_addresses_;
     int selected_event_ = -1;
     int selected_pdu_ = -1;
     bool follow_events_ = true;

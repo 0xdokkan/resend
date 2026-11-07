@@ -119,16 +119,16 @@ After A, a public **0.1.1 preview** can collect early feedback.
 
 **Outcome:** several subnets, and the classic routing mistakes become visible.
 
-- [ ] **R1.** Router with 2–8 interfaces; hosts with a default gateway ARP for the gateway when the destination is off-link (RFC 1122 §3.3.1); the router decrements the TTL (RFC 1812 §5.3.1).
-- [ ] **R2.** Connected, static and default routes; longest prefix match with overlapping /8, /16 and /24 (RFC 1812 §5.2.4.3, RFC 4632).
-- [ ] **R3.** ICMP Time Exceeded (11/0) and Destination Unreachable for network (3/0) and host (3/1); no ICMP error about an ICMP error or a broadcast (RFC 792, RFC 1812 §4.3, RFC 1122 §3.2.2).
-- [ ] **R4.** Traceroute over ICMP; a routing loop ends when the TTL runs out.
-- [ ] Routing table and router configuration in the interface; router scenarios among the examples.
+- [x] **R1.** Router with 2–8 interfaces; hosts with a default gateway ARP for the gateway when the destination is off-link (RFC 1122 §3.3.1); the router decrements the TTL (RFC 1812 §5.3.1). Scenario format version 2 (`gateway`, router `ports` and `routes`), with edits for the gateway, the port count and the routes.
+- [x] **R2.** Connected, static and default routes; longest prefix match with overlapping /8, /16 and /24 (RFC 1812 §5.2.4.3, RFC 4632). A static route whose next hop is on none of the router's networks, or is one of its addresses, or that repeats a connected network, is kept but not used, and says why.
+- [x] **R3.** ICMP Time Exceeded (11/0) and Destination Unreachable for network (3/0) and host (3/1); no ICMP error about an ICMP error or a broadcast (RFC 792, RFC 1812 §4.3, RFC 1122 §3.2.2). Errors quote the whole datagram, as Linux does; the ping that caused one ends with it, and the frame view and pcap files show the quoted datagram.
+- [x] **R4.** Traceroute over ICMP; a routing loop ends when the TTL runs out. One probe per hop, as `traceroute -I -q 1`, in the engine, the CLI (`--traceroute`, `--max-hops`) and the app.
+- [x] Routing table and router configuration in the interface; router scenarios among the examples. The router inspector edits the address of each port, the number of ports and the static routes, and shows the routing table, with the routes not used and why, and the ARP cache by port; hosts gain the default gateway; the run bar has a traceroute switch.
 
 **Exit checks**
 
-- [ ] Scenarios: two LANs and a router, wrong gateway, missing return route, routing loop, longest prefix.
-- [ ] Comparison with Linux: a script builds the same topologies with network namespaces and captures with tcpdump; the sequence of packet types (ARP operation, ICMP type and code, TTL) matches the simulator's. Timing may differ.
+- [x] Scenarios: two LANs and a router, wrong gateway, missing return route, routing loop, longest prefix. (Examples and regression cases 24–30; `tests/routing_tests.cpp`, with 200 random routed networks checked for frame conservation and against a constant trace hash.)
+- [x] Comparison with Linux: a script builds the same topologies with network namespaces and captures with tcpdump; the sequence of packet types (ARP operation, ICMP type and code, TTL) matches the simulator's. Timing may differ. (`scripts/compare-linux.py`: 16 cases over the five examples, cable by cable, also comparing MAC and IPv4 addresses and the datagram each error quotes; run in the Linux CI job.)
 
 ## M6 — Distribution → 1.0 (35–55 h)
 

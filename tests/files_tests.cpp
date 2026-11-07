@@ -101,7 +101,7 @@ void saving_and_opening() {
 void built_in_examples() {
     // The app's examples are the files of examples/, each a valid network.
     const auto list = resend::examples();
-    CHECK(list.size() == 6 && list.front().file == "sample-lan.json");
+    CHECK(list.size() == 11 && list.front().file == "sample-lan.json" && list.back().file == "longest-prefix.json");
     int files = 0;
     for (const auto& item : fs::directory_iterator(RESEND_EXAMPLES_DIR)) files += item.path().extension() == ".json";
     CHECK(static_cast<int>(list.size()) == files);

@@ -86,25 +86,25 @@ frame 3 link 2  Switch-01 port 2 > Narrow subnet port 1  1050.000 ms .. 1060.000
     MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
 50.000 ms  [ICMP] Wide subnet → Switch-01 · Echo Request  (ok, from 1 to 3 link 1 frame 2)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.2.20
+    IPv4: 192.168.1.10 → 192.168.2.20, TTL 64
     Echo Request; ingress port 1.
     Unicast on port 2.
 60.000 ms  [ICMP] Switch-01 → Narrow subnet · Echo Request  (failed, from 3 to 2 link 2 frame 2)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.2.20
+    IPv4: 192.168.1.10 → 192.168.2.20, TTL 64
     Echo Request; ingress port 1.
-    Echo received, but there is no return route: the source is outside the local subnet. Routers and gateways are not implemented yet.
+    Echo received, but there is no return route: the source is outside the local subnet and the PC has no default gateway.
 1040.000 ms  [ICMP] Ping failed · reply timed out  (failed, from 1 to - link - frame -)
     The MAC is known but no Echo Reply arrived. Check the subnet and the return path too, and whether the cached MAC still belongs to that address.
 1050.000 ms  [ICMP] Wide subnet → Switch-01 · Echo Request  (ok, from 1 to 3 link 1 frame 3)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.2.20
+    IPv4: 192.168.1.10 → 192.168.2.20, TTL 64
     Echo Request; ingress port 1.
     Unicast on port 2.
 1060.000 ms  [ICMP] Switch-01 → Narrow subnet · Echo Request  (failed, from 3 to 2 link 2 frame 3)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.2.20
+    IPv4: 192.168.1.10 → 192.168.2.20, TTL 64
     Echo Request; ingress port 1.
-    Echo received, but there is no return route: the source is outside the local subnet. Routers and gateways are not implemented yet.
+    Echo received, but there is no return route: the source is outside the local subnet and the PC has no default gateway.
 2040.000 ms  [ICMP] Ping failed · reply timed out  (failed, from 1 to - link - frame -)
     The MAC is known but no Echo Reply arrived. Check the subnet and the return path too, and whether the cached MAC still belongs to that address.

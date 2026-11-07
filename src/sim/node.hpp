@@ -54,13 +54,16 @@ public:
     EchoStatus& next_echo(PingId id);
     void echo_replied(PingId id, std::uint16_t sequence, const Arrival* arrival);
     void echo_lost(PingId id, std::uint16_t sequence, Reason reason, std::optional<PduId> request = std::nullopt);
+    // An ICMP error about a request arrived from `from`: the request is lost
+    // for `reason` at once.
+    void echo_error(PingId id, std::uint16_t sequence, Reason reason, const Arrival& arrival, Ipv4Address from);
     // Ends a ping at once: its waiting requests are lost for `reason`.
     void abort_ping(PingId id, Reason reason);
 
 private:
-    void lose(PingId id, std::uint16_t sequence, Reason reason, std::optional<PduId> request);
+    EchoStatus& lose(PingId id, std::uint16_t sequence, Reason reason, std::optional<PduId> request);
     // Ends the ping once every request has an outcome, or at once when it
-    // is aborted.
+    // is aborted. A traceroute that goes on sends its next request.
     void settle(PingId id, std::optional<Reason> abort);
 
     Simulation& simulation_;
@@ -78,5 +81,6 @@ public:
 
 std::unique_ptr<Node> make_host();
 std::unique_ptr<Node> make_switch();
+std::unique_ptr<Node> make_router();
 
 } // namespace netsim

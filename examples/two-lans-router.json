@@ -1,0 +1,134 @@
+{
+  "format": "resend-scenario",
+  "version": 2,
+  "title": "Two LANs and a router",
+  "notes": "PC-A and PC-B are on different subnets, joined by a router. Ping PC-B from PC-A: PC-A asks for its gateway's MAC address, not PC-B's; the router takes the datagram off one LAN, lowers its TTL and puts it on the other. Then try a traceroute.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "host",
+      "name": "PC-A",
+      "powered": true,
+      "x": 80,
+      "y": 90,
+      "gateway": "10.1.0.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:01",
+          "up": true,
+          "ipv4": "10.1.0.10/24"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "switch",
+      "name": "Switch-1",
+      "powered": true,
+      "x": 80,
+      "y": 300,
+      "ageing": "300s"
+    },
+    {
+      "id": 3,
+      "kind": "router",
+      "name": "Router",
+      "powered": true,
+      "x": 330,
+      "y": 300,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:03",
+          "up": true,
+          "ipv4": "10.1.0.1/24"
+        },
+        {
+          "mac": "02:21:00:00:00:03",
+          "up": true,
+          "ipv4": "10.2.0.1/24"
+        }
+      ],
+      "routes": []
+    },
+    {
+      "id": 4,
+      "kind": "switch",
+      "name": "Switch-2",
+      "powered": true,
+      "x": 580,
+      "y": 300,
+      "ageing": "300s"
+    },
+    {
+      "id": 5,
+      "kind": "host",
+      "name": "PC-B",
+      "powered": true,
+      "x": 580,
+      "y": 90,
+      "gateway": "10.2.0.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:05",
+          "up": true,
+          "ipv4": "10.2.0.20/24"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 1,
+        "port": 1
+      },
+      "b": {
+        "device": 2,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 2,
+        "port": 2
+      },
+      "b": {
+        "device": 3,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 3,
+      "a": {
+        "device": 3,
+        "port": 2
+      },
+      "b": {
+        "device": 4,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 4,
+      "a": {
+        "device": 4,
+        "port": 2
+      },
+      "b": {
+        "device": 5,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    }
+  ]
+}

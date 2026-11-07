@@ -1,20 +1,20 @@
 import { LineEdit, ScrollView, Palette } from "std-widgets.slint";
 import { Theme, Geometry } from "theme.slint";
-import { Action, Caption, DeviceIcon, Divider, PanelHeader } from "widgets.slint";
+import { Action, Caption, Chip, DeviceIcon, Divider, PanelHeader } from "widgets.slint";
 import { UiCanvas, Canvas, NodeView, LinkView, PacketView, MarkerView } from "canvas.slint";
-import { UiInspector, Inspector, PortView } from "inspector.slint";
+import { UiInspector, Inspector, PortView, RouteView } from "inspector.slint";
 import { UiTimeline, TimelinePanel, EventView } from "timeline.slint";
 import { UiFrame, FieldRow, HexByte, HexRow } from "frame.slint";
 import { UiApp, UiRun, ExampleView, LanguageView, FileView } from "state.slint";
 import { FileDialog, ConfirmDialog, AboutDialog } from "dialogs.slint";
 
 export { Geometry, UiCanvas, UiInspector, UiTimeline, UiFrame, UiApp, UiRun }
-export { NodeView, LinkView, PacketView, MarkerView, PortView, EventView, FieldRow, HexByte, HexRow, ExampleView, LanguageView, FileView }
+export { NodeView, LinkView, PacketView, MarkerView, PortView, RouteView, EventView, FieldRow, HexByte, HexRow, ExampleView, LanguageView, FileView }
 
 component DeviceChoice inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
-    in property <bool> switch-kind;
+    in property <string> kind;
     callback clicked();
     height: 64px;
     border-radius: 9px;
@@ -25,7 +25,7 @@ component DeviceChoice inherits Rectangle {
     accessible-label: @tr("Add {0}", root.title);
     accessible-action-default => { root.clicked(); }
     forward-focus: focus;
-    DeviceIcon { x: 12px; y: 12px; width: 27px; height: 26px; switch-kind: root.switch-kind; tint: root.switch-kind ? Theme.blue : Theme.mint; }
+    DeviceIcon { x: 12px; y: 12px; width: 27px; height: 26px; kind: root.kind; }
     Text { x: 50px; y: 13px; text: root.title; color: Theme.ink; font-size: 14px; font-weight: 600; }
     Text { x: 50px; y: 34px; width: parent.width - 60px; text: root.subtitle; color: Theme.muted; font-size: 10px; overflow: elide; }
     Text { x: parent.width - 22px; y: 12px; text: "+"; color: Theme.muted; font-size: 18px; }
@@ -49,8 +49,9 @@ component PaletteView inherits Rectangle {
         VerticalLayout {
             padding-left: 14px; padding-right: 14px; padding-bottom: 14px;
             spacing: 8px;
-            DeviceChoice { title: @tr("Host"); subtitle: @tr("IPv4 · 1 Ethernet port"); switch-kind: false; clicked => { UiApp.add-device("host"); } }
-            DeviceChoice { title: @tr("Switch"); subtitle: @tr("Layer 2 · 8 ports"); switch-kind: true; clicked => { UiApp.add-device("switch"); } }
+            DeviceChoice { title: @tr("Host"); subtitle: @tr("IPv4 · 1 Ethernet port"); kind: "host"; clicked => { UiApp.add-device("host"); } }
+            DeviceChoice { title: @tr("Switch"); subtitle: @tr("Layer 2 · 8 ports"); kind: "switch"; clicked => { UiApp.add-device("switch"); } }
+            DeviceChoice { title: @tr("Router"); subtitle: @tr("IPv4 · 2 to 8 ports"); kind: "router"; clicked => { UiApp.add-device("router"); } }
             Text {
                 text: @tr("Drag a card to move it. Drag from a port light or from + to another card to plug a cable.");
                 color: Theme.muted; font-size: 10px; wrap: word-wrap;
@@ -135,6 +136,7 @@ export component AppWindow inherits Window {
             MenuSeparator { }
             MenuItem { title: @tr("Add host"); activated => { UiApp.add-device("host"); } }
             MenuItem { title: @tr("Add switch"); activated => { UiApp.add-device("switch"); } }
+            MenuItem { title: @tr("Add router"); activated => { UiApp.add-device("router"); } }
             MenuItem { title: @tr("Delete selection"); activated => { UiApp.delete-selection(); } }
         }
         Menu {
@@ -252,12 +254,22 @@ export component AppWindow inherits Window {
                         background: #111c29;
                         HorizontalLayout {
                             padding: 9px; padding-left: 14px; spacing: 7px;
-                            Text { text: "PING"; color: Theme.mint; font-weight: 600; font-size: 10px; vertical-alignment: center; }
+                            // Ping, or traceroute when checked.
+                            VerticalLayout {
+                                alignment: center;
+                                Chip { text: @tr("Traceroute"); checked: UiRun.traceroute; tint: Theme.mint; clicked => { UiRun.traceroute = !UiRun.traceroute; } }
+                            }
                             // Narrower before the bar overflows, as in a longer language.
                             LineEdit { min-width: 116px; max-width: 136px; horizontal-stretch: 1; text <=> UiRun.target; placeholder-text: @tr("Destination IPv4"); accessible-label: @tr("Destination IPv4"); accepted => { UiRun.ping(); } }
-                            Text { text: "×"; color: Theme.muted; font-size: 11px; vertical-alignment: center; }
-                            LineEdit { min-width: 40px; max-width: 50px; horizontal-stretch: 1; text <=> UiRun.count; placeholder-text: "1"; accessible-label: @tr("Echo Requests per ping"); accepted => { UiRun.ping(); } }
-                            Action { text: @tr("Send"); accessible-text: @tr("Send the ping"); primary: true; enabled: UiRun.can-ping; clicked => { UiRun.ping(); } }
+                            Text { text: UiRun.traceroute ? "≤" : "×"; color: Theme.muted; font-size: 11px; vertical-alignment: center; }
+                            if !UiRun.traceroute: LineEdit { min-width: 34px; max-width: 50px; horizontal-stretch: 1; text <=> UiRun.count; placeholder-text: "1"; accessible-label: @tr("Echo Requests per ping"); accepted => { UiRun.ping(); } }
+                            if UiRun.traceroute: LineEdit { min-width: 34px; max-width: 50px; horizontal-stretch: 1; text <=> UiRun.hops; placeholder-text: "30"; accessible-label: @tr("Hops to try"); accepted => { UiRun.ping(); } }
+                            Action {
+                                text: UiRun.traceroute ? @tr("Trace") : @tr("Send");
+                                accessible-text: UiRun.traceroute ? @tr("Start the traceroute") : @tr("Send the ping");
+                                primary: true; enabled: UiRun.can-ping;
+                                clicked => { UiRun.ping(); }
+                            }
                             Rectangle { horizontal-stretch: 1; }
                             Action { text: UiRun.speed-label; accessible-text: @tr("Playback speed"); width: 46px; clicked => { UiRun.cycle-speed(); } }
                             Action { text: @tr("Step"); enabled: UiRun.pending && !UiRun.running; clicked => { UiRun.step(); } }

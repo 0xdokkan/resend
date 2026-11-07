@@ -1,0 +1,179 @@
+# no route at the first router, nobody at the address behind the second
+
+## pings
+1  PC-A > 10.9.9.9  failed NetUnreachable  0.000 ms .. 40.000 ms
+  seq 1  lost NetUnreachable  0.000 ms .. 40.000 ms  record 12  from 10.1.0.1
+2  PC-A > 10.2.0.99  failed HostUnreachable  40.000 ms .. 3100.000 ms
+  seq 1  lost HostUnreachable  40.000 ms .. 3100.000 ms  record 45  from 10.12.0.2
+
+## records
+0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
+0.000 ms  #1 e1  PC-A port 1  FrameSent  link 1 frame 0 value 1
+10.000 ms  #2 e2  R1 port 1  FrameReceived  link 1 frame 0 value 0
+10.000 ms  #3 e2  R1 port 1  ArpCacheUpdated  link 1 frame 0 value 0
+10.000 ms  #4 e2  R1 port 1  FrameSent  link 1 frame 1 value 0
+20.000 ms  #5 e3  PC-A port 1  FrameReceived  link 1 frame 1 value 0
+20.000 ms  #6 e3  PC-A port 1  ArpCacheUpdated  link 1 frame 1 value 0
+20.000 ms  #7 e3  PC-A port 1  FrameSent  link 1 frame 2 value 0
+30.000 ms  #8 e4  R1 port 1  FrameReceived  link 1 frame 2 value 0
+30.000 ms  #9 e4  R1 port 1  DatagramDropped NoRoute  link 1 frame 2 value 168364297
+30.000 ms  #10 e4  R1 port 1  FrameSent  link 1 frame 3 value 0
+40.000 ms  #11 e5  PC-A port 1  FrameReceived  link 1 frame 3 value 0
+40.000 ms  #12 e5  PC-A port 1  PingLost NetUnreachable  link 1 frame 3 value 1
+40.000 ms  #13 e5  PC-A port -  PingFailed NetUnreachable  link - frame - value 1
+40.000 ms  #14 e6  PC-A port -  PingStarted  link - frame - value 2
+40.000 ms  #15 e6  PC-A port 1  FrameSent  link 1 frame 4 value 0
+50.000 ms  #16 e7  R1 port 1  FrameReceived  link 1 frame 4 value 0
+50.000 ms  #17 e7  R1 port 1  DatagramRouted  link 1 frame 4 value 168558594 route 10.2.0.0/24
+50.000 ms  #18 e7  R1 port 2  FrameSent  link 2 frame 5 value 1
+60.000 ms  #19 e8  R2 port 1  FrameReceived  link 2 frame 5 value 0
+60.000 ms  #20 e8  R2 port 1  ArpCacheUpdated  link 2 frame 5 value 0
+60.000 ms  #21 e8  R2 port 1  FrameSent  link 2 frame 6 value 0
+70.000 ms  #22 e9  R1 port 2  FrameReceived  link 2 frame 6 value 0
+70.000 ms  #23 e9  R1 port 2  ArpCacheUpdated  link 2 frame 6 value 0
+70.000 ms  #24 e9  R1 port 2  FrameSent  link 2 frame 7 value 0
+80.000 ms  #25 e10  R2 port 1  FrameReceived  link 2 frame 7 value 0
+80.000 ms  #26 e10  R2 port 1  DatagramRouted  link 2 frame 7 value 167903331 route 10.2.0.0/24
+80.000 ms  #27 e10  R2 port 2  FrameSent  link 3 frame 8 value 1
+90.000 ms  #28 e11  PC-B port 1  FrameReceived  link 3 frame 8 value 0
+90.000 ms  #29 e11  PC-B port 1  FrameDropped ArpForOtherHost  link 3 frame 8 value 0
+1080.000 ms  #30 e12  R2 port 2  ArpTimeout  link - frame - value 1
+1080.000 ms  #31 e12  R2 port 2  FrameSent  link 3 frame 9 value 2
+1090.000 ms  #32 e13  PC-B port 1  FrameReceived  link 3 frame 9 value 0
+1090.000 ms  #33 e13  PC-B port 1  FrameDropped ArpForOtherHost  link 3 frame 9 value 0
+2080.000 ms  #34 e14  R2 port 2  ArpTimeout  link - frame - value 2
+2080.000 ms  #35 e14  R2 port 2  FrameSent  link 3 frame 10 value 3
+2090.000 ms  #36 e15  PC-B port 1  FrameReceived  link 3 frame 10 value 0
+2090.000 ms  #37 e15  PC-B port 1  FrameDropped ArpForOtherHost  link 3 frame 10 value 0
+3080.000 ms  #38 e16  R2 port 2  ArpTimeout  link - frame - value 3
+3080.000 ms  #39 e16  R2 port 2  DatagramDropped ArpUnresolved  link - frame - value 167903331
+3080.000 ms  #40 e16  R2 port 1  FrameSent  link 2 frame 11 value 0
+3090.000 ms  #41 e17  R1 port 2  FrameReceived  link 2 frame 11 value 0
+3090.000 ms  #42 e17  R1 port 2  DatagramRouted  link 2 frame 11 value 167837706 route 10.1.0.0/24
+3090.000 ms  #43 e17  R1 port 1  FrameSent  link 1 frame 12 value 0
+3100.000 ms  #44 e18  PC-A port 1  FrameReceived  link 1 frame 12 value 0
+3100.000 ms  #45 e18  PC-A port 1  PingLost HostUnreachable  link 1 frame 12 value 2
+3100.000 ms  #46 e18  PC-A port -  PingFailed HostUnreachable  link - frame - value 2
+
+## frames
+0  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 10.1.0.10 target 00:00:00:00:00:00 10.1.0.1
+1  02:20:00:00:00:02 > 02:00:00:00:00:01  ARP reply sender 02:20:00:00:00:02 10.1.0.1 target 02:00:00:00:00:01 10.1.0.10
+2  02:00:00:00:00:01 > 02:20:00:00:00:02  IPv4 10.1.0.10 > 10.9.9.9 ttl 64 id 1 proto 1  ICMP type 8 code 0 identifier 1 sequence 1 data 56
+3  02:20:00:00:00:02 > 02:00:00:00:00:01  IPv4 10.1.0.1 > 10.1.0.10 ttl 64 id 1 proto 1  ICMP type 3 code 0 identifier 0 sequence 0 data 0  quoting 10.1.0.10 > 10.9.9.9 ttl 64 id 1 ICMP type 8 identifier 1 sequence 1
+4  02:00:00:00:00:01 > 02:20:00:00:00:02  IPv4 10.1.0.10 > 10.2.0.99 ttl 64 id 2 proto 1  ICMP type 8 code 0 identifier 2 sequence 1 data 56
+5  02:21:00:00:00:02 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:02 10.12.0.1 target 00:00:00:00:00:00 10.12.0.2
+6  02:20:00:00:00:03 > 02:21:00:00:00:02  ARP reply sender 02:20:00:00:00:03 10.12.0.2 target 02:21:00:00:00:02 10.12.0.1
+7  02:21:00:00:00:02 > 02:20:00:00:00:03  IPv4 10.1.0.10 > 10.2.0.99 ttl 63 id 2 proto 1  ICMP type 8 code 0 identifier 2 sequence 1 data 56
+8  02:21:00:00:00:03 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:03 10.2.0.1 target 00:00:00:00:00:00 10.2.0.99
+9  02:21:00:00:00:03 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:03 10.2.0.1 target 00:00:00:00:00:00 10.2.0.99
+10  02:21:00:00:00:03 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:03 10.2.0.1 target 00:00:00:00:00:00 10.2.0.99
+11  02:20:00:00:00:03 > 02:21:00:00:00:02  IPv4 10.12.0.2 > 10.1.0.10 ttl 64 id 1 proto 1  ICMP type 3 code 1 identifier 0 sequence 0 data 0  quoting 10.1.0.10 > 10.2.0.99 ttl 62 id 2 ICMP type 8 identifier 2 sequence 1
+12  02:20:00:00:00:02 > 02:00:00:00:00:01  IPv4 10.12.0.2 > 10.1.0.10 ttl 63 id 1 proto 1  ICMP type 3 code 1 identifier 0 sequence 0 data 0  quoting 10.1.0.10 > 10.2.0.99 ttl 62 id 2 ICMP type 8 identifier 2 sequence 1
+
+## transmissions
+frame 0 link 1  PC-A port 1 > R1 port 1  0.000 ms .. 10.000 ms  record 1
+frame 1 link 1  R1 port 1 > PC-A port 1  10.000 ms .. 20.000 ms  record 4
+frame 2 link 1  PC-A port 1 > R1 port 1  20.000 ms .. 30.000 ms  record 7
+frame 3 link 1  R1 port 1 > PC-A port 1  30.000 ms .. 40.000 ms  record 10
+frame 4 link 1  PC-A port 1 > R1 port 1  40.000 ms .. 50.000 ms  record 15
+frame 5 link 2  R1 port 2 > R2 port 1  50.000 ms .. 60.000 ms  record 18
+frame 6 link 2  R2 port 1 > R1 port 2  60.000 ms .. 70.000 ms  record 21
+frame 7 link 2  R1 port 2 > R2 port 1  70.000 ms .. 80.000 ms  record 24
+frame 8 link 3  R2 port 2 > PC-B port 1  80.000 ms .. 90.000 ms  record 27
+frame 9 link 3  R2 port 2 > PC-B port 1  1080.000 ms .. 1090.000 ms  record 31
+frame 10 link 3  R2 port 2 > PC-B port 1  2080.000 ms .. 2090.000 ms  record 35
+frame 11 link 2  R2 port 1 > R1 port 2  3080.000 ms .. 3090.000 ms  record 40
+frame 12 link 1  R1 port 1 > PC-A port 1  3090.000 ms .. 3100.000 ms  record 43
+
+## events
+0.000 ms  [ARP] PC-A · who has 10.1.0.1?  (ok, from 1 to - link - frame 0)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 1/3.
+    The destination is outside the local subnet: the datagram goes to the default gateway. Looking for its MAC address.
+10.000 ms  [ARP] PC-A → R1 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
+    ARP: 10.1.0.10 → 10.1.0.1
+    ARP Request; ingress port 1.
+    ARP cache updated: 10.1.0.10 = 02:00:00:00:00:01.
+    This router owns the requested IP: it sends a unicast ARP reply.
+20.000 ms  [ARP] R1 → PC-A · ARP Reply  (ok, from 2 to 1 link 1 frame 1)
+    Ethernet: 02:20:00:00:00:02 → 02:00:00:00:00:01
+    ARP: 10.1.0.1 → 10.1.0.10
+    ARP Reply; ingress port 1.
+    ARP cache updated: 10.1.0.1 = 02:20:00:00:00:02.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+30.000 ms  [ICMP] PC-A → R1 · Echo Request  (failed, from 1 to 2 link 1 frame 2)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:02
+    IPv4: 10.1.0.10 → 10.9.9.9, TTL 64
+    Echo Request; ingress port 1.
+    No route matches 10.9.9.9, and there is no default route: the router discards the datagram.
+    Destination Unreachable (network) sent back to 10.1.0.10 from port 1.
+40.000 ms  [ICMP] Ping failed · network unreachable  (failed, from 2 to 1 link 1 frame 3)
+    Ethernet: 02:20:00:00:00:02 → 02:00:00:00:00:01
+    IPv4: 10.1.0.1 → 10.1.0.10, TTL 64
+    Destination Unreachable; ingress port 1.
+    It is about this datagram: Echo Request 10.1.0.10 → 10.9.9.9, TTL 64.
+    10.1.0.1 has no route to 10.9.9.9 and sent back a Destination Unreachable (network). Check that router's routes, or its default route.
+50.000 ms  [ICMP] PC-A → R1 · Echo Request  (ok, from 1 to 2 link 1 frame 4)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:02
+    IPv4: 10.1.0.10 → 10.2.0.99, TTL 64
+    Echo Request; ingress port 1.
+    Route: 10.2.0.0/24 via 10.12.0.2, port 2. TTL 64 → 63.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 10.12.0.2 on port 2.
+60.000 ms  [ARP] R1 → R2 · ARP Request  (ok, from 2 to 3 link 2 frame 5)
+    Ethernet: 02:21:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 10.12.0.1 → 10.12.0.2
+    ARP Request; ingress port 1.
+    ARP cache updated: 10.12.0.1 = 02:21:00:00:00:02.
+    This router owns the requested IP: it sends a unicast ARP reply.
+70.000 ms  [ARP] R2 → R1 · ARP Reply  (ok, from 3 to 2 link 2 frame 6)
+    Ethernet: 02:20:00:00:00:03 → 02:21:00:00:00:02
+    ARP: 10.12.0.2 → 10.12.0.1
+    ARP Reply; ingress port 2.
+    ARP cache updated: 10.12.0.2 = 02:20:00:00:00:03.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+80.000 ms  [ICMP] R1 → R2 · Echo Request  (ok, from 2 to 3 link 2 frame 7)
+    Ethernet: 02:21:00:00:00:02 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.99, TTL 63
+    Echo Request; ingress port 1.
+    Route: 10.2.0.99 is on the connected network 10.2.0.0/24, port 2. TTL 63 → 62.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 10.2.0.99 on port 2.
+90.000 ms  [ARP] R2 → PC-B · ARP Request  (ok, from 3 to 4 link 3 frame 8)
+    Ethernet: 02:21:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 10.2.0.1 → 10.2.0.99
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+1080.000 ms  [ARP] No ARP reply · retrying  (ok, from 3 to - link - frame -)
+    One simulated second has passed. The router repeats the ARP request.
+1080.000 ms  [ARP] R2 · who has 10.2.0.99?  (ok, from 3 to - link - frame 9)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 2/3.
+    Looking for the MAC address of the next hop on port 2.
+1090.000 ms  [ARP] R2 → PC-B · ARP Request  (ok, from 3 to 4 link 3 frame 9)
+    Ethernet: 02:21:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 10.2.0.1 → 10.2.0.99
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+2080.000 ms  [ARP] No ARP reply · retrying  (ok, from 3 to - link - frame -)
+    One simulated second has passed. The router repeats the ARP request.
+2080.000 ms  [ARP] R2 · who has 10.2.0.99?  (ok, from 3 to - link - frame 10)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 3/3.
+    Looking for the MAC address of the next hop on port 2.
+2090.000 ms  [ARP] R2 → PC-B · ARP Request  (ok, from 3 to 4 link 3 frame 10)
+    Ethernet: 02:21:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 10.2.0.1 → 10.2.0.99
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+3080.000 ms  [ARP] R2 · datagram for 10.2.0.99 discarded  (failed, from 3 to - link - frame -)
+    Three ARP requests for the next hop went unanswered, so the router cannot deliver the datagram. A Destination Unreachable (host) goes back to 10.1.0.10.
+3090.000 ms  [ICMP] R2 → R1 · Destination Unreachable  (ok, from 3 to 2 link 2 frame 11)
+    Ethernet: 02:20:00:00:00:03 → 02:21:00:00:00:02
+    IPv4: 10.12.0.2 → 10.1.0.10, TTL 64
+    Destination Unreachable; ingress port 2.
+    It is about this datagram: Echo Request 10.1.0.10 → 10.2.0.99, TTL 62.
+    Route: 10.1.0.10 is on the connected network 10.1.0.0/24, port 1. TTL 64 → 63.
+    Forwarded from port 1 to 02:00:00:00:00:01.
+3100.000 ms  [ICMP] Ping failed · host unreachable  (failed, from 2 to 1 link 1 frame 12)
+    Ethernet: 02:20:00:00:00:02 → 02:00:00:00:00:01
+    IPv4: 10.12.0.2 → 10.1.0.10, TTL 63
+    Destination Unreachable; ingress port 1.
+    It is about this datagram: Echo Request 10.1.0.10 → 10.2.0.99, TTL 62.
+    10.12.0.2 got no answer to its ARP requests for 10.2.0.99 and sent back a Destination Unreachable (host): no device on that network has the address, or it is off.

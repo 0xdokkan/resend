@@ -49,6 +49,12 @@ std::string drop_text(Reason reason) {
     case Reason::NoRoute: return "× " + tr("no route back");
     case Reason::ArpQueueFull: return "× " + tr("ARP queue full");
     case Reason::UnmatchedReply: return "× " + tr("reply too late");
+    case Reason::UnmatchedError: return "× " + tr("error too late");
+    case Reason::NoAddress: return "× " + tr("no address");
+    case Reason::GatewayOffLink: return "× " + tr("gateway off subnet");
+    case Reason::TtlExceeded: return "× " + tr("TTL exceeded");
+    case Reason::ArpUnresolved: return "× " + tr("no ARP reply");
+    case Reason::DirectedBroadcast: return "× " + tr("broadcast");
     default: return "× " + tr("dropped");
     }
 }
@@ -60,6 +66,10 @@ std::string ping_failure_text(Reason reason) {
     case Reason::NoRoute: return "× " + tr("ping: no route");
     case Reason::DeviceDown: return "× " + tr("ping: PC off");
     case Reason::ArpQueueFull: return "× " + tr("ping: ARP queue full");
+    case Reason::TtlExceeded: return "× " + tr("ping: TTL exceeded");
+    case Reason::NetUnreachable: return "× " + tr("ping: network unreachable");
+    case Reason::HostUnreachable: return "× " + tr("ping: host unreachable");
+    case Reason::GatewayOffLink: return "× " + tr("ping: gateway off subnet");
     default: return "× " + tr("ping failed");
     }
 }
@@ -71,7 +81,10 @@ bool edit_marker(const netsim::EditEntry& entry, Marker& marker) {
         [&](const auto& edit) {
             using T = std::decay_t<decltype(edit)>;
             if constexpr (std::is_same_v<T, netsim::SetPowered>) marker.text = "⏻ " + (edit.powered ? tr("powered on") : tr("powered off"));
-            else if constexpr (std::is_same_v<T, netsim::SetAddress>) marker.text = "IP " + edit.address.to_string();
+            else if constexpr (std::is_same_v<T, netsim::SetAddress>) marker.text = "IP " + (edit.address ? edit.address->to_string() : tr("none"));
+            else if constexpr (std::is_same_v<T, netsim::SetGateway>) marker.text = tr("gateway {0}", {edit.gateway ? edit.gateway->to_string() : tr("none")});
+            else if constexpr (std::is_same_v<T, netsim::SetRoutes>) marker.text = tr("routes ×{0}", {std::to_string(edit.routes.size())});
+            else if constexpr (std::is_same_v<T, netsim::SetPorts>) marker.text = tr("{0} ports", {std::to_string(edit.ports.size())});
             else if constexpr (std::is_same_v<T, netsim::SetPortUp>)
                 marker.text = edit.up ? tr("{0} enabled", {port_name(edit.port.port)}) : tr("{0} disabled", {port_name(edit.port.port)});
             else if constexpr (std::is_same_v<T, netsim::SetAgeing>) marker.text = tr("ageing {0}", {netsim::format_duration(edit.ageing)});
@@ -141,15 +154,18 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Simulation& simula
         return true;
     case TraceKind::PingSucceeded: {
         const auto* ping = simulation.ping(netsim::PingId{record.value});
-        marker.text = ping && ping->options.count > 1
+        marker.text = ping && ping->options.traceroute ? "✓ " + tr("traceroute: {0} hops", {std::to_string(ping->echoes.size())})
+            : ping && ping->options.count > 1
             ? "✓ " + tr("ping {0}/{1}", {std::to_string(ping->replies()), std::to_string(ping->echoes.size())}) : "✓ " + tr("ping reply");
         marker.tone = Tone::Success;
         return true;
     }
-    case TraceKind::PingFailed:
-        marker.text = ping_failure_text(record.reason);
+    case TraceKind::PingFailed: {
+        const auto* ping = simulation.ping(netsim::PingId{record.value});
+        marker.text = ping && ping->options.traceroute ? "× " + tr("traceroute failed") : ping_failure_text(record.reason);
         marker.tone = Tone::Drop;
         return true;
+    }
     case TraceKind::PingReply:
     case TraceKind::PingLost: {
         // A single request has the ping's own chip.
@@ -158,8 +174,25 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Simulation& simula
         const auto echo = std::find_if(ping->echoes.begin(), ping->echoes.end(), [&](const auto& item) { return item.record == record.seq; });
         const auto number = echo == ping->echoes.end() ? std::string("?") : std::to_string(echo->sequence);
         const bool reply = record.kind == TraceKind::PingReply;
+        if (ping->options.traceroute) {
+            const bool answered = echo != ping->echoes.end() && echo->responder != netsim::Ipv4Address{};
+            marker.text = tr("hop {0}: {1}", {number, answered ? echo->responder.to_string() : std::string("*")});
+            marker.tone = reply || record.reason == Reason::TtlExceeded ? Tone::Success : Tone::Drop;
+            return true;
+        }
         marker.text = reply ? "✓ " + tr("reply {0}", {number}) : "× " + tr("request {0} lost", {number});
         marker.tone = reply ? Tone::Success : Tone::Drop;
+        return true;
+    }
+    case TraceKind::DatagramRouted: {
+        // The egress port is on the record that follows: the frame sent on,
+        // or the ARP request it waits for.
+        const auto next = index + 1;
+        const bool egress = next < records.size() && records[next].episode == record.episode && records[next].device == record.device &&
+            records[next].port;
+        const auto route = record.route ? record.route->to_string() : std::string("?");
+        marker.text = egress ? tr("route {0} → {1}", {route, port_name(*records[next].port)}) : tr("route {0}", {route});
+        marker.tone = Tone::Forward;
         return true;
     }
     case TraceKind::ArpEntryExpired:
@@ -170,10 +203,16 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Simulation& simula
         marker.text = tr("entry aged out");
         marker.tone = Tone::Wait;
         return true;
-    case TraceKind::DatagramDropped:
-        marker.text = "× " + tr("reply discarded");
+    case TraceKind::DatagramDropped: {
+        const auto* device = simulation.known_device(record.device);
+        const bool router = device && device->kind == netsim::DeviceKind::Router;
+        marker.text = !router ? "× " + tr("reply discarded")
+            : record.reason == Reason::NoRoute ? "× " + tr("no route")
+            : record.reason == Reason::ArpQueueFull ? "× " + tr("ARP queue full")
+                                                    : drop_text(record.reason);
         marker.tone = Tone::Drop;
         return true;
+    }
     case TraceKind::EditApplied:
         return record.device.value != 0 && edit_marker(simulation.edits().at(record.value), marker);
     case TraceKind::SimulatorGuard:
@@ -223,6 +262,8 @@ std::string packet_label(PduKind kind) {
     case PduKind::ArpReply: return tr("ARP rep");
     case PduKind::EchoRequest: return tr("Echo req");
     case PduKind::EchoReply: return tr("Echo rep");
+    case PduKind::TimeExceeded: return tr("TTL exc.");
+    case PduKind::Unreachable: return tr("Unreach.");
     case PduKind::OtherIcmp: return "ICMP";
     }
     return tr("Frame");
@@ -234,6 +275,8 @@ std::string frame_name(PduKind kind) {
     case PduKind::ArpReply: return tr("ARP Reply");
     case PduKind::EchoRequest: return tr("Echo Request");
     case PduKind::EchoReply: return tr("Echo Reply");
+    case PduKind::TimeExceeded: return tr("Time Exceeded");
+    case PduKind::Unreachable: return tr("Destination Unreachable");
     case PduKind::OtherIcmp: return tr("ICMP message");
     }
     return tr("Frame");

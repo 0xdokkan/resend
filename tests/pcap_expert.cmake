@@ -15,7 +15,12 @@ set(runs
     "office --scenario '${EXAMPLES}/office-floor.json' --count 2 --ping Desk-1 10.0.0.22 --ping Desk-5 10.0.0.12 --ping Desk-1 10.0.0.23"
     "loop --scenario '${EXAMPLES}/switch-loop.json' --ping PC-A 192.168.1.20"
     "edits --count 4 --at 1.5s --link-down 2 --at 2.5s --link-up 2 --at 2.6s --power-off PC-B --at 2.7s --power-on PC-B"
-    "cable --count 2 --pcap-link 2")
+    "cable --count 2 --pcap-link 2"
+    "two-lans --scenario '${EXAMPLES}/two-lans-router.json' --count 2 --ping PC-A 10.2.0.20 --traceroute PC-A 10.2.0.20 --ping PC-A 203.0.113.1"
+    "unreachable --scenario '${EXAMPLES}/two-lans-router.json' --timeout 5s --ping PC-A 10.2.0.99"
+    "routing-loop --scenario '${EXAMPLES}/routing-loop.json' --ping PC-A 10.9.9.9 --traceroute PC-A 10.9.9.9 --max-hops 8"
+    "return-route --scenario '${EXAMPLES}/missing-return-route.json' --ping PC-A 10.2.0.20"
+    "longest-prefix --scenario '${EXAMPLES}/longest-prefix.json' --ping PC-A 10.9.0.10 --ping PC-A 10.20.9.10 --traceroute PC-A 10.20.30.10")
 foreach(run IN LISTS runs)
     separate_arguments(parts UNIX_COMMAND "${run}")
     list(POP_FRONT parts name)

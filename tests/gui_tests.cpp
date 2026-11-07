@@ -149,12 +149,20 @@ std::string read_text(const fs::path& path) {
     std::ifstream file(path, std::ios::binary);
     return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 }
-std::string cell(const Ui& ui, std::size_t row, std::size_t column) {
-    const auto rows = ui->global<UiInspector>().get_table_rows();
+std::string cell(const std::shared_ptr<slint::Model<std::shared_ptr<slint::Model<slint::StandardListViewItem>>>>& rows,
+                 std::size_t row, std::size_t column) {
     if (row >= rows->row_count()) return {};
     const auto cells = *rows->row_data(row);
     if (column >= cells->row_count()) return {};
     return std::string(cells->row_data(column)->text);
+}
+std::string cell(const Ui& ui, std::size_t row, std::size_t column) { return cell(ui->global<UiInspector>().get_table_rows(), row, column); }
+// A row of the selected router's routing table, its cells joined by " | ".
+std::string route_row(const Ui& ui, std::size_t row) {
+    const auto rows = ui->global<UiInspector>().get_routing_rows();
+    std::string text;
+    for (std::size_t column = 0; column < 4; ++column) text += (column ? " | " : "") + cell(rows, row, column);
+    return text;
 }
 
 void initial_view_shows_whole_network(const Ui& ui) {
@@ -241,7 +249,7 @@ void plug_cables(const Ui& ui, resend::AppController& app) {
     press(ui, "Connect PC-5");
     press(ui, "Connect PC-A");
     CHECK(app.scenario().links.size() == 4);
-    CHECK(status(ui) == "No free port: a PC has one port, a switch has eight.");
+    CHECK(status(ui) == "No free port: every port of the device has a cable.");
     key(ui, slint::platform::key_codes::Escape);
 
     // Delete removes the device and its cable, as one step.
@@ -613,7 +621,8 @@ void storm_pauses_playback(const Ui& ui, resend::AppController& app) {
 
 void examples_from_the_menu(const Ui& ui, resend::AppController& app) {
     const auto examples = ui->global<UiApp>().get_examples();
-    CHECK(examples->row_count() == 6);
+    CHECK(examples->row_count() == 11);
+    CHECK(examples->row_data(6)->title == slint::SharedString("Two LANs and a router"));
     CHECK(examples->row_data(0)->title == slint::SharedString("Sample LAN"));
     CHECK(examples->row_data(2)->title == slint::SharedString("Office floor"));
     ui->global<UiApp>().invoke_open_example(2);
@@ -632,6 +641,100 @@ void examples_from_the_menu(const Ui& ui, resend::AppController& app) {
     CHECK(!ui->global<UiApp>().get_modified());
     ui->global<UiApp>().invoke_open_example(0);
     CHECK(dialog(ui).empty() && shown(ui, "Sample LAN"));
+}
+
+void routers(const Ui& ui, resend::AppController& app) {
+    // The first router example: PC-A selected, PC-B on the other LAN as the destination.
+    ui->global<UiApp>().invoke_open_example(6);
+    CHECK(status(ui) == "Two LANs and a router opened.");
+    const auto canvas = element(ui, "Network topology");
+    CHECK(inside(element(ui, "Router, 10.1.0.1/24, 10.2.0.1/24"), canvas));
+    CHECK(element(ui, "Destination IPv4").accessible_value() == slint::SharedString("10.2.0.20"));
+    press(ui, "Send the ping");
+    play_to_end(ui, app);
+    CHECK(succeeded(app) && listed(ui, "ICMP: Router → Switch-2 · Echo Request"));
+
+    // A traceroute from the run bar: the router, then PC-B.
+    chip(ui, "Traceroute").invoke_accessible_default_action();
+    CHECK(ui->global<UiRun>().get_traceroute() && exists(ui, "Hops to try") && !exists(ui, "Echo Requests per ping"));
+    type(ui, "Hops to try", "0");
+    press(ui, "Start the traceroute");
+    CHECK(status(ui) == "A traceroute tries 1 to 255 hops.");
+    type(ui, "Hops to try", "5");
+    press(ui, "Start the traceroute");
+    CHECK(status(ui) == "Traceroute ready. Press Step or Run to advance simulated time.");
+    play_to_end(ui, app);
+    const auto& trace = app.simulation().pings().back();
+    CHECK(trace.options.traceroute && trace.options.count == 5 && trace.state == netsim::PingState::Succeeded && trace.echoes.size() == 2);
+    CHECK(listed(ui, "ICMP: Hop 1 · 10.1.0.1") && listed(ui, "ICMP: Hop 2 · 10.2.0.20 reached"));
+    chip(ui, "Traceroute").invoke_accessible_default_action();
+    CHECK(!ui->global<UiRun>().get_traceroute() && exists(ui, "Echo Requests per ping"));
+
+    // The router's inspector: its ports, routes and routing table.
+    // It is long: only what is in view can be found, so the window grows.
+    press(ui, "Router, 10.1.0.1/24, 10.2.0.1/24");
+    ui->window().set_size(slint::LogicalSize({1100, 1800}));
+    settle(ui);
+    const auto& inspector = ui->global<UiInspector>();
+    CHECK(inspector.get_kind() == slint::SharedString("router") && inspector.get_port_count() == 2);
+    CHECK(inspector.get_routing_rows()->row_count() == 2);
+    CHECK(route_row(ui, 0) == "10.1.0.0/24 | connected | 1 | active" && route_row(ui, 1) == "10.2.0.0/24 | connected | 2 | active");
+    CHECK(cell(ui, 0, 0) == "10.1.0.10" && cell(ui, 0, 2) == "1" && cell(ui, 1, 0) == "10.2.0.20" && cell(ui, 1, 2) == "2");
+    // A route through a next hop on no connected network stays unused.
+    type(ui, "Network", "10.9.0.0/16");
+    type(ui, "Next hop", "10.3.0.2");
+    press(ui, "Add the static route");
+    CHECK(app.scenario().device(DeviceId{3})->routes.size() == 1);
+    CHECK(route_row(ui, 2) == "10.9.0.0/16 | 10.3.0.2 | — | not used");
+    CHECK(inspector.get_routes()->row_data(0)->note == slint::SharedString("Not used: the next hop is on none of the router's networks."));
+    CHECK(inspector.get_route_destination().empty() && inspector.get_route_via().empty());
+    type(ui, "Network", "10.9.0.1/16");
+    type(ui, "Next hop", "10.2.0.30");
+    press(ui, "Add the static route");
+    CHECK(status(ui) == "A route goes to a network, with no host bits set, through a unicast next hop; only routers have routes.");
+    type(ui, "Network", "nowhere");
+    press(ui, "Add the static route");
+    CHECK(status(ui).starts_with("Write the network with its prefix length"));
+    // A third port with an address makes the route usable.
+    press(ui, "Add a port");
+    CHECK(inspector.get_port_count() == 3 && app.scenario().device(DeviceId{3})->ports.size() == 3);
+    type(ui, "IPv4 address of Port 3", "10.3.0.1/24");
+    press(ui, "Apply the configuration");
+    CHECK(app.scenario().device(DeviceId{3})->ports[2].ipv4 == netsim::Ipv4Prefix::parse("10.3.0.1/24"));
+    CHECK(route_row(ui, 2) == "10.3.0.0/24 | connected | 3 | active" && route_row(ui, 3) == "10.9.0.0/16 | 10.3.0.2 | 3 | active");
+    type(ui, "IPv4 address of Port 3", "10.3.0.1");
+    press(ui, "Apply the configuration");
+    CHECK(status(ui) == "Write the address of port 3 with its prefix length, for example 10.1.0.1/24.");
+    press(ui, "Remove the route to 10.9.0.0/16");
+    CHECK(app.scenario().device(DeviceId{3})->routes.empty() && inspector.get_routing_rows()->row_count() == 3);
+    press(ui, "Remove the last port");
+    CHECK(inspector.get_port_count() == 2);
+    // Two is the minimum, so "−" is off; and port 2 has a cable.
+    inspector.invoke_set_port_count(1);
+    CHECK(inspector.get_port_count() == 2 && status(ui) == "Port 2 has a cable: unplug it first.");
+
+    // Without a gateway PC-A reaches only its own subnet.
+    press(ui, "PC-A, 10.1.0.10/24");
+    CHECK(inspector.get_gateway() == slint::SharedString("10.1.0.1"));
+    type(ui, "Default gateway", "10.1.0");
+    press(ui, "Apply the configuration");
+    CHECK(status(ui).starts_with("Write the default gateway as an IPv4 address"));
+    type(ui, "Default gateway", "");
+    press(ui, "Apply the configuration");
+    CHECK(!app.scenario().device(DeviceId{1})->gateway);
+    press(ui, "Send the ping");
+    play_to_end(ui, app);
+    CHECK(app.simulation().pings().back().state == netsim::PingState::Failed && listed(ui, "IPv4: Ping failed · no route"));
+    shortcut(ui, "z");
+    CHECK(app.scenario().device(DeviceId{1})->gateway == netsim::Ipv4Address::parse("10.1.0.1"));
+
+    // A router from the palette: four ports, no addresses yet.
+    press(ui, "Add Router");
+    const auto& added = app.scenario().devices.back();
+    CHECK(added.kind == netsim::DeviceKind::Router && added.ports.size() == 4 && inspector.get_kind() == slint::SharedString("router"));
+    CHECK(exists(ui, added.name + ", no IPv4 address"));
+    ui->window().set_size(slint::LogicalSize({1100, 760}));
+    fresh(app);
 }
 
 void save_and_reopen(const Ui& ui, resend::AppController& app, const fs::path& home) {
@@ -862,6 +965,7 @@ int main() {
         live_edits(ui, app);
         storm_pauses_playback(ui, app);
         examples_from_the_menu(ui, app);
+        routers(ui, app);
         save_and_reopen(ui, app, home);
         unsaved_changes_are_asked_about(ui, app);
         autosave_and_recovery(ui, app, state);

@@ -2,6 +2,19 @@
 
 Versions follow [Semantic Versioning](https://semver.org); before 1.0, minor versions may change the file formats and the interface.
 
+## 0.3.0 — routers (unreleased)
+
+- Routers, with two to eight ports, each with an IPv4 address or none. A router forwards by the longest prefix match over its connected networks and up to 32 static routes, `0.0.0.0/0` being the default route, and lowers the TTL by one (RFC 1812). A static route whose next hop is on none of the router's networks, or is one of its own addresses, or that repeats a connected network, is kept but not used, and the inspector says why.
+- Hosts have a default gateway: a datagram for another subnet goes to it, so ARP asks for the gateway, not for the destination. Without one, or with one outside the subnet, the ping fails with no route.
+- ICMP errors: a router sends Time Exceeded when the TTL runs out, Destination Unreachable (network) without a route and (host) after three unanswered ARP requests for the next hop. Each quotes the whole datagram, as Linux does; none is sent about an ICMP error or a broadcast, and directed broadcasts are not forwarded (RFC 2644). A ping request that an error is about ends at once, with the error as its outcome.
+- Traceroute over ICMP, one request per hop with TTL 1, 2, ..., as `traceroute -I`: in the run bar under the canvas (**Traceroute**, then **Trace**), and in `resend-cli --traceroute NAME ADDRESS`, whose output looks like `traceroute`'s.
+- The router inspector edits the address of each port, adds and removes ports, adds and removes static routes, and shows the routing table, with the routes not used and why, and the ARP cache with the port of each entry. A host's inspector gains the default gateway. Routers have their own icon and colour, and the canvas shows the route each forwarded datagram takes and why one stops.
+- The frame view and the pcap files show the datagram an ICMP error quotes, field by field, as Wireshark does.
+- Five new examples: Two LANs and a router, Wrong gateway, Missing return route, Routing loop and Longest prefix match.
+- `resend-cli` gains `--traceroute`, `--max-hops`, `--ttl` and `--set-gateway`, and prints ICMP errors as `ping` does (`From 10.12.0.2 icmp_seq=1 Time to live exceeded`); `resend` gains `--traceroute` and `--select` for snapshots.
+- Scenario files are version 2: routers, a host's `gateway`, a router's `ports` and `routes`, and a router port's address is optional. Version 1 files still open; resend writes version 2.
+- Engine: the `Router` node and the `routing` module (routing table, lookup, the reason a route is not used); the `SetGateway`, `SetRoutes` and `SetPorts` edits; `DatagramRouted` records with the route chosen; the `TtlExceeded`, `NetUnreachable`, `HostUnreachable`, `GatewayOffLink`, `NoAddress`, `UnmatchedError` and `DirectedBroadcast` reasons; `PingOptions` gains `ttl` and `traceroute`, and each request records its TTL and who answered. Seven regression scenarios, routing tests with 200 random routed networks, and `scripts/compare-linux.py`, which builds the router examples with Linux network namespaces and checks that every cable carries the same frames, join the tests; CI runs the comparison.
+
 ## 0.2.0 — usable sandbox (unreleased)
 
 - A new interface around the canvas: a menu bar (File, Edit, View, Simulation, Help), the palette with the lesson of the network on the left, the inspector on the right, the timeline at the bottom. The three panels fold away, and the window has no fixed minimum size, so a 1080p screen at 2× scale holds it.

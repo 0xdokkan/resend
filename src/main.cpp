@@ -30,11 +30,14 @@ constexpr const char* usage =
     "  --lang CODE       Use this language, e.g. en or it, instead of the one chosen\n"
     "  --snapshot PATH   Save a rendered PPM preview, then exit\n"
     "  --ping IPV4       Start a ping from the selected host (the first one) at startup\n"
-    "  --at TIME         Show this simulated instant, e.g. 15ms or 1.5s (with --ping)\n";
+    "  --traceroute IPV4 Start a traceroute instead\n"
+    "  --at TIME         Show this simulated instant, e.g. 15ms or 1.5s (with --ping)\n"
+    "  --select NAME     Then select this device, e.g. to show its inspector\n";
 }
 
 int main(int argc, char** argv) {
-    std::string snapshot_path, ping, scenario;
+    std::string snapshot_path, ping, scenario, select;
+    bool traceroute = false;
     std::optional<std::string> language;
     std::optional<netsim::SimTime> at;
     for (int index = 1; index < argc; ++index) {
@@ -53,8 +56,11 @@ int main(int argc, char** argv) {
                 std::cerr << ")\n";
                 return 2;
             }
-        } else if (arg == "--ping" && has_value) {
+        } else if ((arg == "--ping" || arg == "--traceroute") && has_value) {
             ping = argv[++index];
+            traceroute = arg == "--traceroute";
+        } else if (arg == "--select" && has_value) {
+            select = argv[++index];
         } else if (arg == "--at" && has_value) {
             at = netsim::parse_duration(argv[++index]);
             if (!at) {
@@ -82,12 +88,17 @@ int main(int argc, char** argv) {
     }
     if (!ping.empty()) {
         ui->global<UiRun>().set_target(ping.c_str());
+        ui->global<UiRun>().set_traceroute(traceroute);
         ui->global<UiRun>().invoke_ping();
         if (controller.simulation().pings().empty()) {
             std::cerr << "The ping could not start: " << std::string(ui->global<UiApp>().get_status()) << '\n';
             return 2;
         }
         if (at) controller.seek(*at);
+    }
+    if (!select.empty() && !controller.select_device(select)) {
+        std::cerr << "No device named " << select << '\n';
+        return 2;
     }
     int exit_code = 0;
     if (!snapshot_path.empty()) {

@@ -73,12 +73,20 @@ std::vector<Outgoing> Arp::retry(Context& context, const Nic& nic, Ipv4Address n
     return dropped;
 }
 
-std::vector<ArpCacheEntry> Arp::entries(SimTime now) const {
+std::vector<Outgoing> Arp::abandon(Ipv4Address next_hop) {
+    const auto it = resolving_.find(next_hop);
+    if (it == resolving_.end()) return {};
+    std::vector<Outgoing> dropped(std::make_move_iterator(it->second.waiting.begin()), std::make_move_iterator(it->second.waiting.end()));
+    resolving_.erase(it);
+    return dropped;
+}
+
+std::vector<ArpCacheEntry> Arp::entries(SimTime now, std::uint8_t port) const {
     std::map<Ipv4Address, ArpCacheEntry> rows;
     for (const auto& [ip, entry] : cache_)
-        if (entry.valid(now)) rows[ip] = {ip, entry.mac, ArpState::Reachable, entry.updated + arp_cache_timeout, 0};
+        if (entry.valid(now)) rows[ip] = {ip, entry.mac, ArpState::Reachable, entry.updated + arp_cache_timeout, 0, port};
     for (const auto& [ip, resolution] : resolving_)
-        rows.try_emplace(ip, ArpCacheEntry{ip, {}, ArpState::Incomplete, {}, resolution.waiting.size()});
+        rows.try_emplace(ip, ArpCacheEntry{ip, {}, ArpState::Incomplete, {}, resolution.waiting.size(), port});
     std::vector<ArpCacheEntry> entries;
     for (const auto& [ip, row] : rows) entries.push_back(row);
     return entries;

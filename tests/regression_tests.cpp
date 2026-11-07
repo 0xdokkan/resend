@@ -40,6 +40,10 @@ std::string frame_text(const netsim::EthernetFrame& frame) {
             << packet.identification << " proto " << int{packet.protocol} << "  ICMP type " << int{packet.icmp.type} << " code "
             << int{packet.icmp.code} << " identifier " << packet.icmp.identifier << " sequence " << packet.icmp.sequence
             << " data " << packet.icmp.data_size;
+        if (const auto& quoted = packet.icmp.original)
+            out << "  quoting " << quoted->src.to_string() << " > " << quoted->dst.to_string() << " ttl " << int{quoted->ttl} << " id "
+                << quoted->identification << " ICMP type " << int{quoted->type} << " identifier " << quoted->identifier << " sequence "
+                << quoted->sequence;
     }
     return out.str();
 }
@@ -70,7 +74,10 @@ std::string run(const regression::Case& item) {
         for (const auto& echo : status.echoes)
             out << "  seq " << echo.sequence << "  " << (echo.state == netsim::EchoState::Replied ? "replied" : "lost") << ' '
                 << netsim::explain::name(echo.reason) << "  " << format_ms(echo.sent) << " .. " << format_ms(echo.finished)
-                << "  record " << echo.record << '\n';
+                << "  record " << echo.record
+                << (status.options.traceroute || echo.ttl != netsim::default_ttl ? "  ttl " + std::to_string(echo.ttl) : "")
+                << (echo.responder != netsim::Ipv4Address{} && echo.responder != status.destination ? "  from " + echo.responder.to_string() : "")
+                << '\n';
     }
 
     out << "\n## records\n";
@@ -78,7 +85,9 @@ std::string run(const regression::Case& item) {
         out << format_ms(record.time) << "  #" << record.seq << " e" << record.episode << "  " << name_of(simulation, record.device)
             << " port " << (record.port ? std::to_string(*record.port + 1) : "-") << "  " << netsim::explain::name(record.kind);
         if (record.reason != netsim::Reason::None) out << ' ' << netsim::explain::name(record.reason);
-        out << "  link " << id_text(record.link) << " frame " << id_text(record.pdu) << " value " << record.value << '\n';
+        out << "  link " << id_text(record.link) << " frame " << id_text(record.pdu) << " value " << record.value;
+        if (record.route) out << " route " << record.route->to_string();
+        out << '\n';
     }
 
     out << "\n## frames\n";

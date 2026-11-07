@@ -15,6 +15,14 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/app_controller.cpp
+msgid "{0} Ethernet ports"
+msgstr "{0} porte Ethernet"
+
+#: src/app_controller.cpp
+msgid "no IPv4 address"
+msgstr "nessun indirizzo IPv4"
+
+#: src/app_controller.cpp
 msgid "Local sandbox. Drag devices, connect ports and watch a ping."
 msgstr "Sandbox locale. Trascina i dispositivi, collega le porte e guarda un ping."
 
@@ -29,10 +37,6 @@ msgstr "Stai collegando un cavo: terminalo su una porta libera o su un altro dis
 #: src/app_controller.cpp
 msgid "Drag a card to move it · drag from a port or + to plug a cable · wheel to zoom"
 msgstr "Trascina una scheda per spostarla · trascina da una porta o da + per collegare un cavo · rotella per lo zoom"
-
-#: src/app_controller.cpp
-msgid "{0} Ethernet ports"
-msgstr "{0} porte Ethernet"
 
 #: src/app_controller.cpp ui/app.slint
 msgid "Your own network"
@@ -103,8 +107,20 @@ msgid "{0}: applied at t = {1}."
 msgstr "{0}: applicato a t = {1}."
 
 #: src/app_controller.cpp
+msgid "A traceroute tries 1 to 255 hops."
+msgstr "Un traceroute prova da 1 a 255 salti."
+
+#: src/app_controller.cpp
 msgid "Send 1 to 1000 Echo Requests per ping."
 msgstr "Invia da 1 a 1000 Echo Request per ping."
+
+#: src/app_controller.cpp
+msgid "Traceroute started."
+msgstr "Traceroute avviato."
+
+#: src/app_controller.cpp
+msgid "Traceroute ready. Press Step or Run to advance simulated time."
+msgstr "Traceroute pronto. Premi Passo o Avvia per far avanzare il tempo simulato."
 
 #: src/app_controller.cpp
 msgid "Ping started."
@@ -137,6 +153,10 @@ msgstr "Aggiungi un host"
 #: src/app_controller.cpp
 msgid "Add a switch"
 msgstr "Aggiungi uno switch"
+
+#: src/app_controller.cpp
+msgid "Add a router"
+msgstr "Aggiungi un router"
 
 #: src/app_controller.cpp
 msgid "Select a device to see only its events."
@@ -267,6 +287,18 @@ msgid "Language changed."
 msgstr "Lingua cambiata."
 
 #: src/app_inspector.cpp
+msgid "Not used: a connected network has the same destination."
+msgstr "Non usata: una rete connessa ha la stessa destinazione."
+
+#: src/app_inspector.cpp
+msgid "Not used: the next hop is an address of this router."
+msgstr "Non usata: il prossimo salto è un indirizzo di questo router."
+
+#: src/app_inspector.cpp
+msgid "Not used: the next hop is on none of the router's networks."
+msgstr "Non usata: il prossimo salto non è su nessuna delle reti del router."
+
+#: src/app_inspector.cpp
 msgid "Power on {0}"
 msgstr "Accendi {0}"
 
@@ -293,6 +325,18 @@ msgstr "Abilita il cavo {0}"
 #: src/app_inspector.cpp
 msgid "Port {0}"
 msgstr "Porta {0}"
+
+#: src/app_inspector.cpp
+msgid "connected"
+msgstr "connessa"
+
+#: src/app_inspector.cpp
+msgid "active"
+msgstr "attiva"
+
+#: src/app_inspector.cpp
+msgid "not used"
+msgstr "non usata"
 
 #: src/app_inspector.cpp
 msgid "Cable"
@@ -323,8 +367,16 @@ msgid "No addresses learned yet. The switch learns from incoming frames."
 msgstr "Nessun indirizzo appreso finora. Lo switch impara dai frame in arrivo."
 
 #: src/app_inspector.cpp
+msgid "Write the address of port {0} with its prefix length, for example 10.1.0.1/24."
+msgstr "Scrivi l'indirizzo della porta {0} con la lunghezza del prefisso, per esempio 10.1.0.1/24."
+
+#: src/app_inspector.cpp
 msgid "The prefix length is a whole number, for example 24."
 msgstr "La lunghezza del prefisso è un numero intero, per esempio 24."
+
+#: src/app_inspector.cpp
+msgid "Write the default gateway as an IPv4 address, for example 192.168.1.1, or leave it empty."
+msgstr "Scrivi il gateway predefinito come indirizzo IPv4, per esempio 192.168.1.1, o lascialo vuoto."
 
 #: src/app_inspector.cpp
 msgid "Write the ageing time as a duration, for example 300s."
@@ -337,6 +389,30 @@ msgstr "Niente da cambiare."
 #: src/app_inspector.cpp
 msgid "Configure {0}"
 msgstr "Configura {0}"
+
+#: src/app_inspector.cpp
+msgid "Port {0} has a cable: unplug it first."
+msgstr "La porta {0} ha un cavo: scollegalo prima."
+
+#: src/app_inspector.cpp
+msgid "{0} ports on {1}"
+msgstr "{0} porte su {1}"
+
+#: src/app_inspector.cpp
+msgid "Write the network with its prefix length, for example 10.2.0.0/24, or 0.0.0.0/0 for the default route."
+msgstr "Scrivi la rete con la lunghezza del prefisso, per esempio 10.2.0.0/24, o 0.0.0.0/0 per la rotta predefinita."
+
+#: src/app_inspector.cpp
+msgid "Write the next hop as an IPv4 address, for example 10.12.0.2: a neighbour router on a connected network."
+msgstr "Scrivi il prossimo salto come indirizzo IPv4, per esempio 10.12.0.2: un router vicino su una rete connessa."
+
+#: src/app_inspector.cpp
+msgid "Add the route {0} via {1} on {2}"
+msgstr "Aggiungi la rotta {0} via {1} su {2}"
+
+#: src/app_inspector.cpp
+msgid "Remove the route {0} via {1} on {2}"
+msgstr "Rimuovi la rotta {0} via {1} su {2}"
 
 #: src/app_inspector.cpp
 msgid "Write the delay as a duration, for example 10ms or 250us."
@@ -443,6 +519,30 @@ msgid "reply too late"
 msgstr "risposta troppo tardi"
 
 #: src/app/scene.cpp
+msgid "error too late"
+msgstr "errore troppo tardi"
+
+#: src/app/scene.cpp
+msgid "no address"
+msgstr "nessun indirizzo"
+
+#: src/app/scene.cpp
+msgid "gateway off subnet"
+msgstr "gateway fuori sottorete"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "TTL exceeded"
+msgstr "TTL esaurito"
+
+#: src/app/scene.cpp
+msgid "no ARP reply"
+msgstr "nessuna risposta ARP"
+
+#: src/app/scene.cpp
+msgid "broadcast"
+msgstr "broadcast"
+
+#: src/app/scene.cpp
 msgid "dropped"
 msgstr "scartato"
 
@@ -456,7 +556,7 @@ msgstr "ping: tempo scaduto"
 
 #: src/app/scene.cpp
 msgid "ping: no route"
-msgstr "ping: nessun percorso"
+msgstr "ping: nessuna rotta"
 
 #: src/app/scene.cpp
 msgid "ping: PC off"
@@ -465,6 +565,22 @@ msgstr "ping: PC spento"
 #: src/app/scene.cpp
 msgid "ping: ARP queue full"
 msgstr "ping: coda ARP piena"
+
+#: src/app/scene.cpp
+msgid "ping: TTL exceeded"
+msgstr "ping: TTL esaurito"
+
+#: src/app/scene.cpp
+msgid "ping: network unreachable"
+msgstr "ping: rete irraggiungibile"
+
+#: src/app/scene.cpp
+msgid "ping: host unreachable"
+msgstr "ping: host irraggiungibile"
+
+#: src/app/scene.cpp
+msgid "ping: gateway off subnet"
+msgstr "ping: gateway fuori sottorete"
 
 #: src/app/scene.cpp
 msgid "ping failed"
@@ -477,6 +593,22 @@ msgstr "acceso"
 #: src/app/scene.cpp
 msgid "powered off"
 msgstr "spento"
+
+#: src/app/scene.cpp src/explain/explain.cpp src/wire/wire.cpp
+msgid "none"
+msgstr "nessuno"
+
+#: src/app/scene.cpp
+msgid "gateway {0}"
+msgstr "gateway {0}"
+
+#: src/app/scene.cpp
+msgid "routes ×{0}"
+msgstr "rotte ×{0}"
+
+#: src/app/scene.cpp
+msgid "{0} ports"
+msgstr "{0} porte"
 
 #: src/app/scene.cpp src/explain/explain.cpp
 msgid "{0} enabled"
@@ -523,6 +655,10 @@ msgid "ARP timeout"
 msgstr "timeout ARP"
 
 #: src/app/scene.cpp
+msgid "traceroute: {0} hops"
+msgstr "traceroute: {0} salti"
+
+#: src/app/scene.cpp
 msgid "ping {0}/{1}"
 msgstr "ping {0}/{1}"
 
@@ -531,12 +667,28 @@ msgid "ping reply"
 msgstr "risposta al ping"
 
 #: src/app/scene.cpp
+msgid "traceroute failed"
+msgstr "traceroute fallito"
+
+#: src/app/scene.cpp
+msgid "hop {0}: {1}"
+msgstr "salto {0}: {1}"
+
+#: src/app/scene.cpp
 msgid "reply {0}"
 msgstr "risposta {0}"
 
 #: src/app/scene.cpp
 msgid "request {0} lost"
 msgstr "richiesta {0} persa"
+
+#: src/app/scene.cpp
+msgid "route {0} → {1}"
+msgstr "rotta {0} → {1}"
+
+#: src/app/scene.cpp
+msgid "route {0}"
+msgstr "rotta {0}"
 
 #: src/app/scene.cpp
 msgid "ARP entry expired"
@@ -549,6 +701,10 @@ msgstr "voce invecchiata"
 #: src/app/scene.cpp
 msgid "reply discarded"
 msgstr "risposta scartata"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "no route"
+msgstr "nessuna rotta"
 
 #: src/app/scene.cpp
 msgid "storm stopped"
@@ -570,6 +726,14 @@ msgstr "Echo rich"
 msgid "Echo rep"
 msgstr "Echo risp"
 
+#: src/app/scene.cpp
+msgid "TTL exc."
+msgstr "TTL esaur."
+
+#: src/app/scene.cpp
+msgid "Unreach."
+msgstr "Irraggiung."
+
 #: src/app/scene.cpp ui/timeline.slint
 msgid "Frame"
 msgstr "Frame"
@@ -589,6 +753,14 @@ msgstr "Echo Request"
 #: src/app/scene.cpp src/explain/explain.cpp
 msgid "Echo Reply"
 msgstr "Echo Reply"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "Time Exceeded"
+msgstr "Time Exceeded"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "Destination Unreachable"
+msgstr "Destination Unreachable"
 
 #: src/app/scene.cpp src/explain/explain.cpp
 msgid "ICMP message"
@@ -679,6 +851,14 @@ msgid "invalid escape in string"
 msgstr "sequenza di escape non valida nella stringa"
 
 #: src/explain/explain.cpp
+msgid "Destination Unreachable (network)"
+msgstr "Destination Unreachable (rete)"
+
+#: src/explain/explain.cpp
+msgid "Destination Unreachable (host)"
+msgstr "Destination Unreachable (host)"
+
+#: src/explain/explain.cpp
 msgid "device {0}"
 msgstr "dispositivo {0}"
 
@@ -711,8 +891,28 @@ msgid "Round trip min/avg/max: {0}/{1}/{2} ms."
 msgstr "Andata e ritorno min/media/max: {0}/{1}/{2} ms."
 
 #: src/explain/explain.cpp
-msgid "The destination {0} is outside the local subnet. This prototype has no routers or gateways yet, so no ARP request is sent for the remote host."
-msgstr "La destinazione {0} è fuori dalla sottorete locale. Questo prototipo non ha ancora router né gateway, quindi per l'host remoto non viene inviata alcuna richiesta ARP."
+msgid "The destination {0} is outside the local subnet and the PC has no default gateway, so the request has nowhere to go and no ARP request is sent. Give the PC a gateway: a router's address on its subnet."
+msgstr "La destinazione {0} è fuori dalla sottorete locale e il PC non ha un gateway predefinito, quindi la richiesta non ha dove andare e nessuna richiesta ARP viene inviata. Dai al PC un gateway: l'indirizzo di un router nella sua sottorete."
+
+#: src/explain/explain.cpp
+msgid "The destination {0} is outside the local subnet, and so is the default gateway {1}: the PC can reach only its own subnet. The gateway must be another address of the PC's subnet, usually a router's."
+msgstr "La destinazione {0} è fuori dalla sottorete locale, e lo è anche il gateway predefinito {1}: il PC può raggiungere solo la propria sottorete. Il gateway deve essere un altro indirizzo della sottorete del PC, di solito quello di un router."
+
+#: src/explain/explain.cpp
+msgid "{0} discarded the request because its TTL ran out, and sent back a Time Exceeded. The datagram went round a routing loop, or the path is longer than the TTL."
+msgstr "{0} ha scartato la richiesta perché il suo TTL si è esaurito, e ha rimandato indietro un Time Exceeded. Il datagramma ha girato in un loop di routing, oppure il percorso è più lungo del TTL."
+
+#: src/explain/explain.cpp
+msgid "{0} has no route to {1} and sent back a Destination Unreachable (network). Check that router's routes, or its default route."
+msgstr "{0} non ha una rotta verso {1} e ha rimandato indietro un Destination Unreachable (rete). Controlla le rotte di quel router, o la sua rotta predefinita."
+
+#: src/explain/explain.cpp
+msgid "{0} got no answer to its ARP requests for {1} and sent back a Destination Unreachable (host): no device on that network has the address, or it is off."
+msgstr "{0} non ha avuto risposta alle sue richieste ARP per {1} e ha rimandato indietro un Destination Unreachable (host): nessun dispositivo su quella rete ha l'indirizzo, oppure è spento."
+
+#: src/explain/explain.cpp
+msgid "No reply after three ARP requests for the default gateway {0}: nobody on the subnet has that address. Check the PC's gateway, and that the router is on and cabled. No ICMP was sent."
+msgstr "Nessuna risposta dopo tre richieste ARP per il gateway predefinito {0}: nessuno nella sottorete ha quell'indirizzo. Controlla il gateway del PC, e che il router sia acceso e cablato. Nessun ICMP è stato inviato."
 
 #: src/explain/explain.cpp
 msgid "No reply after three ARP requests. Check the address, the cables and that the devices are on. No ICMP was sent."
@@ -731,8 +931,16 @@ msgid "The MAC is known but no Echo Reply arrived. Check the subnet and the retu
 msgstr "Il MAC è noto ma nessuna Echo Reply è arrivata. Controlla anche la sottorete e il percorso di ritorno, e se il MAC in cache appartiene ancora a quell'indirizzo."
 
 #: src/explain/explain.cpp
-msgid "no route"
-msgstr "nessun percorso"
+msgid "gateway outside the subnet"
+msgstr "gateway fuori dalla sottorete"
+
+#: src/explain/explain.cpp
+msgid "network unreachable"
+msgstr "rete irraggiungibile"
+
+#: src/explain/explain.cpp
+msgid "host unreachable"
+msgstr "host irraggiungibile"
 
 #: src/explain/explain.cpp
 msgid "ARP resolution timed out"
@@ -759,6 +967,10 @@ msgid "{0}; ingress port {1}."
 msgstr "{0}; porta di ingresso {1}."
 
 #: src/explain/explain.cpp
+msgid "It is about this datagram: {0} {1} → {2}, TTL {3}."
+msgstr "Riguarda questo datagramma: {0} {1} → {2}, TTL {3}."
+
+#: src/explain/explain.cpp
 msgid "Lost on the way: the cable was disabled, unplugged or moved while the frame was on it."
 msgstr "Perso per strada: il cavo è stato disabilitato, scollegato o spostato mentre il frame lo percorreva."
 
@@ -767,12 +979,28 @@ msgid "Cannot be received: the device is powered off."
 msgstr "Non può essere ricevuto: il dispositivo è spento."
 
 #: src/explain/explain.cpp
+msgid "This router owns the requested IP: it sends a unicast ARP reply."
+msgstr "Questo router possiede l'IP richiesto: invia una risposta ARP unicast."
+
+#: src/explain/explain.cpp
 msgid "This PC owns the requested IP: it sends a unicast ARP reply."
 msgstr "Questo PC possiede l'IP richiesto: invia una risposta ARP unicast."
 
 #: src/explain/explain.cpp
-msgid "ICMP Echo Request received: an Echo Reply with the same identifier is generated."
-msgstr "Echo Request ICMP ricevuta: viene generata una Echo Reply con lo stesso identificatore."
+msgid "The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for {0} on port {1}."
+msgstr "L'indirizzo MAC del prossimo salto non è nella cache ARP: il datagramma attende mentre una richiesta ARP chiede {0} sulla porta {1}."
+
+#: src/explain/explain.cpp
+msgid "The ICMP error waits while an ARP request asks for {0} on port {1}."
+msgstr "L'errore ICMP attende mentre una richiesta ARP chiede {0} sulla porta {1}."
+
+#: src/explain/explain.cpp
+msgid "ICMP Echo Request received from another subnet: the Echo Reply goes to the default gateway, and waits while an ARP request asks for {0}."
+msgstr "Echo Request ICMP ricevuta da un'altra sottorete: la Echo Reply va al gateway predefinito, e attende mentre una richiesta ARP chiede {0}."
+
+#: src/explain/explain.cpp
+msgid "ICMP Echo Request received, but there is no ARP entry for the sender: the Echo Reply waits while an ARP request asks for {0}."
+msgstr "Echo Request ICMP ricevuta, ma non c'è una voce ARP per il mittente: la Echo Reply attende mentre una richiesta ARP chiede di {0}."
 
 #: src/explain/explain.cpp
 msgid "MAC resolved: the {0} IPv4 datagrams waiting for it can be sent."
@@ -787,8 +1015,20 @@ msgid "MAC resolved: the waiting Echo Reply can be sent."
 msgstr "MAC risolto: la Echo Reply in attesa può partire."
 
 #: src/explain/explain.cpp
-msgid "ICMP Echo Request received, but there is no ARP entry for the sender: the Echo Reply waits while an ARP request asks for {0}."
-msgstr "Echo Request ICMP ricevuta, ma non c'è una voce ARP per il mittente: la Echo Reply attende mentre una richiesta ARP chiede di {0}."
+msgid "MAC resolved: the waiting {0} can be sent."
+msgstr "MAC risolto: il {0} in attesa può partire."
+
+#: src/explain/explain.cpp
+msgid "Forwarded from port {0} to {1}."
+msgstr "Inoltrato dalla porta {0} verso {1}."
+
+#: src/explain/explain.cpp
+msgid "{0} sent back to {1} from port {2}."
+msgstr "{0} rimandato a {1} dalla porta {2}."
+
+#: src/explain/explain.cpp
+msgid "ICMP Echo Request received: an Echo Reply with the same identifier is generated."
+msgstr "Echo Request ICMP ricevuta: viene generata una Echo Reply con lo stesso identificatore."
 
 #: src/explain/explain.cpp
 msgid "Learned source MAC {0} on port {1}."
@@ -831,8 +1071,40 @@ msgid "The ARP entry for {0} has expired: no update for 60 s."
 msgstr "La voce ARP per {0} è scaduta: nessun aggiornamento per 60 s."
 
 #: src/explain/explain.cpp
+msgid "Route: {0} is on the connected network {1}, port {2}."
+msgstr "Rotta: {0} è sulla rete connessa {1}, porta {2}."
+
+#: src/explain/explain.cpp
+msgid "Route: {0} via {1}, port {2}."
+msgstr "Rotta: {0} via {1}, porta {2}."
+
+#: src/explain/explain.cpp
+msgid "It is the longest prefix that matches: {0} matches too, but is shorter."
+msgstr "È il prefisso più lungo che corrisponde: anche {0} corrisponde, ma è più corto."
+
+#: src/explain/explain.cpp
+msgid "It is the longest prefix that matches: {0} match too, but are shorter."
+msgstr "È il prefisso più lungo che corrisponde: anche {0} corrispondono, ma sono più corti."
+
+#: src/explain/explain.cpp
+msgid "TTL {0} → {1}."
+msgstr "TTL {0} → {1}."
+
+#: src/explain/explain.cpp
 msgid "Frame ignored: the destination MAC is not the local MAC."
 msgstr "Frame ignorato: il MAC di destinazione non è il MAC locale."
+
+#: src/explain/explain.cpp
+msgid "Frame ignored: the port has no IPv4 address."
+msgstr "Frame ignorato: la porta non ha un indirizzo IPv4."
+
+#: src/explain/explain.cpp
+msgid "ICMP error ignored: no request is waiting for it. Its request already timed out, or its ping ended."
+msgstr "Errore ICMP ignorato: nessuna richiesta lo sta aspettando. La sua richiesta è già scaduta, o il suo ping è finito."
+
+#: src/explain/explain.cpp
+msgid "Echo received from another subnet, but the default gateway {0} is not on the local subnet: no reply can be sent."
+msgstr "Echo ricevuta da un'altra sottorete, ma il gateway predefinito {0} non è nella sottorete locale: non si può inviare alcuna risposta."
 
 #: src/explain/explain.cpp
 msgid "Request for another address: no reply."
@@ -847,12 +1119,48 @@ msgid "Echo Reply ignored: no request is waiting for it. Its request already tim
 msgstr "Echo Reply ignorata: nessuna richiesta la sta aspettando. La sua richiesta è già scaduta, o il suo ping è finito."
 
 #: src/explain/explain.cpp
-msgid "Echo received, but there is no return route: the source is outside the local subnet. Routers and gateways are not implemented yet."
-msgstr "Echo ricevuto, ma non c'è un percorso di ritorno: la sorgente è fuori dalla sottorete locale. Router e gateway non sono ancora implementati."
+msgid "Echo received, but there is no return route: the source is outside the local subnet and the PC has no default gateway."
+msgstr "Echo ricevuta, ma non c'è una rotta di ritorno: la sorgente è fuori dalla sottorete locale e il PC non ha un gateway predefinito."
 
 #: src/explain/explain.cpp
 msgid "An Echo Reply waiting for ARP was discarded: {0}."
 msgstr "Una Echo Reply in attesa di ARP è stata scartata: {0}."
+
+#: src/explain/explain.cpp
+msgid "TTL {0}: forwarding would take it to 0, so the router discards the datagram (RFC 1812 §5.3.1)."
+msgstr "TTL {0}: inoltrarlo lo porterebbe a 0, quindi il router scarta il datagramma (RFC 1812 §5.3.1)."
+
+#: src/explain/explain.cpp
+msgid "No route matches {0}, and there is no default route: the router discards the datagram."
+msgstr "Nessuna rotta corrisponde a {0}, e non c'è una rotta predefinita: il router scarta il datagramma."
+
+#: src/explain/explain.cpp
+msgid "The router has no route back to {0}: the ICMP error cannot be sent."
+msgstr "Il router non ha una rotta di ritorno verso {0}: l'errore ICMP non può essere inviato."
+
+#: src/explain/explain.cpp
+msgid "{0} is the broadcast address of a network of this router: routers do not forward directed broadcasts (RFC 2644)."
+msgstr "{0} è l'indirizzo di broadcast di una rete di questo router: i router non inoltrano i broadcast diretti (RFC 2644)."
+
+#: src/explain/explain.cpp
+msgid "More datagrams were waiting for the same ARP answer than the router keeps ({0}): the oldest was discarded, without an ICMP error."
+msgstr "In attesa della stessa risposta ARP c'erano più datagrammi di quanti il router ne conservi ({0}): il più vecchio è stato scartato, senza un errore ICMP."
+
+#: src/explain/explain.cpp
+msgid "The datagram was discarded: {0}."
+msgstr "Il datagramma è stato scartato: {0}."
+
+#: src/explain/explain.cpp
+msgid "No ICMP error is sent about an ICMP error (RFC 1122 §3.2.2)."
+msgstr "Nessun errore ICMP viene inviato a proposito di un errore ICMP (RFC 1122 §3.2.2)."
+
+#: src/explain/explain.cpp
+msgid "Hop {0} · {1} reached"
+msgstr "Salto {0} · {1} raggiunto"
+
+#: src/explain/explain.cpp
+msgid "Echo Reply from the destination itself: it is {0} hops away. Round trip: {1}."
+msgstr "Echo Reply dalla destinazione stessa: è a {0} salti di distanza. Andata e ritorno: {1}."
 
 #: src/explain/explain.cpp
 msgid "Reply {0}/{1} · {2} → {3}"
@@ -871,8 +1179,48 @@ msgid "Echo Reply matching the current ping. The destination is reachable. Round
 msgstr "Echo Reply corrispondente al ping in corso. La destinazione è raggiungibile. Andata e ritorno: {0}."
 
 #: src/explain/explain.cpp
+msgid "Hop {0} · {1}"
+msgstr "Salto {0} · {1}"
+
+#: src/explain/explain.cpp
+msgid "Time Exceeded from {0}: the request sent with TTL {1} ran out there, so {0} is hop {1} on the way to {2}."
+msgstr "Time Exceeded da {0}: la richiesta inviata con TTL {1} si è esaurita lì, quindi {0} è il salto {1} sulla strada verso {2}."
+
+#: src/explain/explain.cpp
+msgid "Hop {0} · {1} · {2}"
+msgstr "Salto {0} · {1} · {2}"
+
+#: src/explain/explain.cpp
+msgid "Request {0}/{1} lost · {2}"
+msgstr "Richiesta {0}/{1} persa · {2}"
+
+#: src/explain/explain.cpp
+msgid "Ping failed · {0}"
+msgstr "Ping fallito · {0}"
+
+#: src/explain/explain.cpp
+msgid "Traceroute finished:"
+msgstr "Traceroute finito:"
+
+#: src/explain/explain.cpp
 msgid "Ping finished: {0}"
 msgstr "Ping finito: {0}"
+
+#: src/explain/explain.cpp
+msgid "Traceroute finished · {0} reached"
+msgstr "Traceroute finito · {0} raggiunto"
+
+#: src/explain/explain.cpp
+msgid "Traceroute failed · {0}"
+msgstr "Traceroute fallito · {0}"
+
+#: src/explain/explain.cpp
+msgid "Traceroute from {0} to {1}:"
+msgstr "Traceroute da {0} a {1}:"
+
+#: src/explain/explain.cpp
+msgid "No answer from {0} within {1} hops."
+msgstr "Nessuna risposta da {0} entro {1} salti."
 
 #: src/explain/explain.cpp
 msgid "Local ping succeeded"
@@ -881,10 +1229,6 @@ msgstr "Ping locale riuscito"
 #: src/explain/explain.cpp
 msgid "The destination is the PC's own address: no frame crosses the cables."
 msgstr "La destinazione è l'indirizzo del PC stesso: nessun frame attraversa i cavi."
-
-#: src/explain/explain.cpp
-msgid "Ping failed · {0}"
-msgstr "Ping fallito · {0}"
 
 #: src/explain/explain.cpp
 msgid "Ping finished · {0}/{1} replies"
@@ -907,16 +1251,28 @@ msgid "ARP Request sent to broadcast ({0}). Attempt {1}/{2}."
 msgstr "ARP Request inviata in broadcast ({0}). Tentativo {1}/{2}."
 
 #: src/explain/explain.cpp
-msgid "The destination is in the local subnet. Looking for its MAC address."
-msgstr "La destinazione è nella sottorete locale. Si cerca il suo indirizzo MAC."
-
-#: src/explain/explain.cpp
 msgid "The port has no active link: no frame can leave."
 msgstr "La porta non ha un collegamento attivo: nessun frame può uscire."
 
 #: src/explain/explain.cpp
+msgid "Looking for the MAC address of the next hop on port {0}."
+msgstr "Si cerca l'indirizzo MAC del prossimo salto sulla porta {0}."
+
+#: src/explain/explain.cpp
+msgid "The destination is outside the local subnet: the datagram goes to the default gateway. Looking for its MAC address."
+msgstr "La destinazione è fuori dalla sottorete locale: il datagramma va al gateway predefinito. Si cerca il suo indirizzo MAC."
+
+#: src/explain/explain.cpp
+msgid "The destination is in the local subnet. Looking for its MAC address."
+msgstr "La destinazione è nella sottorete locale. Si cerca il suo indirizzo MAC."
+
+#: src/explain/explain.cpp
 msgid "No ARP reply · retrying"
 msgstr "Nessuna risposta ARP · nuovo tentativo"
+
+#: src/explain/explain.cpp
+msgid "One simulated second has passed. The router repeats the ARP request."
+msgstr "È passato un secondo simulato. Il router ripete la richiesta ARP."
 
 #: src/explain/explain.cpp
 msgid "One simulated second has passed. The PC repeats the ARP request."
@@ -935,8 +1291,32 @@ msgid "Local reply {0}/{1}"
 msgstr "Risposta locale {0}/{1}"
 
 #: src/explain/explain.cpp
-msgid "Request {0}/{1} lost · {2}"
-msgstr "Richiesta {0}/{1} persa · {2}"
+msgid "Hop {0} · no answer"
+msgstr "Salto {0} · nessuna risposta"
+
+#: src/explain/explain.cpp
+msgid "Nothing came back within the timeout for the request with TTL {0}: traceroute shows * and tries the next hop."
+msgstr "Non è tornato nulla entro il timeout per la richiesta con TTL {0}: traceroute mostra * e prova il salto successivo."
+
+#: src/explain/explain.cpp
+msgid "{0} · no route to {1}"
+msgstr "{0} · nessuna rotta verso {1}"
+
+#: src/explain/explain.cpp
+msgid "{0} · datagram for {1} discarded"
+msgstr "{0} · datagramma per {1} scartato"
+
+#: src/explain/explain.cpp
+msgid "Three ARP requests for the next hop went unanswered, so the router cannot deliver the datagram."
+msgstr "Tre richieste ARP per il prossimo salto sono rimaste senza risposta, quindi il router non può consegnare il datagramma."
+
+#: src/explain/explain.cpp
+msgid "The datagram waited for ARP, but {0}."
+msgstr "Il datagramma attendeva ARP, ma {0}."
+
+#: src/explain/explain.cpp
+msgid "A Destination Unreachable (host) goes back to {0}."
+msgstr "Un Destination Unreachable (host) torna a {0}."
 
 #: src/explain/explain.cpp
 msgid "{0} · Echo Reply to {1} discarded"
@@ -999,6 +1379,10 @@ msgid "{0} · address {1}"
 msgstr "{0} · indirizzo {1}"
 
 #: src/explain/explain.cpp
+msgid "It was {0}. The router's connected networks, and the routes through them, change at once."
+msgstr "Era {0}. Le reti connesse del router, e le rotte che passano per esse, cambiano subito."
+
+#: src/explain/explain.cpp
 msgid "It was {0}. The PC does not announce the change: other hosts keep the old mapping in their ARP caches until the entry expires."
 msgstr "Era {0}. Il PC non annuncia il cambiamento: gli altri host mantengono la vecchia associazione nelle loro cache ARP finché la voce non scade."
 
@@ -1059,6 +1443,42 @@ msgid "It is back as it was before it was unplugged. Frames take {0} from one en
 msgstr "È tornato com'era prima di essere scollegato. I frame impiegano {0} da un capo all'altro."
 
 #: src/explain/explain.cpp
+msgid "{0} · default gateway {1}"
+msgstr "{0} · gateway predefinito {1}"
+
+#: src/explain/explain.cpp
+msgid "Datagrams for other subnets now go to {0}."
+msgstr "I datagrammi per altre sottoreti ora vanno a {0}."
+
+#: src/explain/explain.cpp
+msgid "Without a default gateway the PC reaches only its own subnet."
+msgstr "Senza un gateway predefinito il PC raggiunge solo la propria sottorete."
+
+#: src/explain/explain.cpp
+msgid "{0} · routes changed"
+msgstr "{0} · rotte cambiate"
+
+#: src/explain/explain.cpp
+msgid "The router now has 1 static route."
+msgstr "Il router ora ha 1 rotta statica."
+
+#: src/explain/explain.cpp
+msgid "The router now has {0} static routes."
+msgstr "Il router ora ha {0} rotte statiche."
+
+#: src/explain/explain.cpp
+msgid "The next datagrams it forwards follow them."
+msgstr "I prossimi datagrammi che inoltra le seguono."
+
+#: src/explain/explain.cpp
+msgid "{0} · {1} ports"
+msgstr "{0} · {1} porte"
+
+#: src/explain/explain.cpp
+msgid "The router's ports changed; their connected networks and routes change with them."
+msgstr "Le porte del router sono cambiate; le reti connesse e le rotte cambiano con loro."
+
+#: src/explain/explain.cpp
 msgid "{0} restored"
 msgstr "{0} ripristinato"
 
@@ -1087,8 +1507,8 @@ msgid "Use a name of 1 to 48 characters, without control characters."
 msgstr "Usa un nome da 1 a 48 caratteri, senza caratteri di controllo."
 
 #: src/explain/explain.cpp
-msgid "A PC has one port, a switch has eight."
-msgstr "Un PC ha una porta, uno switch ne ha otto."
+msgid "A PC has one port, a switch eight, a router two to eight."
+msgstr "Un PC ha una porta, uno switch otto, un router da due a otto."
 
 #: src/explain/explain.cpp
 msgid "Every PC needs an IPv4 address."
@@ -1147,8 +1567,8 @@ msgid "A network holds at most 100 devices."
 msgstr "Una rete contiene al massimo 100 dispositivi."
 
 #: src/explain/explain.cpp
-msgid "No free port: a PC has one port, a switch has eight."
-msgstr "Nessuna porta libera: un PC ha una porta, uno switch ne ha otto."
+msgid "No free port: every port of the device has a cable."
+msgstr "Nessuna porta libera: ogni porta del dispositivo ha un cavo."
 
 #: src/explain/explain.cpp
 msgid "Select a PC to configure IPv4."
@@ -1157,6 +1577,26 @@ msgstr "Seleziona un PC per configurare IPv4."
 #: src/explain/explain.cpp
 msgid "Only switches have an ageing time."
 msgstr "Solo gli switch hanno un tempo di invecchiamento."
+
+#: src/explain/explain.cpp
+msgid "Only routers have routes and a choice of ports."
+msgstr "Solo i router hanno rotte e un numero di porte a scelta."
+
+#: src/explain/explain.cpp
+msgid "A default gateway is a unicast IPv4 address, and only PCs have one."
+msgstr "Un gateway predefinito è un indirizzo IPv4 unicast, e solo i PC ne hanno uno."
+
+#: src/explain/explain.cpp
+msgid "A route goes to a network, with no host bits set, through a unicast next hop; only routers have routes."
+msgstr "Una rotta va verso una rete, senza bit di host impostati, attraverso un prossimo salto unicast; solo i router hanno rotte."
+
+#: src/explain/explain.cpp
+msgid "Two routes go to the same network."
+msgstr "Due rotte vanno verso la stessa rete."
+
+#: src/explain/explain.cpp
+msgid "A router holds at most 32 static routes."
+msgstr "Un router contiene al massimo 32 rotte statiche."
 
 #: src/explain/explain.cpp
 msgid "Select a PC as the ping source."
@@ -1207,8 +1647,8 @@ msgid "the destination IP belongs to another device"
 msgstr "l'IP di destinazione appartiene a un altro dispositivo"
 
 #: src/explain/explain.cpp
-msgid "the address is outside the local subnet, and there are no routers yet"
-msgstr "l'indirizzo è fuori dalla sottorete locale, e non ci sono ancora router"
+msgid "there is no route to the destination"
+msgstr "non c'è una rotta verso la destinazione"
 
 #: src/explain/explain.cpp
 msgid "three ARP requests went unanswered"
@@ -1225,6 +1665,34 @@ msgstr "datagrammi più recenti per lo stesso indirizzo hanno preso il suo posto
 #: src/explain/explain.cpp
 msgid "no request is waiting for this Echo Reply"
 msgstr "nessuna richiesta sta aspettando questa Echo Reply"
+
+#: src/explain/explain.cpp
+msgid "its TTL ran out at a router"
+msgstr "il suo TTL si è esaurito in un router"
+
+#: src/explain/explain.cpp
+msgid "a router has no route to the destination"
+msgstr "un router non ha una rotta verso la destinazione"
+
+#: src/explain/explain.cpp
+msgid "the last router got no ARP reply from the destination"
+msgstr "l'ultimo router non ha avuto risposta ARP dalla destinazione"
+
+#: src/explain/explain.cpp
+msgid "the default gateway is not on the local subnet"
+msgstr "il gateway predefinito non è nella sottorete locale"
+
+#: src/explain/explain.cpp
+msgid "the router port has no IPv4 address"
+msgstr "la porta del router non ha un indirizzo IPv4"
+
+#: src/explain/explain.cpp
+msgid "no request is waiting for this ICMP error"
+msgstr "nessuna richiesta attende questo errore ICMP"
+
+#: src/explain/explain.cpp
+msgid "routers do not forward to a network's broadcast address"
+msgstr "i router non inoltrano verso l'indirizzo di broadcast di una rete"
 
 #: src/scenario/scenario_json.cpp
 msgid "unknown member \"{0}\""
@@ -1267,8 +1735,8 @@ msgid "expected an array"
 msgstr "atteso un array"
 
 #: src/scenario/scenario_json.cpp
-msgid "expected \"host\" or \"switch\""
-msgstr "atteso \"host\" o \"switch\""
+msgid "expected \"host\", \"switch\" or \"router\""
+msgstr "atteso \"host\", \"switch\" o \"router\""
 
 #: src/scenario/scenario_json.cpp
 msgid "only switches have an ageing time"
@@ -1279,6 +1747,14 @@ msgid "expected a duration such as 300s"
 msgstr "attesa una durata come 300s"
 
 #: src/scenario/scenario_json.cpp
+msgid "only hosts have a default gateway"
+msgstr "solo gli host hanno un gateway predefinito"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected an IPv4 address such as 192.168.1.1"
+msgstr "atteso un indirizzo IPv4 come 192.168.1.1"
+
+#: src/scenario/scenario_json.cpp
 msgid "a host has {0} port"
 msgstr "un host ha {0} porta"
 
@@ -1287,12 +1763,24 @@ msgid "a switch has {0} ports"
 msgstr "uno switch ha {0} porte"
 
 #: src/scenario/scenario_json.cpp
+msgid "a router has {0} to {1} ports"
+msgstr "un router ha da {0} a {1} porte"
+
+#: src/scenario/scenario_json.cpp
 msgid "expected a MAC address such as 02:00:00:00:00:01"
 msgstr "atteso un indirizzo MAC come 02:00:00:00:00:01"
 
 #: src/scenario/scenario_json.cpp
 msgid "expected an IPv4 address with its prefix, such as 192.168.1.10/24"
 msgstr "atteso un indirizzo IPv4 con il suo prefisso, come 192.168.1.10/24"
+
+#: src/scenario/scenario_json.cpp
+msgid "only routers have routes"
+msgstr "solo i router hanno rotte"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected a network with its prefix, such as 10.1.0.0/16"
+msgstr "attesa una rete con il suo prefisso, come 10.1.0.0/16"
 
 #: src/scenario/scenario_json.cpp
 msgid "expected a duration such as 10ms or 250us"
@@ -1307,6 +1795,126 @@ msgid "incorrect"
 msgstr "errato"
 
 #: src/wire/wire.cpp
+msgid "Echo (ping) request"
+msgstr "Richiesta echo (ping)"
+
+#: src/wire/wire.cpp
+msgid "Echo (ping) reply"
+msgstr "Risposta echo (ping)"
+
+#: src/wire/wire.cpp
+msgid "Time-to-live exceeded"
+msgstr "Tempo di vita esaurito"
+
+#: src/wire/wire.cpp
+msgid "Destination unreachable"
+msgstr "Destinazione irraggiungibile"
+
+#: src/wire/wire.cpp
+msgid "Time to live exceeded in transit"
+msgstr "Tempo di vita esaurito in transito"
+
+#: src/wire/wire.cpp
+msgid "Network unreachable"
+msgstr "Rete irraggiungibile"
+
+#: src/wire/wire.cpp
+msgid "Host unreachable"
+msgstr "Host irraggiungibile"
+
+#: src/wire/wire.cpp
+msgid "{0}, quoted"
+msgstr "{0}, citato"
+
+#: src/wire/wire.cpp
+msgid "Version"
+msgstr "Versione"
+
+#: src/wire/wire.cpp
+msgid "Header length"
+msgstr "Lunghezza intestazione"
+
+#: src/wire/wire.cpp
+msgid "bytes"
+msgstr "byte"
+
+#: src/wire/wire.cpp
+msgid "Differentiated services"
+msgstr "Servizi differenziati"
+
+#: src/wire/wire.cpp
+msgid "Total length"
+msgstr "Lunghezza totale"
+
+#: src/wire/wire.cpp
+msgid "Identification"
+msgstr "Identificazione"
+
+#: src/wire/wire.cpp
+msgid "Flags"
+msgstr "Flag"
+
+#: src/wire/wire.cpp
+msgid "Fragment offset"
+msgstr "Offset del frammento"
+
+#: src/wire/wire.cpp
+msgid "Time to live"
+msgstr "Tempo di vita (TTL)"
+
+#: src/wire/wire.cpp
+msgid "hops left"
+msgstr "salti rimasti"
+
+#: src/wire/wire.cpp
+msgid "Protocol"
+msgstr "Protocollo"
+
+#: src/wire/wire.cpp
+msgid "Header checksum"
+msgstr "Checksum dell'intestazione"
+
+#: src/wire/wire.cpp
+msgid "Source address"
+msgstr "Indirizzo sorgente"
+
+#: src/wire/wire.cpp
+msgid "Destination address"
+msgstr "Indirizzo di destinazione"
+
+#: src/wire/wire.cpp
+msgid "Type"
+msgstr "Tipo"
+
+#: src/wire/wire.cpp
+msgid "Code"
+msgstr "Codice"
+
+#: src/wire/wire.cpp
+msgid "Checksum"
+msgstr "Checksum"
+
+#: src/wire/wire.cpp
+msgid "Unused"
+msgstr "Inutilizzato"
+
+#: src/wire/wire.cpp
+msgid "Identifier"
+msgstr "Identificatore"
+
+#: src/wire/wire.cpp
+msgid "Sequence number"
+msgstr "Numero di sequenza"
+
+#: src/wire/wire.cpp
+msgid "Data"
+msgstr "Dati"
+
+#: src/wire/wire.cpp
+msgid "{0} bytes"
+msgstr "{0} byte"
+
+#: src/wire/wire.cpp
 msgid "Broadcast"
 msgstr "Broadcast"
 
@@ -1317,10 +1925,6 @@ msgstr "Destinazione"
 #: src/wire/wire.cpp
 msgid "Source"
 msgstr "Sorgente"
-
-#: src/wire/wire.cpp
-msgid "Type"
-msgstr "Tipo"
 
 #: src/wire/wire.cpp
 msgid "Hardware type"
@@ -1367,98 +1971,6 @@ msgid "Target IP address"
 msgstr "Indirizzo IP cercato"
 
 #: src/wire/wire.cpp
-msgid "Version"
-msgstr "Versione"
-
-#: src/wire/wire.cpp
-msgid "Header length"
-msgstr "Lunghezza intestazione"
-
-#: src/wire/wire.cpp
-msgid "bytes"
-msgstr "byte"
-
-#: src/wire/wire.cpp
-msgid "Differentiated services"
-msgstr "Servizi differenziati"
-
-#: src/wire/wire.cpp
-msgid "Total length"
-msgstr "Lunghezza totale"
-
-#: src/wire/wire.cpp
-msgid "Identification"
-msgstr "Identificazione"
-
-#: src/wire/wire.cpp
-msgid "Flags"
-msgstr "Flag"
-
-#: src/wire/wire.cpp
-msgid "none"
-msgstr "nessuno"
-
-#: src/wire/wire.cpp
-msgid "Fragment offset"
-msgstr "Offset del frammento"
-
-#: src/wire/wire.cpp
-msgid "Time to live"
-msgstr "Tempo di vita (TTL)"
-
-#: src/wire/wire.cpp
-msgid "hops left"
-msgstr "salti rimasti"
-
-#: src/wire/wire.cpp
-msgid "Protocol"
-msgstr "Protocollo"
-
-#: src/wire/wire.cpp
-msgid "Header checksum"
-msgstr "Checksum dell'intestazione"
-
-#: src/wire/wire.cpp
-msgid "Source address"
-msgstr "Indirizzo sorgente"
-
-#: src/wire/wire.cpp
-msgid "Destination address"
-msgstr "Indirizzo di destinazione"
-
-#: src/wire/wire.cpp
-msgid "Echo (ping) request"
-msgstr "Richiesta echo (ping)"
-
-#: src/wire/wire.cpp
-msgid "Echo (ping) reply"
-msgstr "Risposta echo (ping)"
-
-#: src/wire/wire.cpp
-msgid "Code"
-msgstr "Codice"
-
-#: src/wire/wire.cpp
-msgid "Checksum"
-msgstr "Checksum"
-
-#: src/wire/wire.cpp
-msgid "Identifier"
-msgstr "Identificatore"
-
-#: src/wire/wire.cpp
-msgid "Sequence number"
-msgstr "Numero di sequenza"
-
-#: src/wire/wire.cpp
-msgid "Data"
-msgstr "Dati"
-
-#: src/wire/wire.cpp
-msgid "{0} bytes"
-msgstr "{0} byte"
-
-#: src/wire/wire.cpp
 msgid "Padding"
 msgstr "Riempimento"
 
@@ -1489,6 +2001,14 @@ msgstr "Switch"
 #: ui/app.slint
 msgid "Layer 2 · 8 ports"
 msgstr "Livello 2 · 8 porte"
+
+#: ui/app.slint
+msgid "Router"
+msgstr "Router"
+
+#: ui/app.slint
+msgid "IPv4 · 2 to 8 ports"
+msgstr "IPv4 · da 2 a 8 porte"
 
 #: ui/app.slint
 msgid "Drag a card to move it. Drag from a port light or from + to another card to plug a cable."
@@ -1537,6 +2057,10 @@ msgstr "Aggiungi host"
 #: ui/app.slint
 msgid "Add switch"
 msgstr "Aggiungi switch"
+
+#: ui/app.slint
+msgid "Add router"
+msgstr "Aggiungi router"
 
 #: ui/app.slint
 msgid "Delete selection"
@@ -1631,6 +2155,10 @@ msgid "Show the palette"
 msgstr "Mostra la tavolozza"
 
 #: ui/app.slint
+msgid "Traceroute"
+msgstr "Traceroute"
+
+#: ui/app.slint
 msgid "Destination IPv4"
 msgstr "IPv4 di destinazione"
 
@@ -1639,8 +2167,20 @@ msgid "Echo Requests per ping"
 msgstr "Echo Request per ping"
 
 #: ui/app.slint
+msgid "Hops to try"
+msgstr "Salti da provare"
+
+#: ui/app.slint
+msgid "Trace"
+msgstr "Traccia"
+
+#: ui/app.slint
 msgid "Send"
 msgstr "Invia"
+
+#: ui/app.slint
+msgid "Start the traceroute"
+msgstr "Avvia il traceroute"
 
 #: ui/app.slint
 msgid "Send the ping"
@@ -1683,6 +2223,10 @@ msgid "SWITCH L2"
 msgstr "SWITCH L2"
 
 #: ui/canvas.slint
+msgid "ROUTER L3"
+msgstr "ROUTER L3"
+
+#: ui/canvas.slint
 msgid "HOST"
 msgstr "HOST"
 
@@ -1703,8 +2247,8 @@ msgid "A network starts\nwith a connection."
 msgstr "Una rete comincia\nda un collegamento."
 
 #: ui/canvas.slint
-msgid "Add a host or a switch from the panel on the left."
-msgstr "Aggiungi un host o uno switch dal pannello a sinistra."
+msgid "Add a host, a switch or a router from the panel on the left."
+msgstr "Aggiungi un host, uno switch o un router dal pannello a sinistra."
 
 #: ui/canvas.slint
 msgid "Simulated time {0}"
@@ -1783,6 +2327,18 @@ msgid "Off"
 msgstr "Off"
 
 #: ui/inspector.slint
+msgid "No address, e.g. 10.1.0.1/24"
+msgstr "Nessun indirizzo, es. 10.1.0.1/24"
+
+#: ui/inspector.slint
+msgid "IPv4 address of {0}"
+msgstr "Indirizzo IPv4 della {0}"
+
+#: ui/inspector.slint
+msgid "Remove the route to {0}"
+msgstr "Rimuovi la rotta verso {0}"
+
+#: ui/inspector.slint
 msgid "Hide the inspector"
 msgstr "Nascondi l'ispettore"
 
@@ -1813,6 +2369,14 @@ msgstr "Indirizzo IPv4"
 #: ui/inspector.slint
 msgid "Prefix length"
 msgstr "Prefisso"
+
+#: ui/inspector.slint
+msgid "Default gateway"
+msgstr "Gateway predefinito"
+
+#: ui/inspector.slint
+msgid "None, e.g. 192.168.1.1"
+msgstr "Nessuno, es. 192.168.1.1"
 
 #: ui/inspector.slint
 msgid "MAC ageing time"
@@ -1873,6 +2437,62 @@ msgstr "Porta"
 #: ui/inspector.slint
 msgid "Age"
 msgstr "Età"
+
+#: ui/inspector.slint
+msgid "IPv4 ROUTER"
+msgstr "ROUTER IPv4"
+
+#: ui/inspector.slint
+msgid "Remove the last port"
+msgstr "Rimuovi l'ultima porta"
+
+#: ui/inspector.slint
+msgid "Add a port"
+msgstr "Aggiungi una porta"
+
+#: ui/inspector.slint
+msgid "Each address makes its network a connected route. Apply saves the addresses typed."
+msgstr "Ogni indirizzo rende la sua rete una rotta connessa. Applica salva gli indirizzi scritti."
+
+#: ui/inspector.slint
+msgid "STATIC ROUTES"
+msgstr "ROTTE STATICHE"
+
+#: ui/inspector.slint
+msgid "No static routes: the router reaches only its connected networks."
+msgstr "Nessuna rotta statica: il router raggiunge solo le sue reti connesse."
+
+#: ui/inspector.slint
+msgid "Network"
+msgstr "Rete"
+
+#: ui/inspector.slint
+msgid "e.g. {0}"
+msgstr "es. {0}"
+
+#: ui/inspector.slint
+msgid "Next hop"
+msgstr "Prossimo salto"
+
+#: ui/inspector.slint
+msgid "Add route"
+msgstr "Aggiungi rotta"
+
+#: ui/inspector.slint
+msgid "Add the static route"
+msgstr "Aggiungi la rotta statica"
+
+#: ui/inspector.slint
+msgid "0.0.0.0/0 is the default route, for every address no other route matches."
+msgstr "0.0.0.0/0 è la rotta predefinita, per ogni indirizzo a cui non corrisponde nessun'altra rotta."
+
+#: ui/inspector.slint
+msgid "ROUTING TABLE"
+msgstr "TABELLA DI ROUTING"
+
+#: ui/inspector.slint
+msgid "A datagram follows the longest prefix that matches its destination."
+msgstr "Un datagramma segue il prefisso più lungo che corrisponde alla sua destinazione."
 
 #: ui/inspector.slint
 msgid "CABLE"
@@ -1970,6 +2590,14 @@ msgstr "IL SIMULATORE È INTERVENUTO"
 msgid "INSIDE THE PACKET  /  {0}"
 msgstr "DENTRO IL PACCHETTO  /  {0}"
 
+#: examples/longest-prefix.json
+msgid "Longest prefix match"
+msgstr "Corrispondenza del prefisso più lungo"
+
+#: examples/longest-prefix.json
+msgid "Core has three routes that overlap: 10.0.0.0/8 to Wide, 10.20.0.0/16 to Middle and 10.20.30.0/24 to Narrow. Ping PC-8, PC-16 and PC-24 from PC-A, or trace the route to each: every address matches 10.0.0.0/8, and the longest prefix that matches decides."
+msgstr "Core ha tre rotte che si sovrappongono: 10.0.0.0/8 verso Wide, 10.20.0.0/16 verso Middle e 10.20.30.0/24 verso Narrow. Fai un ping a PC-8, PC-16 e PC-24 da PC-A, o un traceroute verso ciascuno: ogni indirizzo corrisponde a 10.0.0.0/8, e decide il prefisso più lungo che corrisponde."
+
 #: examples/mismatched-masks.json
 msgid "Mismatched masks"
 msgstr "Maschere diverse"
@@ -1978,6 +2606,14 @@ msgstr "Maschere diverse"
 msgid "PC-A has a /16 mask and believes PC-B is on its network, so ARP succeeds and the Echo Request arrives. PC-B has a /24 mask: for it PC-A is on another network, and without a router it cannot reply. The ping times out."
 msgstr "PC-A ha una maschera /16 e crede che PC-B sia nella sua rete, quindi ARP riesce e l'Echo Request arriva. PC-B ha una maschera /24: per PC-B, PC-A è su un'altra rete e, senza un router, non può rispondere. Il ping scade senza risposta."
 
+#: examples/missing-return-route.json
+msgid "Missing return route"
+msgstr "Rotta di ritorno mancante"
+
+#: examples/missing-return-route.json
+msgid "R1 knows the way to 10.2.0.0/24, but R2 has no route back to 10.1.0.0/24. Ping PC-B from PC-A: the request arrives and PC-B answers, but R2 drops the reply and tells PC-B. Add the route 10.1.0.0/24 via 10.12.0.1 on R2."
+msgstr "R1 conosce la strada verso 10.2.0.0/24, ma R2 non ha una rotta di ritorno verso 10.1.0.0/24. Fai un ping a PC-B da PC-A: la richiesta arriva e PC-B risponde, ma R2 scarta la risposta e lo comunica a PC-B. Aggiungi su R2 la rotta 10.1.0.0/24 via 10.12.0.1."
+
 #: examples/office-floor.json
 msgid "Office floor"
 msgstr "Piano dell'ufficio"
@@ -1985,6 +2621,14 @@ msgstr "Piano dell'ufficio"
 #: examples/office-floor.json
 msgid "Six PCs on two switches. Start several pings at once and watch the switches fill their MAC tables. Printer-Room has its port disabled on the switch side."
 msgstr "Sei PC su due switch. Avvia più ping insieme e guarda gli switch riempire le loro tabelle MAC. Printer-Room ha la porta disabilitata dal lato dello switch."
+
+#: examples/routing-loop.json
+msgid "Routing loop"
+msgstr "Loop di routing"
+
+#: examples/routing-loop.json
+msgid "R1 and R2 send everything they have no route for to each other. Ping 10.9.9.9 from PC-A: the request goes back and forth until its TTL runs out, and a Time Exceeded comes back. A traceroute to 10.9.9.9 shows the two routers taking turns."
+msgstr "R1 e R2 si mandano a vicenda tutto ciò per cui non hanno una rotta. Fai un ping a 10.9.9.9 da PC-A: la richiesta va avanti e indietro finché il suo TTL si esaurisce, e torna un Time Exceeded. Un traceroute verso 10.9.9.9 mostra i due router che si alternano."
 
 #: examples/sample-lan.json
 msgid "Sample LAN"
@@ -2002,6 +2646,14 @@ msgstr "Anello di switch"
 msgid "Three switches joined in a ring. An Ethernet frame has no TTL, so PC-A's broadcast ARP request goes round the ring both ways for ever, and the switches keep learning PC-A's MAC on the wrong ports. resend stops each storm with a guard of its own; real networks prevent loops with spanning tree (STP), not implemented yet. Disable one cable of the ring and ping again."
 msgstr "Tre switch collegati ad anello. Un frame Ethernet non ha TTL, quindi la richiesta ARP broadcast di PC-A gira nell'anello nei due sensi senza fine, e gli switch continuano a imparare il MAC di PC-A sulle porte sbagliate. resend ferma ogni tempesta con una protezione propria; le reti reali evitano gli anelli con lo spanning tree (STP), non ancora implementato. Disabilita un cavo dell'anello e invia di nuovo il ping."
 
+#: examples/two-lans-router.json
+msgid "Two LANs and a router"
+msgstr "Due LAN e un router"
+
+#: examples/two-lans-router.json
+msgid "PC-A and PC-B are on different subnets, joined by a router. Ping PC-B from PC-A: PC-A asks for its gateway's MAC address, not PC-B's; the router takes the datagram off one LAN, lowers its TTL and puts it on the other. Then try a traceroute."
+msgstr "PC-A e PC-B sono su sottoreti diverse, unite da un router. Fai un ping a PC-B da PC-A: PC-A chiede l'indirizzo MAC del suo gateway, non quello di PC-B; il router prende il datagramma da una LAN, ne abbassa il TTL e lo mette sull'altra. Poi prova un traceroute."
+
 #: examples/two-switches.json
 msgid "Two switches"
 msgstr "Due switch"
@@ -2017,3 +2669,11 @@ msgstr "Cavo staccato"
 #: examples/unplugged.json
 msgid "The cable to PC-B is down. The switch floods PC-A's ARP request, but no copy can reach PC-B: after three requests, one second apart, PC-A gives up without sending any ICMP."
 msgstr "Il cavo verso PC-B è disabilitato. Lo switch inonda la richiesta ARP di PC-A, ma nessuna copia può raggiungere PC-B: dopo tre richieste, a un secondo di distanza, PC-A rinuncia senza inviare alcun pacchetto ICMP."
+
+#: examples/wrong-gateway.json
+msgid "Wrong gateway"
+msgstr "Gateway sbagliato"
+
+#: examples/wrong-gateway.json
+msgid "PC-A's default gateway is 10.1.0.254, an address nobody has; PC-C's is 10.2.0.1, an address of the other subnet. Ping PC-B from each and read why both fail, then set their gateway to the router, 10.1.0.1."
+msgstr "Il gateway predefinito di PC-A è 10.1.0.254, un indirizzo che nessuno ha; quello di PC-C è 10.2.0.1, un indirizzo dell'altra sottorete. Fai un ping a PC-B da ciascuno e leggi perché falliscono entrambi, poi imposta come loro gateway il router, 10.1.0.1."

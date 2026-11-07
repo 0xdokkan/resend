@@ -32,16 +32,30 @@ constexpr std::size_t arp_queue_limit = 3;
 constexpr SimTime arp_cache_timeout = std::chrono::seconds(60);
 
 // A ping, as the ping command runs it: `count` Echo Requests, one every
-// `interval`. Each request waits `timeout` for its reply from the moment it
-// leaves the host, so the wait for ARP is not counted; its round trip is
-// measured from the moment the ping sent it, as ping does.
+// `interval`, each with time to live `ttl`. Each request waits `timeout` for
+// its reply from the moment it leaves the host, so the wait for ARP is not
+// counted; its round trip is measured from the moment the ping sent it, as
+// ping does. An ICMP error about a request ends its wait at once.
+//
+// A traceroute over ICMP, as `traceroute -I` and Windows' tracert run it,
+// is a ping whose request n has time to live n: each router on the way
+// answers the request that dies there with a Time Exceeded. One request
+// goes at a time, the next as soon as the last has an answer or times out,
+// until the destination replies, a Destination Unreachable comes back, the
+// request cannot leave the host, or `count` hops were tried; `interval` and
+// `ttl` are not used.
 struct PingOptions {
     std::uint16_t count = 1;
     SimTime interval = std::chrono::seconds(1);
     SimTime timeout = std::chrono::seconds(1);
+    std::uint8_t ttl = default_ttl;
+    bool traceroute = false;
     bool operator==(const PingOptions&) const = default;
 };
 constexpr std::uint16_t max_ping_count = 1000;
+// As traceroute's default and limit.
+constexpr std::uint16_t default_max_hops = 30;
+constexpr std::uint16_t max_hops = 255;
 constexpr SimTime min_ping_time = std::chrono::milliseconds(10);
 constexpr SimTime max_ping_time = std::chrono::seconds(60);
 // Data bytes after the ICMP header, as ping sends by default: 64 bytes of ICMP.
@@ -57,6 +71,10 @@ struct EchoStatus {
     Reason reason = Reason::None;  // why it was lost
     SimTime sent{}, finished{};    // handed to IPv4; replied or lost
     std::uint64_t record = 0;      // seq of its PingReply or PingLost record
+    std::uint8_t ttl = 0;          // the request's time to live
+    // Who answered: the destination with its Echo Reply, or the router
+    // that sent an ICMP error about the request. Zero otherwise.
+    Ipv4Address responder{};
     bool operator==(const EchoStatus&) const = default;
 };
 
@@ -81,6 +99,7 @@ struct ArpCacheEntry {
     ArpState state = ArpState::Reachable;
     SimTime expires{};       // reachable: when the entry expires
     std::size_t queued = 0;  // incomplete: datagrams waiting for the answer
+    std::uint8_t port = 0;   // zero-based: a router has a cache on each port
     bool operator==(const ArpCacheEntry&) const = default;
 };
 struct MacTableEntry {

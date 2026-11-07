@@ -6,8 +6,9 @@
 
 namespace netsim {
 
-// One Ethernet interface of a host (later, of a router): a port, its MAC
-// and its IPv4 address, read from the device's configuration.
+// One Ethernet interface of a host or a router: a port, its MAC and its
+// IPv4 address, read from the device's configuration. Routers use it only
+// on ports with an address.
 struct Nic {
     std::uint8_t port = 0;
 

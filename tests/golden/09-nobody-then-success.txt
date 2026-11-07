@@ -159,21 +159,21 @@ frame 6 link 1  Switch-01 port 1 > PC-A port 1  3070.000 ms .. 3080.000 ms  reco
     MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
 3050.000 ms  [ICMP] PC-A → Switch-01 · Echo Request  (ok, from 1 to 3 link 1 frame 5)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     Unicast on port 2.
 3060.000 ms  [ICMP] Switch-01 → PC-B · Echo Request  (ok, from 3 to 2 link 2 frame 5)
     Ethernet: 02:00:00:00:00:01 → 02:00:00:00:00:02
-    IPv4: 192.168.1.10 → 192.168.1.20
+    IPv4: 192.168.1.10 → 192.168.1.20, TTL 64
     Echo Request; ingress port 1.
     ICMP Echo Request received: an Echo Reply with the same identifier is generated.
 3070.000 ms  [ICMP] PC-B → Switch-01 · Echo Reply  (ok, from 2 to 3 link 2 frame 6)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 2.
     Unicast on port 1.
 3080.000 ms  [ICMP] Ping succeeded · 192.168.1.20 → PC-A  (ok, from 3 to 1 link 1 frame 6)
     Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:01
-    IPv4: 192.168.1.20 → 192.168.1.10
+    IPv4: 192.168.1.20 → 192.168.1.10, TTL 64
     Echo Reply; ingress port 1.
     Echo Reply matching the current ping. The destination is reachable. Round trip: 80.000 ms.

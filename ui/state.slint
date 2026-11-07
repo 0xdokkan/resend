@@ -72,6 +72,9 @@ export global UiRun {
     in-out property <string> target: "192.168.1.20";
     // Echo Requests per ping.
     in-out property <string> count: "1";
+    // A traceroute instead of a ping, and the hops it tries.
+    in-out property <bool> traceroute;
+    in-out property <string> hops: "30";
     in property <bool> can-ping;
     // True while the animation plays, including a step in progress.
     in property <bool> running;

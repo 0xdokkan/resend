@@ -50,12 +50,25 @@ LinkId Scenario::next_link_id() const {
     return LinkId{last + 1};
 }
 
-int port_count(DeviceKind kind) { return kind == DeviceKind::Host ? host_ports : switch_ports; }
+int port_count(DeviceKind kind) {
+    switch (kind) {
+    case DeviceKind::Host: return host_ports;
+    case DeviceKind::Switch: return switch_ports;
+    case DeviceKind::Router: return router_ports;
+    }
+    return host_ports;
+}
+
+bool valid_port_count(DeviceKind kind, std::size_t count) {
+    if (kind == DeviceKind::Router) return count >= min_router_ports && count <= max_router_ports;
+    return count == static_cast<std::size_t>(port_count(kind));
+}
 
 MacAddress default_mac(DeviceKind kind, DeviceId id, int port) {
     if (kind == DeviceKind::Host) return MacAddress::local(id.value);
     const auto v = id.value;
-    return MacAddress(MacAddress::Bytes{0x02, static_cast<std::uint8_t>(0x10 + port), static_cast<std::uint8_t>(v >> 24),
+    const auto base = kind == DeviceKind::Switch ? 0x10 : 0x20;
+    return MacAddress(MacAddress::Bytes{0x02, static_cast<std::uint8_t>(base + port), static_cast<std::uint8_t>(v >> 24),
                                        static_cast<std::uint8_t>(v >> 16), static_cast<std::uint8_t>(v >> 8),
                                        static_cast<std::uint8_t>(v)});
 }
@@ -64,6 +77,20 @@ std::vector<PortConfig> default_ports(DeviceKind kind, DeviceId id) {
     std::vector<PortConfig> ports;
     for (int port = 0; port < port_count(kind); ++port) ports.push_back({default_mac(kind, id, port), true, std::nullopt});
     return ports;
+}
+
+Problem check_gateway(const std::optional<Ipv4Address>& gateway) {
+    return gateway && !is_unicast(*gateway) ? Problem::InvalidGateway : Problem::None;
+}
+
+Problem check_routes(const std::vector<Route>& routes) {
+    if (routes.size() > max_routes) return Problem::TooManyRoutes;
+    std::set<Ipv4Prefix> destinations;
+    for (const auto& route : routes) {
+        if (route.destination != route.destination.canonical() || !is_unicast(route.next_hop)) return Problem::InvalidRoute;
+        if (!destinations.insert(route.destination).second) return Problem::DuplicateRoute;
+    }
+    return Problem::None;
 }
 
 bool valid_name(std::string_view name) {
@@ -83,7 +110,7 @@ std::vector<Issue> validate(const Scenario& scenario) {
         if (device.id.value == 0) report(Problem::InvalidDeviceId, who);
         else if (!device_ids.insert(device.id).second) report(Problem::DuplicateDeviceId, who);
         if (!valid_name(device.name)) report(Problem::InvalidName, "device " + std::to_string(device.id.value));
-        if (static_cast<int>(device.ports.size()) != port_count(device.kind)) {
+        if (!valid_port_count(device.kind, device.ports.size())) {
             report(Problem::WrongPortCount, who);
             continue;
         }
@@ -92,8 +119,14 @@ std::vector<Issue> validate(const Scenario& scenario) {
         for (const auto& port : device.ports) {
             if (device.kind == DeviceKind::Switch && port.ipv4) report(Problem::AddressOnSwitch, who);
             if (device.kind == DeviceKind::Host && !port.ipv4) report(Problem::MissingAddress, who);
-            if (device.kind == DeviceKind::Host && port.ipv4 && !port.ipv4->usable_host())
+            if (device.kind != DeviceKind::Switch && port.ipv4 && !port.ipv4->usable_host())
                 report(Problem::InvalidHostAddress, who + " " + port.ipv4->to_string());
+        }
+        if (device.gateway && (device.kind != DeviceKind::Host || !ok(check_gateway(device.gateway))))
+            report(Problem::InvalidGateway, who);
+        if (!device.routes.empty()) {
+            const auto problem = device.kind == DeviceKind::Router ? check_routes(device.routes) : Problem::InvalidRoute;
+            if (!ok(problem)) report(problem, who);
         }
     }
 

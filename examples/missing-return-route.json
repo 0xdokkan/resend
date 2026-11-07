@@ -1,0 +1,129 @@
+{
+  "format": "resend-scenario",
+  "version": 2,
+  "title": "Missing return route",
+  "notes": "R1 knows the way to 10.2.0.0/24, but R2 has no route back to 10.1.0.0/24. Ping PC-B from PC-A: the request arrives and PC-B answers, but R2 drops the reply and tells PC-B. Add the route 10.1.0.0/24 via 10.12.0.1 on R2.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "host",
+      "name": "PC-A",
+      "powered": true,
+      "x": 40,
+      "y": 200,
+      "gateway": "10.1.0.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:01",
+          "up": true,
+          "ipv4": "10.1.0.10/24"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "router",
+      "name": "R1",
+      "powered": true,
+      "x": 250,
+      "y": 200,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:02",
+          "up": true,
+          "ipv4": "10.1.0.1/24"
+        },
+        {
+          "mac": "02:21:00:00:00:02",
+          "up": true,
+          "ipv4": "10.12.0.1/30"
+        }
+      ],
+      "routes": [
+        {
+          "destination": "10.2.0.0/24",
+          "via": "10.12.0.2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "router",
+      "name": "R2",
+      "powered": true,
+      "x": 460,
+      "y": 200,
+      "ports": [
+        {
+          "mac": "02:20:00:00:00:03",
+          "up": true,
+          "ipv4": "10.12.0.2/30"
+        },
+        {
+          "mac": "02:21:00:00:00:03",
+          "up": true,
+          "ipv4": "10.2.0.1/24"
+        }
+      ],
+      "routes": []
+    },
+    {
+      "id": 4,
+      "kind": "host",
+      "name": "PC-B",
+      "powered": true,
+      "x": 670,
+      "y": 200,
+      "gateway": "10.2.0.1",
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:04",
+          "up": true,
+          "ipv4": "10.2.0.20/24"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 1,
+        "port": 1
+      },
+      "b": {
+        "device": 2,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 2,
+        "port": 2
+      },
+      "b": {
+        "device": 3,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 3,
+      "a": {
+        "device": 3,
+        "port": 2
+      },
+      "b": {
+        "device": 4,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    }
+  ]
+}

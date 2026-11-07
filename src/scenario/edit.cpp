@@ -56,13 +56,48 @@ Problem apply_one(Scenario& scenario, const SetPowered& edit) {
     return Problem::None;
 }
 
+Problem check_address(const std::optional<Ipv4Prefix>& address) {
+    if (!address) return Problem::None;
+    if (address->length() < 1) return Problem::InvalidPrefix;
+    return address->usable_host() ? Problem::None : Problem::InvalidHostAddress;
+}
+
 Problem apply_one(Scenario& scenario, const SetAddress& edit) {
     auto* device = scenario.device(edit.port.device);
-    if (!device || device->kind != DeviceKind::Host) return Problem::NotAHost;
+    if (!device) return Problem::NotAHost;
+    if (device->kind == DeviceKind::Switch) return Problem::AddressOnSwitch;
     if (edit.port.port >= device->ports.size()) return Problem::NoSuchPort;
-    if (edit.address.length() < 1) return Problem::InvalidPrefix;
-    if (!edit.address.usable_host()) return Problem::InvalidHostAddress;
+    if (device->kind == DeviceKind::Host && !edit.address) return Problem::MissingAddress;
+    if (const auto problem = check_address(edit.address); !ok(problem)) return problem;
     device->ports[edit.port.port].ipv4 = edit.address;
+    return Problem::None;
+}
+
+Problem apply_one(Scenario& scenario, const SetGateway& edit) {
+    auto* device = scenario.device(edit.device);
+    if (!device || device->kind != DeviceKind::Host) return Problem::NotAHost;
+    if (const auto problem = check_gateway(edit.gateway); !ok(problem)) return problem;
+    device->gateway = edit.gateway;
+    return Problem::None;
+}
+
+Problem apply_one(Scenario& scenario, const SetRoutes& edit) {
+    auto* device = scenario.device(edit.device);
+    if (!device || device->kind != DeviceKind::Router) return Problem::NotARouter;
+    if (const auto problem = check_routes(edit.routes); !ok(problem)) return problem;
+    device->routes = edit.routes;
+    return Problem::None;
+}
+
+Problem apply_one(Scenario& scenario, const SetPorts& edit) {
+    auto* device = scenario.device(edit.device);
+    if (!device || device->kind != DeviceKind::Router) return Problem::NotARouter;
+    if (!valid_port_count(device->kind, edit.ports.size())) return Problem::WrongPortCount;
+    for (auto port = edit.ports.size(); port < device->ports.size(); ++port)
+        if (scenario.link_at({edit.device, static_cast<std::uint8_t>(port)})) return Problem::PortInUse;
+    for (const auto& port : edit.ports)
+        if (const auto problem = check_address(port.ipv4); !ok(problem)) return problem;
+    device->ports = edit.ports;
     return Problem::None;
 }
 
@@ -129,7 +164,8 @@ Problem apply_one(Scenario& scenario, const AddDevice& edit) {
     const auto id = edit.id.value_or(scenario.next_device_id());
     if (id.value == 0) return Problem::InvalidDeviceId;
     if (scenario.device(id)) return Problem::DuplicateDeviceId;
-    DeviceConfig device{id, edit.kind, (edit.kind == DeviceKind::Host ? "PC-" : "Switch-") + std::to_string(id.value), true,
+    const char* prefix = edit.kind == DeviceKind::Host ? "PC-" : edit.kind == DeviceKind::Switch ? "Switch-" : "Router-";
+    DeviceConfig device{id, edit.kind, prefix + std::to_string(id.value), true,
                         default_ports(edit.kind, id), std::clamp(edit.x, -max_coordinate, max_coordinate),
                         std::clamp(edit.y, -max_coordinate, max_coordinate)};
     if (edit.kind == DeviceKind::Host) {
@@ -206,9 +242,7 @@ std::optional<Edit> inverse(const Scenario& before, const Edit& edit) {
         },
         [&](const SetPowered& item) -> std::optional<Edit> { return SetPowered{item.device, device(item.device)->powered}; },
         [&](const SetAddress& item) -> std::optional<Edit> {
-            const auto& old = device(item.port.device)->ports[item.port.port].ipv4;
-            if (!old) return std::nullopt;
-            return SetAddress{item.port, *old};
+            return SetAddress{item.port, device(item.port.device)->ports[item.port.port].ipv4};
         },
         [&](const SetAgeing& item) -> std::optional<Edit> { return SetAgeing{item.device, device(item.device)->mac_ageing}; },
         [&](const Rename& item) -> std::optional<Edit> { return Rename{item.device, device(item.device)->name}; },
@@ -240,7 +274,17 @@ std::optional<Edit> inverse(const Scenario& before, const Edit& edit) {
         },
         [&](const RestoreLink& item) -> std::optional<Edit> { return Disconnect{item.link.id}; },
         [&](const RestoreDevice& item) -> std::optional<Edit> { return RemoveDevice{item.device.id}; },
+        [&](const SetGateway& item) -> std::optional<Edit> { return SetGateway{item.device, device(item.device)->gateway}; },
+        [&](const SetRoutes& item) -> std::optional<Edit> { return SetRoutes{item.device, device(item.device)->routes}; },
+        [&](const SetPorts& item) -> std::optional<Edit> { return SetPorts{item.device, device(item.device)->ports}; },
     }, edit);
+}
+
+std::vector<PortConfig> resized_ports(const DeviceConfig& device, std::size_t count) {
+    auto ports = device.ports;
+    ports.resize(std::min(ports.size(), count));
+    while (ports.size() < count) ports.push_back({default_mac(device.kind, device.id, static_cast<int>(ports.size())), true, std::nullopt});
+    return ports;
 }
 
 std::optional<std::uint8_t> free_port(const Scenario& scenario, DeviceId device) {

@@ -151,9 +151,9 @@ int main() {
 
     // Explanations follow the language.
     CHECK(text::set_language("it"));
-    CHECK(netsim::explain::describe(netsim::Problem::NoFreePort) == "Nessuna porta libera: un PC ha una porta, uno switch ne ha otto.");
+    CHECK(netsim::explain::describe(netsim::Problem::NoFreePort) == "Nessuna porta libera: ogni porta del dispositivo ha un cavo.");
     CHECK(text::set_language("en"));
-    CHECK(netsim::explain::describe(netsim::Problem::NoFreePort) == "No free port: a PC has one port, a switch has eight.");
+    CHECK(netsim::explain::describe(netsim::Problem::NoFreePort) == "No free port: every port of the device has a cable.");
 
     std::cout << "Translations complete: " << texts.size() << " texts in " << languages << " language(s), " << test::checks << " checks.\n";
 }

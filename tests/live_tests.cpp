@@ -286,7 +286,7 @@ void silent_edits() {
     const auto before = simulation.scenario();
     CHECK(simulation.apply(netsim::Rename{pc_a, ""}) == Problem::InvalidName);
     CHECK(simulation.apply(netsim::Connect{PortRef{pc_a, 0}, PortRef{sw, 5}}) == Problem::PortInUse);
-    CHECK(simulation.apply(netsim::SetAddress{PortRef{sw, 0}, prefix("10.0.0.1/8")}) == Problem::NotAHost);
+    CHECK(simulation.apply(netsim::SetAddress{PortRef{sw, 0}, prefix("10.0.0.1/8")}) == Problem::AddressOnSwitch);
     CHECK(simulation.scenario() == before);
     CHECK(simulation.trace().records().size() == records && simulation.edits().empty());
     CHECK(simulation.frames_in_flight() == 1);
@@ -773,7 +773,7 @@ void random_live_undo() {
 void random_live_networks() {
     // 300 random networks, loops included, edited while they run. Hashed
     // like the loop-free runs: the constant changes only with the model.
-    constexpr std::uint64_t expected = 0x371405464f3ed65b;
+    constexpr std::uint64_t expected = 0x1015f582ba154f07;
     Hash hash;
     LiveTally tally;
     for (std::uint64_t seed = 1; seed <= 300; ++seed) random_live_run(seed, hash, tally);

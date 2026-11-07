@@ -22,9 +22,13 @@ constexpr const char* usage =
     "                         (192.168.1.20 on the sample LAN when nothing else is asked)\n"
     "  --scenario FILE        use a scenario file instead of the sample LAN\n"
     "  --ping SOURCE IPV4     ping from the host named SOURCE; repeat it to run pings at once\n"
+    "  --traceroute SOURCE IPV4\n"
+    "                         trace the route from SOURCE with Echo Requests of TTL 1, 2, ...\n"
     "  --count N              Echo Requests per ping, 1 to 1000 (default 1)\n"
     "  --interval TIME        time between the requests of a ping (default 1s)\n"
     "  --timeout TIME         how long each request waits for its reply (default 1s)\n"
+    "  --ttl N                time to live of ping requests, 1 to 255 (default 64)\n"
+    "  --max-hops N           hops a traceroute tries, 1 to 255 (default 30)\n"
     "\n"
     "Changes while the simulation runs; each happens at time 0 unless --at comes first:\n"
     "  --at TIME              run the next --ping or change at this simulated time, e.g. 1.5s\n"
@@ -34,6 +38,8 @@ constexpr const char* usage =
     "  --power-off NAME       power off a device; it forgets everything it learned\n"
     "  --power-on NAME        power it on again\n"
     "  --set-ip NAME ADDRESS  give a host another address, e.g. 192.168.1.21/24\n"
+    "  --set-gateway NAME IPV4\n"
+    "                         give a host another default gateway; \"none\" removes it\n"
     "  --disconnect           disable the last cable before starting\n"
     "\n"
     "Output:\n"
@@ -45,7 +51,7 @@ constexpr const char* usage =
     "\n"
     "Exit status: 0 every ping got a reply, 1 a ping got none, 2 invalid input,\n"
     "3 the simulation did not finish.\n"
-    "Models Ethernet switching, ARP, IPv4 on one subnet and ICMP echo; no routers yet.\n";
+    "Models Ethernet switching, ARP, IPv4 with static routing, ICMP echo and errors.\n";
 
 // A command from the command line, run at its time in the order given.
 struct Command {
@@ -116,6 +122,12 @@ void print_ping(const netsim::Simulation& simulation, const netsim::PingStatus& 
             std::cout << 8 + (reply ? reply->icmp.data_size : netsim::ping_data_size) << " bytes from " << ping.destination.to_string()
                       << ": icmp_seq=" << echo.sequence << " ttl=" << (reply ? int{reply->ttl} : int{netsim::default_ttl})
                       << " time=" << netsim::format_ms(rtt) << '\n';
+        } else if (echo.state == netsim::EchoState::Lost && echo.responder != netsim::Ipv4Address{}) {
+            // As ping prints the ICMP errors about its requests.
+            const auto* text = echo.reason == netsim::Reason::TtlExceeded ? "Time to live exceeded"
+                : echo.reason == netsim::Reason::HostUnreachable          ? "Destination Host Unreachable"
+                                                                          : "Destination Net Unreachable";
+            std::cout << "From " << echo.responder.to_string() << " icmp_seq=" << echo.sequence << ' ' << text << '\n';
         } else if (echo.state == netsim::EchoState::Lost) {
             std::cout << "icmp_seq=" << echo.sequence << " lost: " << netsim::explain::describe(echo.reason) << '\n';
         }
@@ -134,6 +146,25 @@ void print_ping(const netsim::Simulation& simulation, const netsim::PingStatus& 
         std::cout << "rtt min/avg/max = " << plain(low) << '/' << plain(avg) << '/' << plain(high) << " ms\n";
     }
 }
+// What traceroute prints: a line per hop, "*" for a hop that did not
+// answer, "!N" and "!H" for a network or host unreachable.
+void print_traceroute(const netsim::Simulation& simulation, const netsim::PingStatus& trace) {
+    const auto* source = simulation.known_device(trace.source);
+    std::cout << "traceroute to " << trace.destination.to_string() << " from " << (source ? source->name : "?") << ", "
+              << trace.options.count << " hops max\n";
+    for (const auto& echo : trace.echoes) {
+        std::cout << (echo.sequence < 10 ? " " : "") << echo.sequence << "  ";
+        if (echo.responder == netsim::Ipv4Address{}) {
+            std::cout << (echo.state == netsim::EchoState::Lost && echo.reason != netsim::Reason::EchoTimeout
+                              ? "lost: " + netsim::explain::describe(echo.reason) : std::string("*"))
+                      << '\n';
+            continue;
+        }
+        std::cout << echo.responder.to_string() << "  " << netsim::format_ms(echo.finished - echo.sent)
+                  << (echo.reason == netsim::Reason::NetUnreachable ? " !N" : echo.reason == netsim::Reason::HostUnreachable ? " !H" : "")
+                  << '\n';
+    }
+}
 } // namespace
 
 int main(int argc, char** argv) {
@@ -141,6 +172,7 @@ int main(int argc, char** argv) {
     std::optional<netsim::LinkId> pcap_link;
     std::vector<Command> commands;
     netsim::PingOptions options;
+    std::uint16_t max_hops = netsim::default_max_hops;
     std::optional<netsim::SimTime> at;
     bool disconnect = false, trace = false, check = false;
     const auto duration = [](const char* text, netsim::SimTime& out) {
@@ -160,13 +192,18 @@ int main(int argc, char** argv) {
             return 0;
         } else if (arg == "--scenario" && has(1)) {
             file = argv[++index];
-        } else if (arg == "--ping" && has(2)) {
+        } else if ((arg == "--ping" || arg == "--traceroute") && has(2)) {
             add(argv[index + 1], argv[index + 2]);
             index += 2;
         } else if (arg == "--count" && has(1)) {
             const auto count = number(argv[++index]);
             if (!count || *count < 1 || *count > netsim::max_ping_count) return invalid("--count: expected a number from 1 to 1000");
             options.count = static_cast<std::uint16_t>(*count);
+        } else if ((arg == "--ttl" || arg == "--max-hops") && has(1)) {
+            const auto value = number(argv[++index]);
+            if (!value || *value < 1 || *value > 255) return invalid(arg + ": expected a number from 1 to 255");
+            if (arg == "--ttl") options.ttl = static_cast<std::uint8_t>(*value);
+            else max_hops = static_cast<std::uint16_t>(*value);
         } else if ((arg == "--interval" || arg == "--timeout") && has(1)) {
             if (!duration(argv[++index], arg == "--interval" ? options.interval : options.timeout))
                 return invalid(arg + ": expected a duration such as 1s or 200ms");
@@ -177,7 +214,7 @@ int main(int argc, char** argv) {
         } else if ((arg == "--link-down" || arg == "--link-up" || arg == "--unplug" || arg == "--power-off" || arg == "--power-on") &&
                    has(1)) {
             add(argv[++index]);
-        } else if (arg == "--set-ip" && has(2)) {
+        } else if ((arg == "--set-ip" || arg == "--set-gateway") && has(2)) {
             add(argv[index + 1], argv[index + 2]);
             index += 2;
         } else if (arg == "--disconnect") {
@@ -223,7 +260,8 @@ int main(int argc, char** argv) {
     }
     if (disconnect && !scenario.links.empty()) scenario.links.back().up = false;
 
-    const bool pinging = std::any_of(commands.begin(), commands.end(), [](const auto& item) { return item.option == "--ping"; });
+    const bool pinging = std::any_of(commands.begin(), commands.end(),
+                                     [](const auto& item) { return item.option == "--ping" || item.option == "--traceroute"; });
     if (!destination.empty() || !pinging)
         commands.insert(commands.begin(), {netsim::SimTime{}, "--ping", "", destination.empty() ? "192.168.1.20" : destination});
     std::stable_sort(commands.begin(), commands.end(), [](const auto& a, const auto& b) { return a.at < b.at; });
@@ -260,7 +298,7 @@ int main(int argc, char** argv) {
         const auto* device = command.name.empty() ? nullptr : simulation.scenario().device_named(command.name);
         const auto cable = number(command.name);
         netsim::Problem problem = netsim::Problem::None;
-        if (command.option == "--ping") {
+        if (command.option == "--ping" || command.option == "--traceroute") {
             if (command.name.empty()) {
                 const auto& devices = simulation.scenario().devices;
                 const auto host = std::find_if(devices.begin(), devices.end(), [](const auto& item) { return item.kind == netsim::DeviceKind::Host; });
@@ -270,7 +308,9 @@ int main(int argc, char** argv) {
             if (!device) return invalid("No device is named \"" + command.name + "\".");
             const auto address = netsim::Ipv4Address::parse(command.argument);
             problem = netsim::Problem::InvalidDestination;
-            const auto id = address ? simulation.start_ping(device->id, *address, problem, options) : std::nullopt;
+            auto chosen = options;
+            if (command.option == "--traceroute") chosen = {.count = max_hops, .timeout = options.timeout, .traceroute = true};
+            const auto id = address ? simulation.start_ping(device->id, *address, problem, chosen) : std::nullopt;
             if (!id) return invalid(device->name + " → " + command.argument + ": " + netsim::explain::describe(problem));
             started.push_back(*id);
         } else if (command.option == "--link-down" || command.option == "--link-up" || command.option == "--unplug") {
@@ -286,6 +326,11 @@ int main(int argc, char** argv) {
             const auto address = netsim::Ipv4Prefix::parse(command.argument);
             if (!address) return invalid(label + ": expected an address with its prefix, such as 192.168.1.21/24");
             problem = simulation.apply(netsim::SetAddress{{device->id, 0}, *address});
+        } else if (command.option == "--set-gateway") {
+            if (!device) return invalid("No device is named \"" + command.name + "\".");
+            const auto gateway = netsim::Ipv4Address::parse(command.argument);
+            if (!gateway && command.argument != "none") return invalid(label + ": expected an IPv4 address such as 192.168.1.1, or none");
+            problem = simulation.apply(netsim::SetGateway{device->id, gateway});
         }
         if (!netsim::ok(problem)) return invalid(label + ": " + netsim::explain::describe(problem));
         print_new();
@@ -306,7 +351,8 @@ int main(int argc, char** argv) {
         const auto& status = *simulation.ping(id);
         all = all && status.state == netsim::PingState::Succeeded;
         std::cout << '\n';
-        print_ping(simulation, status);
+        if (status.options.traceroute) print_traceroute(simulation, status);
+        else print_ping(simulation, status);
     }
     const auto& records = simulation.trace().records();
     const auto storms = std::count_if(records.begin(), records.end(), [](const auto& record) {

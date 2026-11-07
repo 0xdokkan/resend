@@ -11,7 +11,8 @@ namespace netsim {
 // Scenario files: JSON with "format": "resend-scenario" and a version.
 // Ports are numbered from 1, as in the interface; delays are durations
 // such as "10ms". docs/scenario-format.md describes every member.
-constexpr int scenario_format_version = 1;
+// Version 2 added routers, default gateways and routes.
+constexpr int scenario_format_version = 2;
 
 std::string scenario_to_json(const Scenario& scenario);
 // Reads a file, or explains the first problem: the line and column of a

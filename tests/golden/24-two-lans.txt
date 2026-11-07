@@ -1,0 +1,386 @@
+# two LANs and a router, each PC with the router as its gateway
+
+## pings
+1  PC-A > 10.2.0.20  succeeded None  0.000 ms .. 160.000 ms
+  seq 1  replied None  0.000 ms .. 160.000 ms  record 51
+2  PC-A > 10.2.0.20  succeeded None  160.000 ms .. 240.000 ms
+  seq 1  replied None  160.000 ms .. 240.000 ms  record 76
+3  PC-B > 10.1.0.10  succeeded None  240.000 ms .. 320.000 ms
+  seq 1  replied None  240.000 ms .. 320.000 ms  record 101
+4  PC-A > 10.2.0.1  succeeded None  320.000 ms .. 360.000 ms
+  seq 1  replied None  320.000 ms .. 360.000 ms  record 114
+
+## records
+0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
+0.000 ms  #1 e1  PC-A port 1  FrameSent  link 1 frame 0 value 1
+10.000 ms  #2 e2  Switch-1 port 1  FrameReceived  link 1 frame 0 value 0
+10.000 ms  #3 e2  Switch-1 port 1  MacLearned  link 1 frame 0 value 0
+10.000 ms  #4 e2  Switch-1 port 1  FrameFlooded  link 1 frame 0 value 0
+10.000 ms  #5 e2  Switch-1 port 2  FrameSent  link 2 frame 0 value 0
+20.000 ms  #6 e3  Router port 1  FrameReceived  link 2 frame 0 value 0
+20.000 ms  #7 e3  Router port 1  ArpCacheUpdated  link 2 frame 0 value 0
+20.000 ms  #8 e3  Router port 1  FrameSent  link 2 frame 1 value 0
+30.000 ms  #9 e4  Switch-1 port 2  FrameReceived  link 2 frame 1 value 0
+30.000 ms  #10 e4  Switch-1 port 2  MacLearned  link 2 frame 1 value 0
+30.000 ms  #11 e4  Switch-1 port 2  FrameForwarded  link 2 frame 1 value 0
+30.000 ms  #12 e4  Switch-1 port 1  FrameSent  link 1 frame 1 value 0
+40.000 ms  #13 e5  PC-A port 1  FrameReceived  link 1 frame 1 value 0
+40.000 ms  #14 e5  PC-A port 1  ArpCacheUpdated  link 1 frame 1 value 0
+40.000 ms  #15 e5  PC-A port 1  FrameSent  link 1 frame 2 value 0
+50.000 ms  #16 e6  Switch-1 port 1  FrameReceived  link 1 frame 2 value 0
+50.000 ms  #17 e6  Switch-1 port 1  FrameForwarded  link 1 frame 2 value 0
+50.000 ms  #18 e6  Switch-1 port 2  FrameSent  link 2 frame 2 value 0
+60.000 ms  #19 e7  Router port 1  FrameReceived  link 2 frame 2 value 0
+60.000 ms  #20 e7  Router port 1  DatagramRouted  link 2 frame 2 value 167903252 route 10.2.0.0/24
+60.000 ms  #21 e7  Router port 2  FrameSent  link 3 frame 3 value 1
+70.000 ms  #22 e8  Switch-2 port 1  FrameReceived  link 3 frame 3 value 0
+70.000 ms  #23 e8  Switch-2 port 1  MacLearned  link 3 frame 3 value 0
+70.000 ms  #24 e8  Switch-2 port 1  FrameFlooded  link 3 frame 3 value 0
+70.000 ms  #25 e8  Switch-2 port 2  FrameSent  link 4 frame 3 value 0
+80.000 ms  #26 e9  PC-B port 1  FrameReceived  link 4 frame 3 value 0
+80.000 ms  #27 e9  PC-B port 1  ArpCacheUpdated  link 4 frame 3 value 0
+80.000 ms  #28 e9  PC-B port 1  FrameSent  link 4 frame 4 value 0
+90.000 ms  #29 e10  Switch-2 port 2  FrameReceived  link 4 frame 4 value 0
+90.000 ms  #30 e10  Switch-2 port 2  MacLearned  link 4 frame 4 value 0
+90.000 ms  #31 e10  Switch-2 port 2  FrameForwarded  link 4 frame 4 value 0
+90.000 ms  #32 e10  Switch-2 port 1  FrameSent  link 3 frame 4 value 0
+100.000 ms  #33 e11  Router port 2  FrameReceived  link 3 frame 4 value 0
+100.000 ms  #34 e11  Router port 2  ArpCacheUpdated  link 3 frame 4 value 0
+100.000 ms  #35 e11  Router port 2  FrameSent  link 3 frame 5 value 0
+110.000 ms  #36 e12  Switch-2 port 1  FrameReceived  link 3 frame 5 value 0
+110.000 ms  #37 e12  Switch-2 port 1  FrameForwarded  link 3 frame 5 value 0
+110.000 ms  #38 e12  Switch-2 port 2  FrameSent  link 4 frame 5 value 0
+120.000 ms  #39 e13  PC-B port 1  FrameReceived  link 4 frame 5 value 0
+120.000 ms  #40 e13  PC-B port 1  FrameSent  link 4 frame 6 value 0
+130.000 ms  #41 e14  Switch-2 port 2  FrameReceived  link 4 frame 6 value 0
+130.000 ms  #42 e14  Switch-2 port 2  FrameForwarded  link 4 frame 6 value 0
+130.000 ms  #43 e14  Switch-2 port 1  FrameSent  link 3 frame 6 value 0
+140.000 ms  #44 e15  Router port 2  FrameReceived  link 3 frame 6 value 0
+140.000 ms  #45 e15  Router port 2  DatagramRouted  link 3 frame 6 value 167837706 route 10.1.0.0/24
+140.000 ms  #46 e15  Router port 1  FrameSent  link 2 frame 7 value 0
+150.000 ms  #47 e16  Switch-1 port 2  FrameReceived  link 2 frame 7 value 0
+150.000 ms  #48 e16  Switch-1 port 2  FrameForwarded  link 2 frame 7 value 0
+150.000 ms  #49 e16  Switch-1 port 1  FrameSent  link 1 frame 7 value 0
+160.000 ms  #50 e17  PC-A port 1  FrameReceived  link 1 frame 7 value 0
+160.000 ms  #51 e17  PC-A port 1  PingReply  link 1 frame 7 value 1
+160.000 ms  #52 e17  PC-A port -  PingSucceeded  link - frame - value 1
+160.000 ms  #53 e18  PC-A port -  PingStarted  link - frame - value 2
+160.000 ms  #54 e18  PC-A port 1  FrameSent  link 1 frame 8 value 0
+170.000 ms  #55 e19  Switch-1 port 1  FrameReceived  link 1 frame 8 value 0
+170.000 ms  #56 e19  Switch-1 port 1  FrameForwarded  link 1 frame 8 value 0
+170.000 ms  #57 e19  Switch-1 port 2  FrameSent  link 2 frame 8 value 0
+180.000 ms  #58 e20  Router port 1  FrameReceived  link 2 frame 8 value 0
+180.000 ms  #59 e20  Router port 1  DatagramRouted  link 2 frame 8 value 167903252 route 10.2.0.0/24
+180.000 ms  #60 e20  Router port 2  FrameSent  link 3 frame 9 value 0
+190.000 ms  #61 e21  Switch-2 port 1  FrameReceived  link 3 frame 9 value 0
+190.000 ms  #62 e21  Switch-2 port 1  FrameForwarded  link 3 frame 9 value 0
+190.000 ms  #63 e21  Switch-2 port 2  FrameSent  link 4 frame 9 value 0
+200.000 ms  #64 e22  PC-B port 1  FrameReceived  link 4 frame 9 value 0
+200.000 ms  #65 e22  PC-B port 1  FrameSent  link 4 frame 10 value 0
+210.000 ms  #66 e23  Switch-2 port 2  FrameReceived  link 4 frame 10 value 0
+210.000 ms  #67 e23  Switch-2 port 2  FrameForwarded  link 4 frame 10 value 0
+210.000 ms  #68 e23  Switch-2 port 1  FrameSent  link 3 frame 10 value 0
+220.000 ms  #69 e24  Router port 2  FrameReceived  link 3 frame 10 value 0
+220.000 ms  #70 e24  Router port 2  DatagramRouted  link 3 frame 10 value 167837706 route 10.1.0.0/24
+220.000 ms  #71 e24  Router port 1  FrameSent  link 2 frame 11 value 0
+230.000 ms  #72 e25  Switch-1 port 2  FrameReceived  link 2 frame 11 value 0
+230.000 ms  #73 e25  Switch-1 port 2  FrameForwarded  link 2 frame 11 value 0
+230.000 ms  #74 e25  Switch-1 port 1  FrameSent  link 1 frame 11 value 0
+240.000 ms  #75 e26  PC-A port 1  FrameReceived  link 1 frame 11 value 0
+240.000 ms  #76 e26  PC-A port 1  PingReply  link 1 frame 11 value 2
+240.000 ms  #77 e26  PC-A port -  PingSucceeded  link - frame - value 2
+240.000 ms  #78 e27  PC-B port -  PingStarted  link - frame - value 3
+240.000 ms  #79 e27  PC-B port 1  FrameSent  link 4 frame 12 value 0
+250.000 ms  #80 e28  Switch-2 port 2  FrameReceived  link 4 frame 12 value 0
+250.000 ms  #81 e28  Switch-2 port 2  FrameForwarded  link 4 frame 12 value 0
+250.000 ms  #82 e28  Switch-2 port 1  FrameSent  link 3 frame 12 value 0
+260.000 ms  #83 e29  Router port 2  FrameReceived  link 3 frame 12 value 0
+260.000 ms  #84 e29  Router port 2  DatagramRouted  link 3 frame 12 value 167837706 route 10.1.0.0/24
+260.000 ms  #85 e29  Router port 1  FrameSent  link 2 frame 13 value 0
+270.000 ms  #86 e30  Switch-1 port 2  FrameReceived  link 2 frame 13 value 0
+270.000 ms  #87 e30  Switch-1 port 2  FrameForwarded  link 2 frame 13 value 0
+270.000 ms  #88 e30  Switch-1 port 1  FrameSent  link 1 frame 13 value 0
+280.000 ms  #89 e31  PC-A port 1  FrameReceived  link 1 frame 13 value 0
+280.000 ms  #90 e31  PC-A port 1  FrameSent  link 1 frame 14 value 0
+290.000 ms  #91 e32  Switch-1 port 1  FrameReceived  link 1 frame 14 value 0
+290.000 ms  #92 e32  Switch-1 port 1  FrameForwarded  link 1 frame 14 value 0
+290.000 ms  #93 e32  Switch-1 port 2  FrameSent  link 2 frame 14 value 0
+300.000 ms  #94 e33  Router port 1  FrameReceived  link 2 frame 14 value 0
+300.000 ms  #95 e33  Router port 1  DatagramRouted  link 2 frame 14 value 167903252 route 10.2.0.0/24
+300.000 ms  #96 e33  Router port 2  FrameSent  link 3 frame 15 value 0
+310.000 ms  #97 e34  Switch-2 port 1  FrameReceived  link 3 frame 15 value 0
+310.000 ms  #98 e34  Switch-2 port 1  FrameForwarded  link 3 frame 15 value 0
+310.000 ms  #99 e34  Switch-2 port 2  FrameSent  link 4 frame 15 value 0
+320.000 ms  #100 e35  PC-B port 1  FrameReceived  link 4 frame 15 value 0
+320.000 ms  #101 e35  PC-B port 1  PingReply  link 4 frame 15 value 3
+320.000 ms  #102 e35  PC-B port -  PingSucceeded  link - frame - value 3
+320.000 ms  #103 e36  PC-A port -  PingStarted  link - frame - value 4
+320.000 ms  #104 e36  PC-A port 1  FrameSent  link 1 frame 16 value 0
+330.000 ms  #105 e37  Switch-1 port 1  FrameReceived  link 1 frame 16 value 0
+330.000 ms  #106 e37  Switch-1 port 1  FrameForwarded  link 1 frame 16 value 0
+330.000 ms  #107 e37  Switch-1 port 2  FrameSent  link 2 frame 16 value 0
+340.000 ms  #108 e38  Router port 1  FrameReceived  link 2 frame 16 value 0
+340.000 ms  #109 e38  Router port 1  FrameSent  link 2 frame 17 value 0
+350.000 ms  #110 e39  Switch-1 port 2  FrameReceived  link 2 frame 17 value 0
+350.000 ms  #111 e39  Switch-1 port 2  FrameForwarded  link 2 frame 17 value 0
+350.000 ms  #112 e39  Switch-1 port 1  FrameSent  link 1 frame 17 value 0
+360.000 ms  #113 e40  PC-A port 1  FrameReceived  link 1 frame 17 value 0
+360.000 ms  #114 e40  PC-A port 1  PingReply  link 1 frame 17 value 4
+360.000 ms  #115 e40  PC-A port -  PingSucceeded  link - frame - value 4
+
+## frames
+0  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 10.1.0.10 target 00:00:00:00:00:00 10.1.0.1
+1  02:20:00:00:00:03 > 02:00:00:00:00:01  ARP reply sender 02:20:00:00:00:03 10.1.0.1 target 02:00:00:00:00:01 10.1.0.10
+2  02:00:00:00:00:01 > 02:20:00:00:00:03  IPv4 10.1.0.10 > 10.2.0.20 ttl 64 id 1 proto 1  ICMP type 8 code 0 identifier 1 sequence 1 data 56
+3  02:21:00:00:00:03 > ff:ff:ff:ff:ff:ff  ARP request sender 02:21:00:00:00:03 10.2.0.1 target 00:00:00:00:00:00 10.2.0.20
+4  02:00:00:00:00:05 > 02:21:00:00:00:03  ARP reply sender 02:00:00:00:00:05 10.2.0.20 target 02:21:00:00:00:03 10.2.0.1
+5  02:21:00:00:00:03 > 02:00:00:00:00:05  IPv4 10.1.0.10 > 10.2.0.20 ttl 63 id 1 proto 1  ICMP type 8 code 0 identifier 1 sequence 1 data 56
+6  02:00:00:00:00:05 > 02:21:00:00:00:03  IPv4 10.2.0.20 > 10.1.0.10 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 1 sequence 1 data 56
+7  02:20:00:00:00:03 > 02:00:00:00:00:01  IPv4 10.2.0.20 > 10.1.0.10 ttl 63 id 1 proto 1  ICMP type 0 code 0 identifier 1 sequence 1 data 56
+8  02:00:00:00:00:01 > 02:20:00:00:00:03  IPv4 10.1.0.10 > 10.2.0.20 ttl 64 id 2 proto 1  ICMP type 8 code 0 identifier 2 sequence 1 data 56
+9  02:21:00:00:00:03 > 02:00:00:00:00:05  IPv4 10.1.0.10 > 10.2.0.20 ttl 63 id 2 proto 1  ICMP type 8 code 0 identifier 2 sequence 1 data 56
+10  02:00:00:00:00:05 > 02:21:00:00:00:03  IPv4 10.2.0.20 > 10.1.0.10 ttl 64 id 2 proto 1  ICMP type 0 code 0 identifier 2 sequence 1 data 56
+11  02:20:00:00:00:03 > 02:00:00:00:00:01  IPv4 10.2.0.20 > 10.1.0.10 ttl 63 id 2 proto 1  ICMP type 0 code 0 identifier 2 sequence 1 data 56
+12  02:00:00:00:00:05 > 02:21:00:00:00:03  IPv4 10.2.0.20 > 10.1.0.10 ttl 64 id 3 proto 1  ICMP type 8 code 0 identifier 3 sequence 1 data 56
+13  02:20:00:00:00:03 > 02:00:00:00:00:01  IPv4 10.2.0.20 > 10.1.0.10 ttl 63 id 3 proto 1  ICMP type 8 code 0 identifier 3 sequence 1 data 56
+14  02:00:00:00:00:01 > 02:20:00:00:00:03  IPv4 10.1.0.10 > 10.2.0.20 ttl 64 id 3 proto 1  ICMP type 0 code 0 identifier 3 sequence 1 data 56
+15  02:21:00:00:00:03 > 02:00:00:00:00:05  IPv4 10.1.0.10 > 10.2.0.20 ttl 63 id 3 proto 1  ICMP type 0 code 0 identifier 3 sequence 1 data 56
+16  02:00:00:00:00:01 > 02:20:00:00:00:03  IPv4 10.1.0.10 > 10.2.0.1 ttl 64 id 4 proto 1  ICMP type 8 code 0 identifier 4 sequence 1 data 56
+17  02:20:00:00:00:03 > 02:00:00:00:00:01  IPv4 10.2.0.1 > 10.1.0.10 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 4 sequence 1 data 56
+
+## transmissions
+frame 0 link 1  PC-A port 1 > Switch-1 port 1  0.000 ms .. 10.000 ms  record 1
+frame 0 link 2  Switch-1 port 2 > Router port 1  10.000 ms .. 20.000 ms  record 5
+frame 1 link 2  Router port 1 > Switch-1 port 2  20.000 ms .. 30.000 ms  record 8
+frame 1 link 1  Switch-1 port 1 > PC-A port 1  30.000 ms .. 40.000 ms  record 12
+frame 2 link 1  PC-A port 1 > Switch-1 port 1  40.000 ms .. 50.000 ms  record 15
+frame 2 link 2  Switch-1 port 2 > Router port 1  50.000 ms .. 60.000 ms  record 18
+frame 3 link 3  Router port 2 > Switch-2 port 1  60.000 ms .. 70.000 ms  record 21
+frame 3 link 4  Switch-2 port 2 > PC-B port 1  70.000 ms .. 80.000 ms  record 25
+frame 4 link 4  PC-B port 1 > Switch-2 port 2  80.000 ms .. 90.000 ms  record 28
+frame 4 link 3  Switch-2 port 1 > Router port 2  90.000 ms .. 100.000 ms  record 32
+frame 5 link 3  Router port 2 > Switch-2 port 1  100.000 ms .. 110.000 ms  record 35
+frame 5 link 4  Switch-2 port 2 > PC-B port 1  110.000 ms .. 120.000 ms  record 38
+frame 6 link 4  PC-B port 1 > Switch-2 port 2  120.000 ms .. 130.000 ms  record 40
+frame 6 link 3  Switch-2 port 1 > Router port 2  130.000 ms .. 140.000 ms  record 43
+frame 7 link 2  Router port 1 > Switch-1 port 2  140.000 ms .. 150.000 ms  record 46
+frame 7 link 1  Switch-1 port 1 > PC-A port 1  150.000 ms .. 160.000 ms  record 49
+frame 8 link 1  PC-A port 1 > Switch-1 port 1  160.000 ms .. 170.000 ms  record 54
+frame 8 link 2  Switch-1 port 2 > Router port 1  170.000 ms .. 180.000 ms  record 57
+frame 9 link 3  Router port 2 > Switch-2 port 1  180.000 ms .. 190.000 ms  record 60
+frame 9 link 4  Switch-2 port 2 > PC-B port 1  190.000 ms .. 200.000 ms  record 63
+frame 10 link 4  PC-B port 1 > Switch-2 port 2  200.000 ms .. 210.000 ms  record 65
+frame 10 link 3  Switch-2 port 1 > Router port 2  210.000 ms .. 220.000 ms  record 68
+frame 11 link 2  Router port 1 > Switch-1 port 2  220.000 ms .. 230.000 ms  record 71
+frame 11 link 1  Switch-1 port 1 > PC-A port 1  230.000 ms .. 240.000 ms  record 74
+frame 12 link 4  PC-B port 1 > Switch-2 port 2  240.000 ms .. 250.000 ms  record 79
+frame 12 link 3  Switch-2 port 1 > Router port 2  250.000 ms .. 260.000 ms  record 82
+frame 13 link 2  Router port 1 > Switch-1 port 2  260.000 ms .. 270.000 ms  record 85
+frame 13 link 1  Switch-1 port 1 > PC-A port 1  270.000 ms .. 280.000 ms  record 88
+frame 14 link 1  PC-A port 1 > Switch-1 port 1  280.000 ms .. 290.000 ms  record 90
+frame 14 link 2  Switch-1 port 2 > Router port 1  290.000 ms .. 300.000 ms  record 93
+frame 15 link 3  Router port 2 > Switch-2 port 1  300.000 ms .. 310.000 ms  record 96
+frame 15 link 4  Switch-2 port 2 > PC-B port 1  310.000 ms .. 320.000 ms  record 99
+frame 16 link 1  PC-A port 1 > Switch-1 port 1  320.000 ms .. 330.000 ms  record 104
+frame 16 link 2  Switch-1 port 2 > Router port 1  330.000 ms .. 340.000 ms  record 107
+frame 17 link 2  Router port 1 > Switch-1 port 2  340.000 ms .. 350.000 ms  record 109
+frame 17 link 1  Switch-1 port 1 > PC-A port 1  350.000 ms .. 360.000 ms  record 112
+
+## events
+0.000 ms  [ARP] PC-A · who has 10.1.0.1?  (ok, from 1 to - link - frame 0)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 1/3.
+    The destination is outside the local subnet: the datagram goes to the default gateway. Looking for its MAC address.
+10.000 ms  [ARP] PC-A → Switch-1 · ARP Request  (ok, from 1 to 2 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
+    ARP: 10.1.0.10 → 10.1.0.1
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:01 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+20.000 ms  [ARP] Switch-1 → Router · ARP Request  (ok, from 2 to 3 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:01 → ff:ff:ff:ff:ff:ff
+    ARP: 10.1.0.10 → 10.1.0.1
+    ARP Request; ingress port 1.
+    ARP cache updated: 10.1.0.10 = 02:00:00:00:00:01.
+    This router owns the requested IP: it sends a unicast ARP reply.
+30.000 ms  [ARP] Router → Switch-1 · ARP Reply  (ok, from 3 to 2 link 2 frame 1)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    ARP: 10.1.0.1 → 10.1.0.10
+    ARP Reply; ingress port 2.
+    Learned source MAC 02:20:00:00:00:03 on port 2.
+    Unicast on port 1.
+40.000 ms  [ARP] Switch-1 → PC-A · ARP Reply  (ok, from 2 to 1 link 1 frame 1)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    ARP: 10.1.0.1 → 10.1.0.10
+    ARP Reply; ingress port 1.
+    ARP cache updated: 10.1.0.1 = 02:20:00:00:00:03.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+50.000 ms  [ICMP] PC-A → Switch-1 · Echo Request  (ok, from 1 to 2 link 1 frame 2)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 64
+    Echo Request; ingress port 1.
+    Unicast on port 2.
+60.000 ms  [ICMP] Switch-1 → Router · Echo Request  (ok, from 2 to 3 link 2 frame 2)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 64
+    Echo Request; ingress port 1.
+    Route: 10.2.0.20 is on the connected network 10.2.0.0/24, port 2. TTL 64 → 63.
+    The next hop's MAC address is not in the ARP cache: the datagram waits while an ARP request asks for 10.2.0.20 on port 2.
+70.000 ms  [ARP] Router → Switch-2 · ARP Request  (ok, from 3 to 4 link 3 frame 3)
+    Ethernet: 02:21:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 10.2.0.1 → 10.2.0.20
+    ARP Request; ingress port 1.
+    Learned source MAC 02:21:00:00:00:03 on port 1.
+    Flooded to every active port except the ingress port: 1 copy.
+80.000 ms  [ARP] Switch-2 → PC-B · ARP Request  (ok, from 4 to 5 link 4 frame 3)
+    Ethernet: 02:21:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 10.2.0.1 → 10.2.0.20
+    ARP Request; ingress port 1.
+    ARP cache updated: 10.2.0.1 = 02:21:00:00:00:03.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+90.000 ms  [ARP] PC-B → Switch-2 · ARP Reply  (ok, from 5 to 4 link 4 frame 4)
+    Ethernet: 02:00:00:00:00:05 → 02:21:00:00:00:03
+    ARP: 10.2.0.20 → 10.2.0.1
+    ARP Reply; ingress port 2.
+    Learned source MAC 02:00:00:00:00:05 on port 2.
+    Unicast on port 1.
+100.000 ms  [ARP] Switch-2 → Router · ARP Reply  (ok, from 4 to 3 link 3 frame 4)
+    Ethernet: 02:00:00:00:00:05 → 02:21:00:00:00:03
+    ARP: 10.2.0.20 → 10.2.0.1
+    ARP Reply; ingress port 2.
+    ARP cache updated: 10.2.0.20 = 02:00:00:00:00:05.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+110.000 ms  [ICMP] Router → Switch-2 · Echo Request  (ok, from 3 to 4 link 3 frame 5)
+    Ethernet: 02:21:00:00:00:03 → 02:00:00:00:00:05
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 63
+    Echo Request; ingress port 1.
+    Unicast on port 2.
+120.000 ms  [ICMP] Switch-2 → PC-B · Echo Request  (ok, from 4 to 5 link 4 frame 5)
+    Ethernet: 02:21:00:00:00:03 → 02:00:00:00:00:05
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 63
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+130.000 ms  [ICMP] PC-B → Switch-2 · Echo Reply  (ok, from 5 to 4 link 4 frame 6)
+    Ethernet: 02:00:00:00:00:05 → 02:21:00:00:00:03
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 2.
+    Unicast on port 1.
+140.000 ms  [ICMP] Switch-2 → Router · Echo Reply  (ok, from 4 to 3 link 3 frame 6)
+    Ethernet: 02:00:00:00:00:05 → 02:21:00:00:00:03
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 2.
+    Route: 10.1.0.10 is on the connected network 10.1.0.0/24, port 1. TTL 64 → 63.
+    Forwarded from port 1 to 02:00:00:00:00:01.
+150.000 ms  [ICMP] Router → Switch-1 · Echo Reply  (ok, from 3 to 2 link 2 frame 7)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 63
+    Echo Reply; ingress port 2.
+    Unicast on port 1.
+160.000 ms  [ICMP] Ping succeeded · 10.2.0.20 → PC-A  (ok, from 2 to 1 link 1 frame 7)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 63
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable. Round trip: 160.000 ms.
+170.000 ms  [ICMP] PC-A → Switch-1 · Echo Request  (ok, from 1 to 2 link 1 frame 8)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 64
+    Echo Request; ingress port 1.
+    Unicast on port 2.
+180.000 ms  [ICMP] Switch-1 → Router · Echo Request  (ok, from 2 to 3 link 2 frame 8)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 64
+    Echo Request; ingress port 1.
+    Route: 10.2.0.20 is on the connected network 10.2.0.0/24, port 2. TTL 64 → 63.
+    Forwarded from port 2 to 02:00:00:00:00:05.
+190.000 ms  [ICMP] Router → Switch-2 · Echo Request  (ok, from 3 to 4 link 3 frame 9)
+    Ethernet: 02:21:00:00:00:03 → 02:00:00:00:00:05
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 63
+    Echo Request; ingress port 1.
+    Unicast on port 2.
+200.000 ms  [ICMP] Switch-2 → PC-B · Echo Request  (ok, from 4 to 5 link 4 frame 9)
+    Ethernet: 02:21:00:00:00:03 → 02:00:00:00:00:05
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 63
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+210.000 ms  [ICMP] PC-B → Switch-2 · Echo Reply  (ok, from 5 to 4 link 4 frame 10)
+    Ethernet: 02:00:00:00:00:05 → 02:21:00:00:00:03
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 2.
+    Unicast on port 1.
+220.000 ms  [ICMP] Switch-2 → Router · Echo Reply  (ok, from 4 to 3 link 3 frame 10)
+    Ethernet: 02:00:00:00:00:05 → 02:21:00:00:00:03
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 2.
+    Route: 10.1.0.10 is on the connected network 10.1.0.0/24, port 1. TTL 64 → 63.
+    Forwarded from port 1 to 02:00:00:00:00:01.
+230.000 ms  [ICMP] Router → Switch-1 · Echo Reply  (ok, from 3 to 2 link 2 frame 11)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 63
+    Echo Reply; ingress port 2.
+    Unicast on port 1.
+240.000 ms  [ICMP] Ping succeeded · 10.2.0.20 → PC-A  (ok, from 2 to 1 link 1 frame 11)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 63
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable. Round trip: 80.000 ms.
+250.000 ms  [ICMP] PC-B → Switch-2 · Echo Request  (ok, from 5 to 4 link 4 frame 12)
+    Ethernet: 02:00:00:00:00:05 → 02:21:00:00:00:03
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 64
+    Echo Request; ingress port 2.
+    Unicast on port 1.
+260.000 ms  [ICMP] Switch-2 → Router · Echo Request  (ok, from 4 to 3 link 3 frame 12)
+    Ethernet: 02:00:00:00:00:05 → 02:21:00:00:00:03
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 64
+    Echo Request; ingress port 2.
+    Route: 10.1.0.10 is on the connected network 10.1.0.0/24, port 1. TTL 64 → 63.
+    Forwarded from port 1 to 02:00:00:00:00:01.
+270.000 ms  [ICMP] Router → Switch-1 · Echo Request  (ok, from 3 to 2 link 2 frame 13)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 63
+    Echo Request; ingress port 2.
+    Unicast on port 1.
+280.000 ms  [ICMP] Switch-1 → PC-A · Echo Request  (ok, from 2 to 1 link 1 frame 13)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    IPv4: 10.2.0.20 → 10.1.0.10, TTL 63
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+290.000 ms  [ICMP] PC-A → Switch-1 · Echo Reply  (ok, from 1 to 2 link 1 frame 14)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 64
+    Echo Reply; ingress port 1.
+    Unicast on port 2.
+300.000 ms  [ICMP] Switch-1 → Router · Echo Reply  (ok, from 2 to 3 link 2 frame 14)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 64
+    Echo Reply; ingress port 1.
+    Route: 10.2.0.20 is on the connected network 10.2.0.0/24, port 2. TTL 64 → 63.
+    Forwarded from port 2 to 02:00:00:00:00:05.
+310.000 ms  [ICMP] Router → Switch-2 · Echo Reply  (ok, from 3 to 4 link 3 frame 15)
+    Ethernet: 02:21:00:00:00:03 → 02:00:00:00:00:05
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 63
+    Echo Reply; ingress port 1.
+    Unicast on port 2.
+320.000 ms  [ICMP] Ping succeeded · 10.1.0.10 → PC-B  (ok, from 4 to 5 link 4 frame 15)
+    Ethernet: 02:21:00:00:00:03 → 02:00:00:00:00:05
+    IPv4: 10.1.0.10 → 10.2.0.20, TTL 63
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable. Round trip: 80.000 ms.
+330.000 ms  [ICMP] PC-A → Switch-1 · Echo Request  (ok, from 1 to 2 link 1 frame 16)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.1, TTL 64
+    Echo Request; ingress port 1.
+    Unicast on port 2.
+340.000 ms  [ICMP] Switch-1 → Router · Echo Request  (ok, from 2 to 3 link 2 frame 16)
+    Ethernet: 02:00:00:00:00:01 → 02:20:00:00:00:03
+    IPv4: 10.1.0.10 → 10.2.0.1, TTL 64
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+350.000 ms  [ICMP] Router → Switch-1 · Echo Reply  (ok, from 3 to 2 link 2 frame 17)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    IPv4: 10.2.0.1 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 2.
+    Unicast on port 1.
+360.000 ms  [ICMP] Ping succeeded · 10.2.0.1 → PC-A  (ok, from 2 to 1 link 1 frame 17)
+    Ethernet: 02:20:00:00:00:03 → 02:00:00:00:00:01
+    IPv4: 10.2.0.1 → 10.1.0.10, TTL 64
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable. Round trip: 40.000 ms.

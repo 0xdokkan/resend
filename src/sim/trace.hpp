@@ -30,9 +30,10 @@ enum class TraceKind : std::uint8_t {
     PingLost,         // one request of a ping got no reply; the reason says why
     ArpEntryExpired,  // a host needed an ARP entry and found it expired
     MacEntryAged,     // a switch found the destination's entry aged out: it floods
-    DatagramDropped,  // a datagram that is not a ping request could not leave the host
+    DatagramDropped,  // a datagram stops here: a reply that could not leave a host, or one a router cannot forward
     EditApplied,      // the network was edited while the simulation runs
     SimulatorGuard,   // the simulator stopped a frame copied too many times: not network behaviour
+    DatagramRouted,   // a router sends a datagram on towards its destination, by the route in `route`
 };
 
 enum class Reason : std::uint8_t {
@@ -43,22 +44,30 @@ enum class Reason : std::uint8_t {
     NotForUs,         // destination MAC is neither the local MAC nor broadcast
     ArpForOtherHost,  // the ARP target address is not the local address
     Ipv4NotForUs,     // destination IPv4 address is not the local address
-    NoRoute,          // destination outside the local subnet, and no routers yet
+    NoRoute,          // no route: outside the subnet without a usable gateway, or no route at a router
     ArpUnresolved,    // three ARP requests went unanswered
     EchoTimeout,      // no matching Echo Reply within the timeout
     ArpQueueFull,     // newer datagrams for the same unresolved address took its place
     UnmatchedReply,   // an Echo Reply no request is waiting for: it timed out or its ping ended
+    TtlExceeded,      // a router would have sent the datagram on with TTL 0; for pings, a Time Exceeded came back
+    NetUnreachable,   // a Destination Unreachable (network) came back: a router had no route
+    HostUnreachable,  // a Destination Unreachable (host) came back: a router could not resolve the next hop
+    GatewayOffLink,   // the host's default gateway is outside its subnet, so it cannot be reached
+    NoAddress,        // the router port has no IPv4 address
+    UnmatchedError,   // an ICMP error about a datagram no ping is waiting for
+    DirectedBroadcast, // to the broadcast address of a router's network: not forwarded (RFC 2644)
 };
 
-// `port` is zero-based. Switch decisions refer to the ingress port; the
-// FrameSent records that follow them name the egress ports.
+// `port` is zero-based. Switch and router decisions refer to the ingress
+// port; the FrameSent records that follow them name the egress ports.
 // `episode` groups the records produced by one scheduled event: a frame
 // arriving, a timer firing, an edit. `value` is a number whose meaning
 // depends on the kind:
 // - the attempt, for ARP requests sent or dropped and for ArpTimeout;
 // - the ping's id, for every Ping* record;
 // - an IPv4 address (its 32 bits): the one whose entry expired for
-//   ArpEntryExpired, the datagram's destination for DatagramDropped;
+//   ArpEntryExpired, the datagram's destination for DatagramDropped, the
+//   next hop for DatagramRouted;
 // - the edit's index in Simulation::edits(), for EditApplied;
 // - the number of times the frame was sent, for SimulatorGuard;
 // - 0 otherwise.
@@ -73,6 +82,9 @@ struct TraceRecord {
     std::optional<LinkId> link{};
     std::optional<PduId> pdu{};
     std::uint32_t value = 0;
+    // DatagramRouted: the destination of the route chosen, the connected
+    // network or a static route's.
+    std::optional<Ipv4Prefix> route{};
     bool operator==(const TraceRecord&) const = default;
 };
 

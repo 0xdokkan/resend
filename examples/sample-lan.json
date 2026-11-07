@@ -1,6 +1,6 @@
 {
   "format": "resend-scenario",
-  "version": 1,
+  "version": 2,
   "title": "Sample LAN",
   "notes": "Two PCs on one switch. Ping PC-B from PC-A: ARP finds PC-B's MAC address first, then the ICMP echo crosses the switch and comes back.",
   "seed": 1,
