@@ -2,7 +2,9 @@
 
 #include "app.h"
 #include "app/playback.hpp"
-#include "network.hpp"
+#include "explain/explain.hpp"
+#include "scenario/scenario.hpp"
+#include "sim/simulation.hpp"
 
 #include <chrono>
 #include <memory>
@@ -11,16 +13,22 @@
 
 namespace resend {
 
-// Connects the engine to the Slint window: callbacks in, models out.
-// The callbacks capture `this`, so the controller must stay in place.
+// Connects the scenario being edited and its simulation to the Slint window:
+// callbacks in, models out. Every edit that matters to the network rebuilds
+// the simulation from the scenario. The callbacks capture `this`, so the
+// controller must stay in place.
 class AppController {
 public:
     explicit AppController(slint::ComponentHandle<AppWindow> ui);
     AppController(const AppController&) = delete;
     AppController& operator=(const AppController&) = delete;
 
-    const netsim::Engine& engine() const { return engine_; }
+    const netsim::Scenario& scenario() const { return scenario_; }
+    const netsim::Simulation& simulation() const { return simulation_; }
+    const netsim::explain::Explainer& explainer() const { return explainer_; }
     const PlaybackController& playback() const { return playback_; }
+    // Replaces the network, e.g. with a scenario file given at startup.
+    void open(netsim::Scenario scenario);
     // Moves the animation forward. The frame timer passes the real time
     // elapsed; tests and snapshots pass a chosen one.
     void advance_playback(std::chrono::nanoseconds elapsed);
@@ -34,7 +42,10 @@ private:
     void refresh_topology();
     void refresh_scene();
     void refresh(bool edit_fields = false);
-    void mutation_result(bool success, const std::string& message);
+    // After an edit: rebuilds the simulation if it succeeded, or explains
+    // why it was refused.
+    void edited(netsim::Problem problem, const std::string& message);
+    void rebuild();
     // Applies a playback command and refreshes what it changed.
     template<class Command>
     void playback_command(Command command);
@@ -42,8 +53,10 @@ private:
     void select_frame(int pdu);
 
     slint::ComponentHandle<AppWindow> ui_;
-    netsim::Engine engine_;
-    PlaybackController playback_{engine_};
+    netsim::Scenario scenario_ = netsim::sample_lan();
+    netsim::Simulation simulation_{scenario_};
+    netsim::explain::Explainer explainer_;
+    PlaybackController playback_{simulation_};
     std::shared_ptr<slint::VectorModel<NodeView>> nodes_;
     std::shared_ptr<slint::VectorModel<LinkView>> links_;
     std::shared_ptr<slint::VectorModel<PacketView>> packets_;

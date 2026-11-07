@@ -1,0 +1,75 @@
+{
+  "format": "resend-scenario",
+  "version": 1,
+  "title": "Mismatched masks",
+  "notes": "PC-A has a /16 mask and believes PC-B is on its network, so ARP succeeds and the Echo Request arrives. PC-B has a /24 mask: for it PC-A is on another network, and without a router it cannot reply. The ping times out.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "host",
+      "name": "PC-A",
+      "powered": true,
+      "x": 100,
+      "y": 130,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:01",
+          "up": true,
+          "ipv4": "192.168.1.10/16"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "host",
+      "name": "PC-B",
+      "powered": true,
+      "x": 520,
+      "y": 130,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:02",
+          "up": true,
+          "ipv4": "192.168.2.20/24"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "switch",
+      "name": "Switch-01",
+      "powered": true,
+      "x": 310,
+      "y": 280
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 1,
+        "port": 1
+      },
+      "b": {
+        "device": 3,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 2,
+        "port": 1
+      },
+      "b": {
+        "device": 3,
+        "port": 2
+      },
+      "delay": "10ms",
+      "up": true
+    }
+  ]
+}

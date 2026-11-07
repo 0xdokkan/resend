@@ -51,4 +51,13 @@ std::string format_ms(SimTime time) {
     return buffer;
 }
 
+std::string format_duration(SimTime time) {
+    const auto ns = time.count();
+    if (ns == 0) return "0s";
+    if (ns % 1'000'000'000 == 0) return std::to_string(ns / 1'000'000'000) + "s";
+    if (ns % 1'000'000 == 0) return std::to_string(ns / 1'000'000) + "ms";
+    if (ns % 1'000 == 0) return std::to_string(ns / 1'000) + "us";
+    return std::to_string(ns) + "ns";
+}
+
 } // namespace netsim

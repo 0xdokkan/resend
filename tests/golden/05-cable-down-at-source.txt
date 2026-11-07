@@ -1,0 +1,38 @@
+# cable down at the source
+
+## pings
+1  PC-A > 192.168.1.20  failed ArpUnresolved  0.000 ms .. 3000.000 ms
+
+## records
+0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
+0.000 ms  #1 e1  PC-A port 1  FrameDropped NoCarrier  link - frame 0 value 1
+1000.000 ms  #2 e2  PC-A port 1  ArpTimeout  link - frame - value 1
+1000.000 ms  #3 e2  PC-A port 1  FrameDropped NoCarrier  link - frame 1 value 2
+2000.000 ms  #4 e3  PC-A port 1  ArpTimeout  link - frame - value 2
+2000.000 ms  #5 e3  PC-A port 1  FrameDropped NoCarrier  link - frame 2 value 3
+3000.000 ms  #6 e4  PC-A port 1  ArpTimeout  link - frame - value 3
+3000.000 ms  #7 e4  PC-A port -  PingFailed ArpUnresolved  link - frame - value 1
+
+## frames
+0  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 192.168.1.10 target 00:00:00:00:00:00 192.168.1.20
+1  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 192.168.1.10 target 00:00:00:00:00:00 192.168.1.20
+2  02:00:00:00:00:01 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:01 192.168.1.10 target 00:00:00:00:00:00 192.168.1.20
+
+## transmissions
+
+## events
+0.000 ms  [ARP] PC-A · who has 192.168.1.20?  (failed, from 1 to - link - frame 0)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 1/3.
+    The port has no active link: no frame can leave.
+1000.000 ms  [ARP] No ARP reply · retrying  (ok, from 1 to - link - frame -)
+    One simulated second has passed. The PC repeats the ARP request.
+1000.000 ms  [ARP] PC-A · who has 192.168.1.20?  (failed, from 1 to - link - frame 1)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 2/3.
+    The port has no active link: no frame can leave.
+2000.000 ms  [ARP] No ARP reply · retrying  (ok, from 1 to - link - frame -)
+    One simulated second has passed. The PC repeats the ARP request.
+2000.000 ms  [ARP] PC-A · who has 192.168.1.20?  (failed, from 1 to - link - frame 2)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 3/3.
+    The port has no active link: no frame can leave.
+3000.000 ms  [ARP] Ping failed · ARP resolution timed out  (failed, from 1 to - link - frame -)
+    No reply after three ARP requests. Check the address, the cables and that the devices are on. No ICMP was sent.

@@ -1,0 +1,16 @@
+# local ping
+
+## pings
+1  PC-1 > 192.168.1.10  succeeded None  0.000 ms .. 0.000 ms
+
+## records
+0.000 ms  #0 e1  PC-1 port -  PingStarted  link - frame - value 1
+0.000 ms  #1 e1  PC-1 port -  PingSucceeded  link - frame - value 1
+
+## frames
+
+## transmissions
+
+## events
+0.000 ms  [ICMP] Local ping succeeded  (ok, from 1 to 1 link - frame -)
+    The destination is the PC's own address: no frame crosses the cables.

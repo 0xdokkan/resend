@@ -581,7 +581,7 @@ export component AppWindow inherits Window {
                         padding: 12px; spacing: 8px;
                         Text { text: "PING"; color: Theme.mint; font-weight: 600; font-size: 10px; vertical-alignment: center; }
                         LineEdit { width: 144px; text <=> root.target-ip; placeholder-text: "Destination IPv4"; accessible-label: "Destination IPv4"; }
-                        Action { text: "Send"; primary: true; enabled: root.selected-kind == "host" && !root.has-pending; clicked => { root.ping(); } }
+                        Action { text: "Send"; primary: true; enabled: root.selected-kind == "host"; clicked => { root.ping(); } }
                         Rectangle { horizontal-stretch: 1; }
                         Action { text: root.speed-label; accessible-text: "Playback speed"; width: 48px; clicked => { root.cycle-speed(); } }
                         Action { text: "Step →"; enabled: root.has-pending && !root.running; clicked => { root.step(); } }

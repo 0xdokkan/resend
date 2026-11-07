@@ -1,0 +1,75 @@
+{
+  "format": "resend-scenario",
+  "version": 1,
+  "title": "Unplugged",
+  "notes": "The cable to PC-B is down. The switch floods PC-A's ARP request, but no copy can reach PC-B: after three requests, one second apart, PC-A gives up without sending any ICMP.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "host",
+      "name": "PC-A",
+      "powered": true,
+      "x": 100,
+      "y": 130,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:01",
+          "up": true,
+          "ipv4": "192.168.1.10/24"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "host",
+      "name": "PC-B",
+      "powered": true,
+      "x": 520,
+      "y": 130,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:02",
+          "up": true,
+          "ipv4": "192.168.1.20/24"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "switch",
+      "name": "Switch-01",
+      "powered": true,
+      "x": 310,
+      "y": 280
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 1,
+        "port": 1
+      },
+      "b": {
+        "device": 3,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 2,
+        "port": 1
+      },
+      "b": {
+        "device": 3,
+        "port": 2
+      },
+      "delay": "10ms",
+      "up": false
+    }
+  ]
+}

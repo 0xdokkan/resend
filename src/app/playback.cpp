@@ -5,7 +5,7 @@
 
 namespace resend {
 
-PlaybackController::PlaybackController(netsim::Engine& engine) : engine_(engine), view_(engine.now()) {}
+PlaybackController::PlaybackController(netsim::Simulation& simulation) : simulation_(simulation), view_(simulation.now()) {}
 
 void PlaybackController::play() {
     dwell_ = {};
@@ -15,7 +15,7 @@ void PlaybackController::play() {
 void PlaybackController::pause() { mode_ = Mode::Paused; }
 
 void PlaybackController::step() {
-    const auto next = engine_.next_event_time();
+    const auto next = simulation_.next_event_time();
     mode_ = Mode::Paused;
     if (!next) return;
     if (*next <= view_ || reduced_motion_) {
@@ -27,7 +27,7 @@ void PlaybackController::step() {
 
 void PlaybackController::reset() {
     mode_ = Mode::Paused;
-    view_ = engine_.now();
+    view_ = simulation_.now();
     carry_ = 0;
     gap_end_.reset();
     dwell_ = {};
@@ -52,7 +52,7 @@ void PlaybackController::set_reduced_motion(bool reduced) {
 void PlaybackController::show(netsim::SimTime time) {
     view_ = time;
     carry_ = 0;
-    engine_.run_until(view_);
+    simulation_.run_until(view_);
 }
 
 void PlaybackController::end_of_step() {
@@ -77,7 +77,7 @@ bool PlaybackController::tick(RealTime elapsed) {
     bool changed = false;
     double budget = static_cast<double>(elapsed.count());
     while (mode_ != Mode::Paused) {
-        const auto next = engine_.next_event_time();
+        const auto next = simulation_.next_event_time();
         if (!next) {
             mode_ = Mode::Paused;
             break;
@@ -115,7 +115,7 @@ bool PlaybackController::tick(RealTime elapsed) {
         carry_ = move - static_cast<double>(whole);
         if (whole > 0) {
             view_ += netsim::SimTime{whole};
-            engine_.run_until(view_);  // nothing is due before `next`: moves the clock only
+            simulation_.run_until(view_);  // nothing is due before `next`: moves the clock only
             changed = true;
         }
         break;
@@ -124,7 +124,7 @@ bool PlaybackController::tick(RealTime elapsed) {
 }
 
 std::vector<PlaybackController::InFlight> PlaybackController::in_flight() const {
-    const auto& all = engine_.trace().transmissions();
+    const auto& all = simulation_.trace().transmissions();
     if (first_active_ > all.size()) first_active_ = 0;  // the trace was cleared
     while (first_active_ < all.size() && all[first_active_].arrival <= view_) ++first_active_;
     std::vector<InFlight> result;

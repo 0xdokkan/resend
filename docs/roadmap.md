@@ -55,20 +55,20 @@ After A, a public **0.1.1 preview** can collect early feedback.
 
 **Outcome:** for the user the interface looks the same, but the network is described by a scenario file, several pings can run at once and every explanation is generated from the trace.
 
-- [ ] **M2.1 Core types.** `Ipv4Prefix`, `Ipv4Interface` (address plus prefix, /31 and /32 accepted as in RFC 3021), a seeded `Rng` with its own range mapping, and a small strict JSON reader and writer with stable key order.
-- [ ] **M2.2 Scenario.** Devices with explicit ports, cables between `PortRef`s with a delay, roles (host, switch), layout and notes; `validate()` reports impossible input with a precise message; versioned JSON (`"format": "resend-scenario", "version": 1`).
+- [x] **M2.1 Core types.** `Ipv4Prefix`, an address with its prefix length for both interfaces and networks (/31 and /32 accepted as in RFC 3021), a seeded `Rng` with its own range mapping, and a small strict JSON reader and writer with stable key order.
+- [x] **M2.2 Scenario.** Devices with explicit ports, cables between `PortRef`s with a delay, kinds (host, switch), layout and notes; `validate()` reports impossible input with a precise message; versioned JSON (`"format": "resend-scenario", "version": 1`), described in [`scenario-format.md`](scenario-format.md).
   - Tests: round trip of every example file byte for byte; each validation rule has a failing case.
-- [ ] **M2.3 Simulation.** Immutable layered frames (`EthernetFrame` carrying `ArpPacket` or `Ipv4Packet` with `IcmpMessage`), a `Medium` for cables and frames in flight, nodes built from modules (`Nic`, `Bridge`, `Arp`, `Ipv4`, `Icmp`, `PingApp`) behind a `Context` with `send`, `schedule`, `cancel` and `trace`. Each ping is an application with its own timers.
-- [ ] **M2.4 Explanations.** The `explain` module turns records into the event list: a title, a detail and a protocol per group of records, in English. During the transition its output is compared with the old engine's texts.
-- [ ] **M2.5 App and CLI on the new core.** The GUI keeps its behaviour; `resend-cli --scenario file.json --ping "PC-A" 192.168.1.20` runs scenarios and prints the trace or the explanations.
-- [ ] **M2.6 Old engine removed** once every scenario passes on the new one.
+- [x] **M2.3 Simulation.** Immutable layered frames (`EthernetFrame` carrying `ArpPacket` or `Ipv4Packet` with `IcmpMessage`), a `Medium` for cables and carrier, nodes built from modules (`Nic`, `Arp`, `PingApp` in the host, which also holds its IPv4 layer and echo responder; `Bridge` for the switch) behind a `Context` with `transmit`, `schedule`, `cancel` and `record`. Each ping is an application with its own timers; every scheduled entry is an episode in the trace.
+- [x] **M2.4 Explanations.** The `explain` module turns records into the event list: a title, a detail and a protocol per group of records, in English. During the transition its output is compared with the old engine's texts.
+- [x] **M2.5 App and CLI on the new core.** The GUI keeps its behaviour; `resend-cli --scenario file.json --ping "PC-A" 192.168.1.20` runs scenarios and prints the trace or the explanations.
+- [x] **M2.6 Old engine removed** once every scenario passes on the new one.
 
 **Exit checks**
 
-- [ ] The seven scenarios of the prototype produce the same sequence of frames, records and texts on both engines (parity test, then kept as regression tests).
-- [ ] No user-facing text in `src/sim/`.
-- [ ] 1,000 random topologies give the same trace hash on every run, and the hash matches a constant checked on Linux and Windows CI.
-- [ ] Pings A→B and C→D started together both succeed.
+- [x] The seven scenarios of the prototype produce the same sequence of frames, records and texts on both engines (parity test, then kept as regression tests). Fourteen scenarios in the end, now compared with golden files in `tests/golden/`.
+- [x] No user-facing text in `src/sim/`.
+- [ ] 1,000 random topologies give the same trace hash on every run, and the hash matches a constant checked on Linux and Windows CI. Checked on Linux with GCC and Clang; the Windows job runs it on the next CI run.
+- [x] Pings A→B and C→D started together both succeed.
 
 ## M3 — Faithful L2/L3 and live faults (45–70 h)
 
@@ -80,7 +80,7 @@ After A, a public **0.1.1 preview** can collect early feedback.
 - [ ] **M3.4 Replies resolve the sender.** A host that must answer an address it has no entry for resolves it with ARP first; `Reason::NotModelled` disappears.
 - [ ] **M3.5 Ping as an application:** identifier, sequence numbers, count, interval and timeout; per-reply round-trip time and a summary like `ping`'s.
 - [ ] **M3.6 IPv4 TTL** in every packet (64 from hosts).
-- [ ] **M3.7 Explicit ports** in the engine API and in the scenario.
+- [x] **M3.7 Explicit ports** in the engine API and in the scenario (done with M2).
 - [ ] **M3.8 Loops allowed, storm protection.** Ethernet has no TTL: when a frame is copied beyond a limit the simulator pauses with a record of its own category (`SimulatorGuard`), shown in a distinct colour and never as network behaviour.
 - [ ] **M3.9 Bytes and pcap.** The `wire` module encodes frames (Ethernet II, ARP, IPv4 with checksum, ICMP with checksum), decodes them for round trips, and writes pcap files with nanosecond timestamps, for the whole network or one cable.
 

@@ -1,0 +1,242 @@
+{
+  "format": "resend-scenario",
+  "version": 1,
+  "title": "Office floor",
+  "notes": "Six PCs on two switches. Start several pings at once and watch the switches fill their MAC tables. Printer-Room has its port disabled on the switch side.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "switch",
+      "name": "Switch-East",
+      "powered": true,
+      "x": 200,
+      "y": 250
+    },
+    {
+      "id": 2,
+      "kind": "switch",
+      "name": "Switch-West",
+      "powered": true,
+      "x": 520,
+      "y": 250,
+      "ports": [
+        {
+          "mac": "02:10:00:00:00:02",
+          "up": true
+        },
+        {
+          "mac": "02:11:00:00:00:02",
+          "up": true
+        },
+        {
+          "mac": "02:12:00:00:00:02",
+          "up": false
+        },
+        {
+          "mac": "02:13:00:00:00:02",
+          "up": true
+        },
+        {
+          "mac": "02:14:00:00:00:02",
+          "up": true
+        },
+        {
+          "mac": "02:15:00:00:00:02",
+          "up": true
+        },
+        {
+          "mac": "02:16:00:00:00:02",
+          "up": true
+        },
+        {
+          "mac": "02:17:00:00:00:02",
+          "up": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "host",
+      "name": "Desk-1",
+      "powered": true,
+      "x": 20,
+      "y": 40,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:03",
+          "up": true,
+          "ipv4": "10.0.0.11/24"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "host",
+      "name": "Desk-2",
+      "powered": true,
+      "x": 190,
+      "y": 40,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:04",
+          "up": true,
+          "ipv4": "10.0.0.12/24"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "kind": "host",
+      "name": "Desk-3",
+      "powered": true,
+      "x": 360,
+      "y": 40,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:05",
+          "up": true,
+          "ipv4": "10.0.0.13/24"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "kind": "host",
+      "name": "Desk-4",
+      "powered": true,
+      "x": 380,
+      "y": 440,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:06",
+          "up": true,
+          "ipv4": "10.0.0.21/24"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "kind": "host",
+      "name": "Desk-5",
+      "powered": true,
+      "x": 550,
+      "y": 440,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:07",
+          "up": true,
+          "ipv4": "10.0.0.22/24"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "kind": "host",
+      "name": "Printer-Room",
+      "powered": true,
+      "x": 720,
+      "y": 440,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:08",
+          "up": true,
+          "ipv4": "10.0.0.23/24"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 3,
+        "port": 1
+      },
+      "b": {
+        "device": 1,
+        "port": 1
+      },
+      "delay": "1ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 4,
+        "port": 1
+      },
+      "b": {
+        "device": 1,
+        "port": 2
+      },
+      "delay": "1ms",
+      "up": true
+    },
+    {
+      "id": 3,
+      "a": {
+        "device": 5,
+        "port": 1
+      },
+      "b": {
+        "device": 1,
+        "port": 3
+      },
+      "delay": "1ms",
+      "up": true
+    },
+    {
+      "id": 4,
+      "a": {
+        "device": 6,
+        "port": 1
+      },
+      "b": {
+        "device": 2,
+        "port": 1
+      },
+      "delay": "1ms",
+      "up": true
+    },
+    {
+      "id": 5,
+      "a": {
+        "device": 7,
+        "port": 1
+      },
+      "b": {
+        "device": 2,
+        "port": 2
+      },
+      "delay": "1ms",
+      "up": true
+    },
+    {
+      "id": 6,
+      "a": {
+        "device": 8,
+        "port": 1
+      },
+      "b": {
+        "device": 2,
+        "port": 3
+      },
+      "delay": "1ms",
+      "up": true
+    },
+    {
+      "id": 7,
+      "a": {
+        "device": 1,
+        "port": 8
+      },
+      "b": {
+        "device": 2,
+        "port": 8
+      },
+      "delay": "3ms",
+      "up": true
+    }
+  ]
+}

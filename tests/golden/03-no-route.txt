@@ -1,0 +1,16 @@
+# no route
+
+## pings
+1  PC-A > 10.0.0.1  failed NoRoute  0.000 ms .. 0.000 ms
+
+## records
+0.000 ms  #0 e1  PC-A port -  PingStarted  link - frame - value 1
+0.000 ms  #1 e1  PC-A port -  PingFailed NoRoute  link - frame - value 1
+
+## frames
+
+## transmissions
+
+## events
+0.000 ms  [IPv4] Ping failed · no route  (failed, from 1 to - link - frame -)
+    The destination 10.0.0.1 is outside the local subnet. This prototype has no routers or gateways yet, so no ARP request is sent for the remote host.

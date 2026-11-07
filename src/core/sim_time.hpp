@@ -20,4 +20,8 @@ std::optional<SimTime> parse_duration(std::string_view text);
 // Milliseconds with three decimals, e.g. "15.000 ms" or "1015.250 ms".
 std::string format_ms(SimTime time);
 
+// The largest unit that keeps the value whole: "10ms", "1500us", "2s".
+// parse_duration() reads it back exactly.
+std::string format_duration(SimTime time);
+
 } // namespace netsim

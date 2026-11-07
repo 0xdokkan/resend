@@ -1,0 +1,468 @@
+# a full switch
+
+## pings
+1  PC-2 > 192.168.1.18  succeeded None  0.000 ms .. 80.000 ms
+2  PC-9 > 192.168.1.11  succeeded None  80.000 ms .. 120.000 ms
+3  PC-5 > 192.168.1.16  succeeded None  120.000 ms .. 200.000 ms
+4  PC-3 > 192.168.1.16  succeeded None  200.000 ms .. 280.000 ms
+
+## records
+0.000 ms  #0 e1  PC-2 port -  PingStarted  link - frame - value 1
+0.000 ms  #1 e1  PC-2 port 1  FrameSent  link 1 frame 0 value 1
+10.000 ms  #2 e2  Switch-1 port 1  FrameReceived  link 1 frame 0 value 0
+10.000 ms  #3 e2  Switch-1 port 1  MacLearned  link 1 frame 0 value 0
+10.000 ms  #4 e2  Switch-1 port 1  FrameFlooded  link 1 frame 0 value 0
+10.000 ms  #5 e2  Switch-1 port 2  FrameSent  link 2 frame 0 value 0
+10.000 ms  #6 e2  Switch-1 port 3  FrameSent  link 3 frame 0 value 0
+10.000 ms  #7 e2  Switch-1 port 4  FrameSent  link 4 frame 0 value 0
+10.000 ms  #8 e2  Switch-1 port 5  FrameSent  link 5 frame 0 value 0
+10.000 ms  #9 e2  Switch-1 port 6  FrameSent  link 6 frame 0 value 0
+10.000 ms  #10 e2  Switch-1 port 7  FrameSent  link 7 frame 0 value 0
+10.000 ms  #11 e2  Switch-1 port 8  FrameSent  link 8 frame 0 value 0
+20.000 ms  #12 e3  PC-3 port 1  FrameReceived  link 2 frame 0 value 0
+20.000 ms  #13 e3  PC-3 port 1  FrameDropped ArpForOtherHost  link 2 frame 0 value 0
+20.000 ms  #14 e4  PC-4 port 1  FrameReceived  link 3 frame 0 value 0
+20.000 ms  #15 e4  PC-4 port 1  FrameDropped ArpForOtherHost  link 3 frame 0 value 0
+20.000 ms  #16 e5  PC-5 port 1  FrameReceived  link 4 frame 0 value 0
+20.000 ms  #17 e5  PC-5 port 1  FrameDropped ArpForOtherHost  link 4 frame 0 value 0
+20.000 ms  #18 e6  PC-6 port 1  FrameReceived  link 5 frame 0 value 0
+20.000 ms  #19 e6  PC-6 port 1  FrameDropped ArpForOtherHost  link 5 frame 0 value 0
+20.000 ms  #20 e7  PC-7 port 1  FrameReceived  link 6 frame 0 value 0
+20.000 ms  #21 e7  PC-7 port 1  FrameDropped ArpForOtherHost  link 6 frame 0 value 0
+20.000 ms  #22 e8  PC-8 port 1  FrameReceived  link 7 frame 0 value 0
+20.000 ms  #23 e8  PC-8 port 1  FrameDropped ArpForOtherHost  link 7 frame 0 value 0
+20.000 ms  #24 e9  PC-9 port 1  FrameReceived  link 8 frame 0 value 0
+20.000 ms  #25 e9  PC-9 port 1  ArpCacheUpdated  link 8 frame 0 value 0
+20.000 ms  #26 e9  PC-9 port 1  FrameSent  link 8 frame 1 value 0
+30.000 ms  #27 e10  Switch-1 port 8  FrameReceived  link 8 frame 1 value 0
+30.000 ms  #28 e10  Switch-1 port 8  MacLearned  link 8 frame 1 value 0
+30.000 ms  #29 e10  Switch-1 port 8  FrameForwarded  link 8 frame 1 value 0
+30.000 ms  #30 e10  Switch-1 port 1  FrameSent  link 1 frame 1 value 0
+40.000 ms  #31 e11  PC-2 port 1  FrameReceived  link 1 frame 1 value 0
+40.000 ms  #32 e11  PC-2 port 1  ArpCacheUpdated  link 1 frame 1 value 0
+40.000 ms  #33 e11  PC-2 port 1  FrameSent  link 1 frame 2 value 0
+50.000 ms  #34 e12  Switch-1 port 1  FrameReceived  link 1 frame 2 value 0
+50.000 ms  #35 e12  Switch-1 port 1  FrameForwarded  link 1 frame 2 value 0
+50.000 ms  #36 e12  Switch-1 port 8  FrameSent  link 8 frame 2 value 0
+60.000 ms  #37 e13  PC-9 port 1  FrameReceived  link 8 frame 2 value 0
+60.000 ms  #38 e13  PC-9 port 1  FrameSent  link 8 frame 3 value 0
+70.000 ms  #39 e14  Switch-1 port 8  FrameReceived  link 8 frame 3 value 0
+70.000 ms  #40 e14  Switch-1 port 8  FrameForwarded  link 8 frame 3 value 0
+70.000 ms  #41 e14  Switch-1 port 1  FrameSent  link 1 frame 3 value 0
+80.000 ms  #42 e15  PC-2 port 1  FrameReceived  link 1 frame 3 value 0
+80.000 ms  #43 e15  PC-2 port 1  PingSucceeded  link 1 frame 3 value 1
+80.000 ms  #44 e16  PC-9 port -  PingStarted  link - frame - value 2
+80.000 ms  #45 e16  PC-9 port 1  FrameSent  link 8 frame 4 value 0
+90.000 ms  #46 e17  Switch-1 port 8  FrameReceived  link 8 frame 4 value 0
+90.000 ms  #47 e17  Switch-1 port 8  FrameForwarded  link 8 frame 4 value 0
+90.000 ms  #48 e17  Switch-1 port 1  FrameSent  link 1 frame 4 value 0
+100.000 ms  #49 e18  PC-2 port 1  FrameReceived  link 1 frame 4 value 0
+100.000 ms  #50 e18  PC-2 port 1  FrameSent  link 1 frame 5 value 0
+110.000 ms  #51 e19  Switch-1 port 1  FrameReceived  link 1 frame 5 value 0
+110.000 ms  #52 e19  Switch-1 port 1  FrameForwarded  link 1 frame 5 value 0
+110.000 ms  #53 e19  Switch-1 port 8  FrameSent  link 8 frame 5 value 0
+120.000 ms  #54 e20  PC-9 port 1  FrameReceived  link 8 frame 5 value 0
+120.000 ms  #55 e20  PC-9 port 1  PingSucceeded  link 8 frame 5 value 2
+120.000 ms  #56 e21  PC-5 port -  PingStarted  link - frame - value 3
+120.000 ms  #57 e21  PC-5 port 1  FrameSent  link 4 frame 6 value 1
+130.000 ms  #58 e22  Switch-1 port 4  FrameReceived  link 4 frame 6 value 0
+130.000 ms  #59 e22  Switch-1 port 4  MacLearned  link 4 frame 6 value 0
+130.000 ms  #60 e22  Switch-1 port 4  FrameFlooded  link 4 frame 6 value 0
+130.000 ms  #61 e22  Switch-1 port 1  FrameSent  link 1 frame 6 value 0
+130.000 ms  #62 e22  Switch-1 port 2  FrameSent  link 2 frame 6 value 0
+130.000 ms  #63 e22  Switch-1 port 3  FrameSent  link 3 frame 6 value 0
+130.000 ms  #64 e22  Switch-1 port 5  FrameSent  link 5 frame 6 value 0
+130.000 ms  #65 e22  Switch-1 port 6  FrameSent  link 6 frame 6 value 0
+130.000 ms  #66 e22  Switch-1 port 7  FrameSent  link 7 frame 6 value 0
+130.000 ms  #67 e22  Switch-1 port 8  FrameSent  link 8 frame 6 value 0
+140.000 ms  #68 e23  PC-2 port 1  FrameReceived  link 1 frame 6 value 0
+140.000 ms  #69 e23  PC-2 port 1  FrameDropped ArpForOtherHost  link 1 frame 6 value 0
+140.000 ms  #70 e24  PC-3 port 1  FrameReceived  link 2 frame 6 value 0
+140.000 ms  #71 e24  PC-3 port 1  FrameDropped ArpForOtherHost  link 2 frame 6 value 0
+140.000 ms  #72 e25  PC-4 port 1  FrameReceived  link 3 frame 6 value 0
+140.000 ms  #73 e25  PC-4 port 1  FrameDropped ArpForOtherHost  link 3 frame 6 value 0
+140.000 ms  #74 e26  PC-6 port 1  FrameReceived  link 5 frame 6 value 0
+140.000 ms  #75 e26  PC-6 port 1  FrameDropped ArpForOtherHost  link 5 frame 6 value 0
+140.000 ms  #76 e27  PC-7 port 1  FrameReceived  link 6 frame 6 value 0
+140.000 ms  #77 e27  PC-7 port 1  ArpCacheUpdated  link 6 frame 6 value 0
+140.000 ms  #78 e27  PC-7 port 1  FrameSent  link 6 frame 7 value 0
+140.000 ms  #79 e28  PC-8 port 1  FrameReceived  link 7 frame 6 value 0
+140.000 ms  #80 e28  PC-8 port 1  FrameDropped ArpForOtherHost  link 7 frame 6 value 0
+140.000 ms  #81 e29  PC-9 port 1  FrameReceived  link 8 frame 6 value 0
+140.000 ms  #82 e29  PC-9 port 1  FrameDropped ArpForOtherHost  link 8 frame 6 value 0
+150.000 ms  #83 e30  Switch-1 port 6  FrameReceived  link 6 frame 7 value 0
+150.000 ms  #84 e30  Switch-1 port 6  MacLearned  link 6 frame 7 value 0
+150.000 ms  #85 e30  Switch-1 port 6  FrameForwarded  link 6 frame 7 value 0
+150.000 ms  #86 e30  Switch-1 port 4  FrameSent  link 4 frame 7 value 0
+160.000 ms  #87 e31  PC-5 port 1  FrameReceived  link 4 frame 7 value 0
+160.000 ms  #88 e31  PC-5 port 1  ArpCacheUpdated  link 4 frame 7 value 0
+160.000 ms  #89 e31  PC-5 port 1  FrameSent  link 4 frame 8 value 0
+170.000 ms  #90 e32  Switch-1 port 4  FrameReceived  link 4 frame 8 value 0
+170.000 ms  #91 e32  Switch-1 port 4  FrameForwarded  link 4 frame 8 value 0
+170.000 ms  #92 e32  Switch-1 port 6  FrameSent  link 6 frame 8 value 0
+180.000 ms  #93 e33  PC-7 port 1  FrameReceived  link 6 frame 8 value 0
+180.000 ms  #94 e33  PC-7 port 1  FrameSent  link 6 frame 9 value 0
+190.000 ms  #95 e34  Switch-1 port 6  FrameReceived  link 6 frame 9 value 0
+190.000 ms  #96 e34  Switch-1 port 6  FrameForwarded  link 6 frame 9 value 0
+190.000 ms  #97 e34  Switch-1 port 4  FrameSent  link 4 frame 9 value 0
+200.000 ms  #98 e35  PC-5 port 1  FrameReceived  link 4 frame 9 value 0
+200.000 ms  #99 e35  PC-5 port 1  PingSucceeded  link 4 frame 9 value 3
+200.000 ms  #100 e36  PC-3 port -  PingStarted  link - frame - value 4
+200.000 ms  #101 e36  PC-3 port 1  FrameSent  link 2 frame 10 value 1
+210.000 ms  #102 e37  Switch-1 port 2  FrameReceived  link 2 frame 10 value 0
+210.000 ms  #103 e37  Switch-1 port 2  MacLearned  link 2 frame 10 value 0
+210.000 ms  #104 e37  Switch-1 port 2  FrameFlooded  link 2 frame 10 value 0
+210.000 ms  #105 e37  Switch-1 port 1  FrameSent  link 1 frame 10 value 0
+210.000 ms  #106 e37  Switch-1 port 3  FrameSent  link 3 frame 10 value 0
+210.000 ms  #107 e37  Switch-1 port 4  FrameSent  link 4 frame 10 value 0
+210.000 ms  #108 e37  Switch-1 port 5  FrameSent  link 5 frame 10 value 0
+210.000 ms  #109 e37  Switch-1 port 6  FrameSent  link 6 frame 10 value 0
+210.000 ms  #110 e37  Switch-1 port 7  FrameSent  link 7 frame 10 value 0
+210.000 ms  #111 e37  Switch-1 port 8  FrameSent  link 8 frame 10 value 0
+220.000 ms  #112 e38  PC-2 port 1  FrameReceived  link 1 frame 10 value 0
+220.000 ms  #113 e38  PC-2 port 1  FrameDropped ArpForOtherHost  link 1 frame 10 value 0
+220.000 ms  #114 e39  PC-4 port 1  FrameReceived  link 3 frame 10 value 0
+220.000 ms  #115 e39  PC-4 port 1  FrameDropped ArpForOtherHost  link 3 frame 10 value 0
+220.000 ms  #116 e40  PC-5 port 1  FrameReceived  link 4 frame 10 value 0
+220.000 ms  #117 e40  PC-5 port 1  FrameDropped ArpForOtherHost  link 4 frame 10 value 0
+220.000 ms  #118 e41  PC-6 port 1  FrameReceived  link 5 frame 10 value 0
+220.000 ms  #119 e41  PC-6 port 1  FrameDropped ArpForOtherHost  link 5 frame 10 value 0
+220.000 ms  #120 e42  PC-7 port 1  FrameReceived  link 6 frame 10 value 0
+220.000 ms  #121 e42  PC-7 port 1  ArpCacheUpdated  link 6 frame 10 value 0
+220.000 ms  #122 e42  PC-7 port 1  FrameSent  link 6 frame 11 value 0
+220.000 ms  #123 e43  PC-8 port 1  FrameReceived  link 7 frame 10 value 0
+220.000 ms  #124 e43  PC-8 port 1  FrameDropped ArpForOtherHost  link 7 frame 10 value 0
+220.000 ms  #125 e44  PC-9 port 1  FrameReceived  link 8 frame 10 value 0
+220.000 ms  #126 e44  PC-9 port 1  FrameDropped ArpForOtherHost  link 8 frame 10 value 0
+230.000 ms  #127 e45  Switch-1 port 6  FrameReceived  link 6 frame 11 value 0
+230.000 ms  #128 e45  Switch-1 port 6  FrameForwarded  link 6 frame 11 value 0
+230.000 ms  #129 e45  Switch-1 port 2  FrameSent  link 2 frame 11 value 0
+240.000 ms  #130 e46  PC-3 port 1  FrameReceived  link 2 frame 11 value 0
+240.000 ms  #131 e46  PC-3 port 1  ArpCacheUpdated  link 2 frame 11 value 0
+240.000 ms  #132 e46  PC-3 port 1  FrameSent  link 2 frame 12 value 0
+250.000 ms  #133 e47  Switch-1 port 2  FrameReceived  link 2 frame 12 value 0
+250.000 ms  #134 e47  Switch-1 port 2  FrameForwarded  link 2 frame 12 value 0
+250.000 ms  #135 e47  Switch-1 port 6  FrameSent  link 6 frame 12 value 0
+260.000 ms  #136 e48  PC-7 port 1  FrameReceived  link 6 frame 12 value 0
+260.000 ms  #137 e48  PC-7 port 1  FrameSent  link 6 frame 13 value 0
+270.000 ms  #138 e49  Switch-1 port 6  FrameReceived  link 6 frame 13 value 0
+270.000 ms  #139 e49  Switch-1 port 6  FrameForwarded  link 6 frame 13 value 0
+270.000 ms  #140 e49  Switch-1 port 2  FrameSent  link 2 frame 13 value 0
+280.000 ms  #141 e50  PC-3 port 1  FrameReceived  link 2 frame 13 value 0
+280.000 ms  #142 e50  PC-3 port 1  PingSucceeded  link 2 frame 13 value 4
+
+## frames
+0  02:00:00:00:00:02 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:02 192.168.1.11 target 00:00:00:00:00:00 192.168.1.18
+1  02:00:00:00:00:09 > 02:00:00:00:00:02  ARP reply sender 02:00:00:00:00:09 192.168.1.18 target 02:00:00:00:00:02 192.168.1.11
+2  02:00:00:00:00:02 > 02:00:00:00:00:09  IPv4 192.168.1.11 > 192.168.1.18 ttl 64 id 1 proto 1  ICMP type 8 code 0 identifier 1 sequence 1
+3  02:00:00:00:00:09 > 02:00:00:00:00:02  IPv4 192.168.1.18 > 192.168.1.11 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 1 sequence 1
+4  02:00:00:00:00:09 > 02:00:00:00:00:02  IPv4 192.168.1.18 > 192.168.1.11 ttl 64 id 2 proto 1  ICMP type 8 code 0 identifier 2 sequence 1
+5  02:00:00:00:00:02 > 02:00:00:00:00:09  IPv4 192.168.1.11 > 192.168.1.18 ttl 64 id 2 proto 1  ICMP type 0 code 0 identifier 2 sequence 1
+6  02:00:00:00:00:05 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:05 192.168.1.14 target 00:00:00:00:00:00 192.168.1.16
+7  02:00:00:00:00:07 > 02:00:00:00:00:05  ARP reply sender 02:00:00:00:00:07 192.168.1.16 target 02:00:00:00:00:05 192.168.1.14
+8  02:00:00:00:00:05 > 02:00:00:00:00:07  IPv4 192.168.1.14 > 192.168.1.16 ttl 64 id 1 proto 1  ICMP type 8 code 0 identifier 3 sequence 1
+9  02:00:00:00:00:07 > 02:00:00:00:00:05  IPv4 192.168.1.16 > 192.168.1.14 ttl 64 id 1 proto 1  ICMP type 0 code 0 identifier 3 sequence 1
+10  02:00:00:00:00:03 > ff:ff:ff:ff:ff:ff  ARP request sender 02:00:00:00:00:03 192.168.1.12 target 00:00:00:00:00:00 192.168.1.16
+11  02:00:00:00:00:07 > 02:00:00:00:00:03  ARP reply sender 02:00:00:00:00:07 192.168.1.16 target 02:00:00:00:00:03 192.168.1.12
+12  02:00:00:00:00:03 > 02:00:00:00:00:07  IPv4 192.168.1.12 > 192.168.1.16 ttl 64 id 1 proto 1  ICMP type 8 code 0 identifier 4 sequence 1
+13  02:00:00:00:00:07 > 02:00:00:00:00:03  IPv4 192.168.1.16 > 192.168.1.12 ttl 64 id 2 proto 1  ICMP type 0 code 0 identifier 4 sequence 1
+
+## transmissions
+frame 0 link 1  PC-2 port 1 > Switch-1 port 1  0.000 ms .. 10.000 ms  record 1
+frame 0 link 2  Switch-1 port 2 > PC-3 port 1  10.000 ms .. 20.000 ms  record 5
+frame 0 link 3  Switch-1 port 3 > PC-4 port 1  10.000 ms .. 20.000 ms  record 6
+frame 0 link 4  Switch-1 port 4 > PC-5 port 1  10.000 ms .. 20.000 ms  record 7
+frame 0 link 5  Switch-1 port 5 > PC-6 port 1  10.000 ms .. 20.000 ms  record 8
+frame 0 link 6  Switch-1 port 6 > PC-7 port 1  10.000 ms .. 20.000 ms  record 9
+frame 0 link 7  Switch-1 port 7 > PC-8 port 1  10.000 ms .. 20.000 ms  record 10
+frame 0 link 8  Switch-1 port 8 > PC-9 port 1  10.000 ms .. 20.000 ms  record 11
+frame 1 link 8  PC-9 port 1 > Switch-1 port 8  20.000 ms .. 30.000 ms  record 26
+frame 1 link 1  Switch-1 port 1 > PC-2 port 1  30.000 ms .. 40.000 ms  record 30
+frame 2 link 1  PC-2 port 1 > Switch-1 port 1  40.000 ms .. 50.000 ms  record 33
+frame 2 link 8  Switch-1 port 8 > PC-9 port 1  50.000 ms .. 60.000 ms  record 36
+frame 3 link 8  PC-9 port 1 > Switch-1 port 8  60.000 ms .. 70.000 ms  record 38
+frame 3 link 1  Switch-1 port 1 > PC-2 port 1  70.000 ms .. 80.000 ms  record 41
+frame 4 link 8  PC-9 port 1 > Switch-1 port 8  80.000 ms .. 90.000 ms  record 45
+frame 4 link 1  Switch-1 port 1 > PC-2 port 1  90.000 ms .. 100.000 ms  record 48
+frame 5 link 1  PC-2 port 1 > Switch-1 port 1  100.000 ms .. 110.000 ms  record 50
+frame 5 link 8  Switch-1 port 8 > PC-9 port 1  110.000 ms .. 120.000 ms  record 53
+frame 6 link 4  PC-5 port 1 > Switch-1 port 4  120.000 ms .. 130.000 ms  record 57
+frame 6 link 1  Switch-1 port 1 > PC-2 port 1  130.000 ms .. 140.000 ms  record 61
+frame 6 link 2  Switch-1 port 2 > PC-3 port 1  130.000 ms .. 140.000 ms  record 62
+frame 6 link 3  Switch-1 port 3 > PC-4 port 1  130.000 ms .. 140.000 ms  record 63
+frame 6 link 5  Switch-1 port 5 > PC-6 port 1  130.000 ms .. 140.000 ms  record 64
+frame 6 link 6  Switch-1 port 6 > PC-7 port 1  130.000 ms .. 140.000 ms  record 65
+frame 6 link 7  Switch-1 port 7 > PC-8 port 1  130.000 ms .. 140.000 ms  record 66
+frame 6 link 8  Switch-1 port 8 > PC-9 port 1  130.000 ms .. 140.000 ms  record 67
+frame 7 link 6  PC-7 port 1 > Switch-1 port 6  140.000 ms .. 150.000 ms  record 78
+frame 7 link 4  Switch-1 port 4 > PC-5 port 1  150.000 ms .. 160.000 ms  record 86
+frame 8 link 4  PC-5 port 1 > Switch-1 port 4  160.000 ms .. 170.000 ms  record 89
+frame 8 link 6  Switch-1 port 6 > PC-7 port 1  170.000 ms .. 180.000 ms  record 92
+frame 9 link 6  PC-7 port 1 > Switch-1 port 6  180.000 ms .. 190.000 ms  record 94
+frame 9 link 4  Switch-1 port 4 > PC-5 port 1  190.000 ms .. 200.000 ms  record 97
+frame 10 link 2  PC-3 port 1 > Switch-1 port 2  200.000 ms .. 210.000 ms  record 101
+frame 10 link 1  Switch-1 port 1 > PC-2 port 1  210.000 ms .. 220.000 ms  record 105
+frame 10 link 3  Switch-1 port 3 > PC-4 port 1  210.000 ms .. 220.000 ms  record 106
+frame 10 link 4  Switch-1 port 4 > PC-5 port 1  210.000 ms .. 220.000 ms  record 107
+frame 10 link 5  Switch-1 port 5 > PC-6 port 1  210.000 ms .. 220.000 ms  record 108
+frame 10 link 6  Switch-1 port 6 > PC-7 port 1  210.000 ms .. 220.000 ms  record 109
+frame 10 link 7  Switch-1 port 7 > PC-8 port 1  210.000 ms .. 220.000 ms  record 110
+frame 10 link 8  Switch-1 port 8 > PC-9 port 1  210.000 ms .. 220.000 ms  record 111
+frame 11 link 6  PC-7 port 1 > Switch-1 port 6  220.000 ms .. 230.000 ms  record 122
+frame 11 link 2  Switch-1 port 2 > PC-3 port 1  230.000 ms .. 240.000 ms  record 129
+frame 12 link 2  PC-3 port 1 > Switch-1 port 2  240.000 ms .. 250.000 ms  record 132
+frame 12 link 6  Switch-1 port 6 > PC-7 port 1  250.000 ms .. 260.000 ms  record 135
+frame 13 link 6  PC-7 port 1 > Switch-1 port 6  260.000 ms .. 270.000 ms  record 137
+frame 13 link 2  Switch-1 port 2 > PC-3 port 1  270.000 ms .. 280.000 ms  record 140
+
+## events
+0.000 ms  [ARP] PC-2 · who has 192.168.1.18?  (ok, from 2 to - link - frame 0)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 1/3.
+    The destination is in the local subnet. Looking for its MAC address.
+10.000 ms  [ARP] PC-2 → Switch-1 · ARP Request  (ok, from 2 to 1 link 1 frame 0)
+    Ethernet: 02:00:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.11 → 192.168.1.18
+    ARP Request; ingress port 1.
+    Learned source MAC 02:00:00:00:00:02 on port 1.
+    Flooded to every active port except the ingress port (7).
+20.000 ms  [ARP] Switch-1 → PC-3 · ARP Request  (ok, from 1 to 3 link 2 frame 0)
+    Ethernet: 02:00:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.11 → 192.168.1.18
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+20.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 3 frame 0)
+    Ethernet: 02:00:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.11 → 192.168.1.18
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+20.000 ms  [ARP] Switch-1 → PC-5 · ARP Request  (ok, from 1 to 5 link 4 frame 0)
+    Ethernet: 02:00:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.11 → 192.168.1.18
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+20.000 ms  [ARP] Switch-1 → PC-6 · ARP Request  (ok, from 1 to 6 link 5 frame 0)
+    Ethernet: 02:00:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.11 → 192.168.1.18
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+20.000 ms  [ARP] Switch-1 → PC-7 · ARP Request  (ok, from 1 to 7 link 6 frame 0)
+    Ethernet: 02:00:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.11 → 192.168.1.18
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+20.000 ms  [ARP] Switch-1 → PC-8 · ARP Request  (ok, from 1 to 8 link 7 frame 0)
+    Ethernet: 02:00:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.11 → 192.168.1.18
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+20.000 ms  [ARP] Switch-1 → PC-9 · ARP Request  (ok, from 1 to 9 link 8 frame 0)
+    Ethernet: 02:00:00:00:00:02 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.11 → 192.168.1.18
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.11 = 02:00:00:00:00:02.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+30.000 ms  [ARP] PC-9 → Switch-1 · ARP Reply  (ok, from 9 to 1 link 8 frame 1)
+    Ethernet: 02:00:00:00:00:09 → 02:00:00:00:00:02
+    ARP: 192.168.1.18 → 192.168.1.11
+    ARP Reply; ingress port 8.
+    Learned source MAC 02:00:00:00:00:09 on port 8.
+    Unicast on port 1.
+40.000 ms  [ARP] Switch-1 → PC-2 · ARP Reply  (ok, from 1 to 2 link 1 frame 1)
+    Ethernet: 02:00:00:00:00:09 → 02:00:00:00:00:02
+    ARP: 192.168.1.18 → 192.168.1.11
+    ARP Reply; ingress port 1.
+    ARP cache updated: 192.168.1.18 = 02:00:00:00:00:09.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+50.000 ms  [ICMP] PC-2 → Switch-1 · Echo Request  (ok, from 2 to 1 link 1 frame 2)
+    Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:09
+    IPv4: 192.168.1.11 → 192.168.1.18
+    Echo Request; ingress port 1.
+    Unicast on port 8.
+60.000 ms  [ICMP] Switch-1 → PC-9 · Echo Request  (ok, from 1 to 9 link 8 frame 2)
+    Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:09
+    IPv4: 192.168.1.11 → 192.168.1.18
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+70.000 ms  [ICMP] PC-9 → Switch-1 · Echo Reply  (ok, from 9 to 1 link 8 frame 3)
+    Ethernet: 02:00:00:00:00:09 → 02:00:00:00:00:02
+    IPv4: 192.168.1.18 → 192.168.1.11
+    Echo Reply; ingress port 8.
+    Unicast on port 1.
+80.000 ms  [ICMP] Ping succeeded · 192.168.1.18 → PC-2  (ok, from 1 to 2 link 1 frame 3)
+    Ethernet: 02:00:00:00:00:09 → 02:00:00:00:00:02
+    IPv4: 192.168.1.18 → 192.168.1.11
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable.
+90.000 ms  [ICMP] PC-9 → Switch-1 · Echo Request  (ok, from 9 to 1 link 8 frame 4)
+    Ethernet: 02:00:00:00:00:09 → 02:00:00:00:00:02
+    IPv4: 192.168.1.18 → 192.168.1.11
+    Echo Request; ingress port 8.
+    Unicast on port 1.
+100.000 ms  [ICMP] Switch-1 → PC-2 · Echo Request  (ok, from 1 to 2 link 1 frame 4)
+    Ethernet: 02:00:00:00:00:09 → 02:00:00:00:00:02
+    IPv4: 192.168.1.18 → 192.168.1.11
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+110.000 ms  [ICMP] PC-2 → Switch-1 · Echo Reply  (ok, from 2 to 1 link 1 frame 5)
+    Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:09
+    IPv4: 192.168.1.11 → 192.168.1.18
+    Echo Reply; ingress port 1.
+    Unicast on port 8.
+120.000 ms  [ICMP] Ping succeeded · 192.168.1.11 → PC-9  (ok, from 1 to 9 link 8 frame 5)
+    Ethernet: 02:00:00:00:00:02 → 02:00:00:00:00:09
+    IPv4: 192.168.1.11 → 192.168.1.18
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable.
+120.000 ms  [ARP] PC-5 · who has 192.168.1.16?  (ok, from 5 to - link - frame 6)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 1/3.
+    The destination is in the local subnet. Looking for its MAC address.
+130.000 ms  [ARP] PC-5 → Switch-1 · ARP Request  (ok, from 5 to 1 link 4 frame 6)
+    Ethernet: 02:00:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.14 → 192.168.1.16
+    ARP Request; ingress port 4.
+    Learned source MAC 02:00:00:00:00:05 on port 4.
+    Flooded to every active port except the ingress port (7).
+140.000 ms  [ARP] Switch-1 → PC-2 · ARP Request  (ok, from 1 to 2 link 1 frame 6)
+    Ethernet: 02:00:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.14 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+140.000 ms  [ARP] Switch-1 → PC-3 · ARP Request  (ok, from 1 to 3 link 2 frame 6)
+    Ethernet: 02:00:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.14 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+140.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 3 frame 6)
+    Ethernet: 02:00:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.14 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+140.000 ms  [ARP] Switch-1 → PC-6 · ARP Request  (ok, from 1 to 6 link 5 frame 6)
+    Ethernet: 02:00:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.14 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+140.000 ms  [ARP] Switch-1 → PC-7 · ARP Request  (ok, from 1 to 7 link 6 frame 6)
+    Ethernet: 02:00:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.14 → 192.168.1.16
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.14 = 02:00:00:00:00:05.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+140.000 ms  [ARP] Switch-1 → PC-8 · ARP Request  (ok, from 1 to 8 link 7 frame 6)
+    Ethernet: 02:00:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.14 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+140.000 ms  [ARP] Switch-1 → PC-9 · ARP Request  (ok, from 1 to 9 link 8 frame 6)
+    Ethernet: 02:00:00:00:00:05 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.14 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+150.000 ms  [ARP] PC-7 → Switch-1 · ARP Reply  (ok, from 7 to 1 link 6 frame 7)
+    Ethernet: 02:00:00:00:00:07 → 02:00:00:00:00:05
+    ARP: 192.168.1.16 → 192.168.1.14
+    ARP Reply; ingress port 6.
+    Learned source MAC 02:00:00:00:00:07 on port 6.
+    Unicast on port 4.
+160.000 ms  [ARP] Switch-1 → PC-5 · ARP Reply  (ok, from 1 to 5 link 4 frame 7)
+    Ethernet: 02:00:00:00:00:07 → 02:00:00:00:00:05
+    ARP: 192.168.1.16 → 192.168.1.14
+    ARP Reply; ingress port 1.
+    ARP cache updated: 192.168.1.16 = 02:00:00:00:00:07.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+170.000 ms  [ICMP] PC-5 → Switch-1 · Echo Request  (ok, from 5 to 1 link 4 frame 8)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:07
+    IPv4: 192.168.1.14 → 192.168.1.16
+    Echo Request; ingress port 4.
+    Unicast on port 6.
+180.000 ms  [ICMP] Switch-1 → PC-7 · Echo Request  (ok, from 1 to 7 link 6 frame 8)
+    Ethernet: 02:00:00:00:00:05 → 02:00:00:00:00:07
+    IPv4: 192.168.1.14 → 192.168.1.16
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+190.000 ms  [ICMP] PC-7 → Switch-1 · Echo Reply  (ok, from 7 to 1 link 6 frame 9)
+    Ethernet: 02:00:00:00:00:07 → 02:00:00:00:00:05
+    IPv4: 192.168.1.16 → 192.168.1.14
+    Echo Reply; ingress port 6.
+    Unicast on port 4.
+200.000 ms  [ICMP] Ping succeeded · 192.168.1.16 → PC-5  (ok, from 1 to 5 link 4 frame 9)
+    Ethernet: 02:00:00:00:00:07 → 02:00:00:00:00:05
+    IPv4: 192.168.1.16 → 192.168.1.14
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable.
+200.000 ms  [ARP] PC-3 · who has 192.168.1.16?  (ok, from 3 to - link - frame 10)
+    ARP Request sent to broadcast (ff:ff:ff:ff:ff:ff). Attempt 1/3.
+    The destination is in the local subnet. Looking for its MAC address.
+210.000 ms  [ARP] PC-3 → Switch-1 · ARP Request  (ok, from 3 to 1 link 2 frame 10)
+    Ethernet: 02:00:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.12 → 192.168.1.16
+    ARP Request; ingress port 2.
+    Learned source MAC 02:00:00:00:00:03 on port 2.
+    Flooded to every active port except the ingress port (7).
+220.000 ms  [ARP] Switch-1 → PC-2 · ARP Request  (ok, from 1 to 2 link 1 frame 10)
+    Ethernet: 02:00:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.12 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+220.000 ms  [ARP] Switch-1 → PC-4 · ARP Request  (ok, from 1 to 4 link 3 frame 10)
+    Ethernet: 02:00:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.12 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+220.000 ms  [ARP] Switch-1 → PC-5 · ARP Request  (ok, from 1 to 5 link 4 frame 10)
+    Ethernet: 02:00:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.12 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+220.000 ms  [ARP] Switch-1 → PC-6 · ARP Request  (ok, from 1 to 6 link 5 frame 10)
+    Ethernet: 02:00:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.12 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+220.000 ms  [ARP] Switch-1 → PC-7 · ARP Request  (ok, from 1 to 7 link 6 frame 10)
+    Ethernet: 02:00:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.12 → 192.168.1.16
+    ARP Request; ingress port 1.
+    ARP cache updated: 192.168.1.12 = 02:00:00:00:00:03.
+    This PC owns the requested IP: it sends a unicast ARP reply.
+220.000 ms  [ARP] Switch-1 → PC-8 · ARP Request  (ok, from 1 to 8 link 7 frame 10)
+    Ethernet: 02:00:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.12 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+220.000 ms  [ARP] Switch-1 → PC-9 · ARP Request  (ok, from 1 to 9 link 8 frame 10)
+    Ethernet: 02:00:00:00:00:03 → ff:ff:ff:ff:ff:ff
+    ARP: 192.168.1.12 → 192.168.1.16
+    ARP Request; ingress port 1.
+    Request for another address: no reply.
+230.000 ms  [ARP] PC-7 → Switch-1 · ARP Reply  (ok, from 7 to 1 link 6 frame 11)
+    Ethernet: 02:00:00:00:00:07 → 02:00:00:00:00:03
+    ARP: 192.168.1.16 → 192.168.1.12
+    ARP Reply; ingress port 6.
+    Unicast on port 2.
+240.000 ms  [ARP] Switch-1 → PC-3 · ARP Reply  (ok, from 1 to 3 link 2 frame 11)
+    Ethernet: 02:00:00:00:00:07 → 02:00:00:00:00:03
+    ARP: 192.168.1.16 → 192.168.1.12
+    ARP Reply; ingress port 1.
+    ARP cache updated: 192.168.1.16 = 02:00:00:00:00:07.
+    MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent.
+250.000 ms  [ICMP] PC-3 → Switch-1 · Echo Request  (ok, from 3 to 1 link 2 frame 12)
+    Ethernet: 02:00:00:00:00:03 → 02:00:00:00:00:07
+    IPv4: 192.168.1.12 → 192.168.1.16
+    Echo Request; ingress port 2.
+    Unicast on port 6.
+260.000 ms  [ICMP] Switch-1 → PC-7 · Echo Request  (ok, from 1 to 7 link 6 frame 12)
+    Ethernet: 02:00:00:00:00:03 → 02:00:00:00:00:07
+    IPv4: 192.168.1.12 → 192.168.1.16
+    Echo Request; ingress port 1.
+    ICMP Echo Request received: an Echo Reply with the same identifier is generated.
+270.000 ms  [ICMP] PC-7 → Switch-1 · Echo Reply  (ok, from 7 to 1 link 6 frame 13)
+    Ethernet: 02:00:00:00:00:07 → 02:00:00:00:00:03
+    IPv4: 192.168.1.16 → 192.168.1.12
+    Echo Reply; ingress port 6.
+    Unicast on port 2.
+280.000 ms  [ICMP] Ping succeeded · 192.168.1.16 → PC-3  (ok, from 1 to 3 link 2 frame 13)
+    Ethernet: 02:00:00:00:00:07 → 02:00:00:00:00:03
+    IPv4: 192.168.1.16 → 192.168.1.12
+    Echo Reply; ingress port 1.
+    Echo Reply matching the current ping. The destination is reachable.

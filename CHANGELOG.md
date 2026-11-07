@@ -2,6 +2,18 @@
 
 Versions follow [Semantic Versioning](https://semver.org); before 1.0, minor versions may change the file formats and the interface.
 
+## 0.1.2 — new core (unreleased)
+
+- Networks are described by scenario files: JSON with a format version, explicit ports, per-cable delays from 1 µs to 10 s, per-port MAC and administrative state, layout and notes. `docs/scenario-format.md` describes every member; errors name the line and column or the member at fault.
+- Five example scenarios in `examples/`, each with a lesson in its notes.
+- Several pings can run at once, from the same host or from different ones; datagrams waiting for the same ARP reply share one resolution, and any update of the cache releases them.
+- Hosts accept /31 and /32 prefixes (RFC 3021).
+- `resend-cli --scenario FILE --ping NAME ADDRESS` runs scenarios, with several `--ping` options at once; `--trace` prints the structured records and `--check` validates a file.
+- `resend --scenario FILE` opens a scenario in the app. **Send** stays available while a ping is running.
+- Event times are shown in milliseconds, so sub-millisecond cables stay readable.
+- Engine: the prototype's engine is replaced by a new core. `Simulation` runs a `Scenario` with a `Medium` for the cables and nodes built from modules (`Nic`, `Arp`, `PingApp`, `Bridge`); every explanation is generated from the trace by the `explain` module. The new core reproduced the prototype's records, frames and texts exactly in fourteen scenarios, which are now regression tests with golden files.
+- Renaming a switch now clears the simulation, like every other edit except moving cards.
+
 ## 0.1.1 — animated playback (unreleased)
 
 - Packets move along the cables in simulated time, coloured by protocol, with a ring on broadcast frames; the copies a switch floods travel together.

@@ -1,0 +1,124 @@
+{
+  "format": "resend-scenario",
+  "version": 1,
+  "title": "Two switches",
+  "notes": "PC-A reaches PC-B across two switches joined by a short cable. Each switch learns PC-A's MAC from the broadcast ARP request, so the reply is forwarded, never flooded. PC-C only sees the broadcast.",
+  "seed": 1,
+  "devices": [
+    {
+      "id": 1,
+      "kind": "host",
+      "name": "PC-A",
+      "powered": true,
+      "x": 40,
+      "y": 60,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:01",
+          "up": true,
+          "ipv4": "192.168.1.10/24"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "host",
+      "name": "PC-B",
+      "powered": true,
+      "x": 620,
+      "y": 40,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:02",
+          "up": true,
+          "ipv4": "192.168.1.20/24"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "host",
+      "name": "PC-C",
+      "powered": true,
+      "x": 620,
+      "y": 220,
+      "ports": [
+        {
+          "mac": "02:00:00:00:00:03",
+          "up": true,
+          "ipv4": "192.168.1.30/24"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "kind": "switch",
+      "name": "Switch-1",
+      "powered": true,
+      "x": 200,
+      "y": 200
+    },
+    {
+      "id": 5,
+      "kind": "switch",
+      "name": "Switch-2",
+      "powered": true,
+      "x": 420,
+      "y": 200
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "a": {
+        "device": 1,
+        "port": 1
+      },
+      "b": {
+        "device": 4,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 2,
+      "a": {
+        "device": 4,
+        "port": 8
+      },
+      "b": {
+        "device": 5,
+        "port": 8
+      },
+      "delay": "2ms",
+      "up": true
+    },
+    {
+      "id": 3,
+      "a": {
+        "device": 2,
+        "port": 1
+      },
+      "b": {
+        "device": 5,
+        "port": 1
+      },
+      "delay": "10ms",
+      "up": true
+    },
+    {
+      "id": 4,
+      "a": {
+        "device": 3,
+        "port": 1
+      },
+      "b": {
+        "device": 5,
+        "port": 2
+      },
+      "delay": "10ms",
+      "up": true
+    }
+  ]
+}

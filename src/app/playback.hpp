@@ -1,6 +1,6 @@
 #pragma once
 
-#include "network.hpp"
+#include "sim/simulation.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -9,10 +9,10 @@
 
 namespace resend {
 
-// Turns real time into simulated time for the animation. The engine never
-// runs ahead of the instant on screen: it is advanced to the displayed time,
-// so the tables and the event list always describe what is shown. Playback
-// decides when the engine runs, never what it computes.
+// Turns real time into simulated time for the animation. The simulation
+// never runs ahead of the instant on screen: it is advanced to the displayed
+// time, so the tables and the event list always describe what is shown.
+// Playback decides when the simulation runs, never what it computes.
 class PlaybackController {
 public:
     using RealTime = std::chrono::nanoseconds;
@@ -31,14 +31,14 @@ public:
         double progress;           // 0 at the sending port, towards 1 on arrival
     };
 
-    explicit PlaybackController(netsim::Engine& engine);
+    explicit PlaybackController(netsim::Simulation& simulation);
 
     void play();
     void pause();
     // Plays up to the next event, processes it and pauses. Events already
     // due run at once; with reduced motion the step is immediate.
     void step();
-    // Paused at the engine's current time; call after the engine resets.
+    // Paused at the simulation's current time; call after it is rebuilt.
     void reset();
     // Shows `time` at once, processing every event up to it. Only forwards:
     // going back means replaying the simulation.
@@ -48,7 +48,7 @@ public:
     bool tick(RealTime elapsed);
 
     bool playing() const { return mode_ != Mode::Paused; }
-    bool finished() const { return !engine_.next_event_time(); }
+    bool finished() const { return !simulation_.next_event_time(); }
     netsim::SimTime now() const { return view_; }
     double speed() const { return speed_; }
     void set_speed(double speed);
@@ -63,7 +63,7 @@ private:
     double rate_until(netsim::SimTime next);
     void end_of_step();
 
-    netsim::Engine& engine_;
+    netsim::Simulation& simulation_;
     Mode mode_ = Mode::Paused;
     netsim::SimTime view_{};
     double speed_ = 1;

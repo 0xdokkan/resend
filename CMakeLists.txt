@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(resend VERSION 0.1.1 LANGUAGES CXX)
+project(resend VERSION 0.1.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,7 +18,12 @@ else()
     set(resend_warnings -Wall -Wextra -Wpedantic)
 endif()
 
-add_library(resend_core src/core/address.cpp src/core/sim_time.cpp src/network.cpp)
+add_library(resend_core
+    src/core/address.cpp src/core/json.cpp src/core/sim_time.cpp
+    src/scenario/scenario.cpp src/scenario/edit.cpp src/scenario/scenario_json.cpp
+    src/sim/simulation.cpp src/sim/medium.cpp src/sim/arp.cpp src/sim/ping_app.cpp
+    src/sim/host.cpp src/sim/bridge.cpp
+    src/explain/explain.cpp)
 target_include_directories(resend_core PUBLIC src)
 target_compile_options(resend_core PRIVATE ${resend_warnings})
 
@@ -32,14 +37,26 @@ target_link_libraries(resend-cli PRIVATE resend_core)
 
 include(CTest)
 if(BUILD_TESTING)
-    add_executable(resend-tests tests/network_tests.cpp)
-    target_link_libraries(resend-tests PRIVATE resend_core)
-    target_compile_options(resend-tests PRIVATE ${resend_warnings})
-    add_test(NAME network-behavior COMMAND resend-tests)
     add_executable(resend-core-tests tests/core_tests.cpp)
     target_link_libraries(resend-core-tests PRIVATE resend_core)
     target_compile_options(resend-core-tests PRIVATE ${resend_warnings})
     add_test(NAME core-types COMMAND resend-core-tests)
+    add_executable(resend-scenario-tests tests/scenario_tests.cpp)
+    target_link_libraries(resend-scenario-tests PRIVATE resend_core)
+    target_compile_options(resend-scenario-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-scenario-tests PRIVATE RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples"
+        RESEND_DOCS_DIR="${PROJECT_SOURCE_DIR}/docs")
+    add_test(NAME scenario-files COMMAND resend-scenario-tests)
+    add_executable(resend-sim-tests tests/sim_tests.cpp)
+    target_link_libraries(resend-sim-tests PRIVATE resend_core)
+    target_compile_options(resend-sim-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-sim-tests PRIVATE RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples")
+    add_test(NAME simulation COMMAND resend-sim-tests)
+    add_executable(resend-regression-tests tests/regression_tests.cpp)
+    target_link_libraries(resend-regression-tests PRIVATE resend_core)
+    target_compile_options(resend-regression-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-regression-tests PRIVATE RESEND_GOLDEN_DIR="${PROJECT_SOURCE_DIR}/tests/golden")
+    add_test(NAME regression COMMAND resend-regression-tests)
     add_executable(resend-app-tests tests/app_tests.cpp)
     target_link_libraries(resend-app-tests PRIVATE resend_app)
     target_compile_options(resend-app-tests PRIVATE ${resend_warnings})
@@ -49,7 +66,16 @@ if(BUILD_TESTING)
     add_test(NAME cli-ping-disconnected COMMAND resend-cli 192.168.1.20 --disconnect)
     add_test(NAME cli-ping-no-route COMMAND resend-cli 10.0.0.1)
     add_test(NAME cli-invalid-address COMMAND resend-cli 192.168.1.300)
-    set_tests_properties(cli-ping-disconnected cli-ping-no-route cli-invalid-address PROPERTIES WILL_FAIL TRUE)
+    set(examples ${PROJECT_SOURCE_DIR}/examples)
+    add_test(NAME cli-scenario COMMAND resend-cli --scenario ${examples}/two-switches.json --ping PC-C 192.168.1.10)
+    add_test(NAME cli-concurrent-pings COMMAND resend-cli --scenario ${examples}/office-floor.json
+        --ping Desk-1 10.0.0.22 --ping Desk-5 10.0.0.12 --trace)
+    add_test(NAME cli-scenario-check COMMAND resend-cli --check --scenario ${examples}/office-floor.json)
+    add_test(NAME cli-scenario-ping-fails COMMAND resend-cli --scenario ${examples}/unplugged.json --ping PC-A 192.168.1.20)
+    add_test(NAME cli-unknown-host COMMAND resend-cli --ping Nobody 192.168.1.20)
+    add_test(NAME cli-missing-file COMMAND resend-cli --scenario ${examples}/missing.json)
+    set_tests_properties(cli-ping-disconnected cli-ping-no-route cli-invalid-address
+        cli-scenario-ping-fails cli-unknown-host cli-missing-file PROPERTIES WILL_FAIL TRUE)
 endif()
 
 if(RESEND_BUILD_GUI)
@@ -98,7 +124,8 @@ if(RESEND_BUILD_GUI)
         add_executable(resend-gui-tests tests/gui_tests.cpp)
         target_link_libraries(resend-gui-tests PRIVATE resend_ui)
         # slint::testing is still marked experimental in Slint 1.18.
-        target_compile_definitions(resend-gui-tests PRIVATE SLINT_FEATURE_EXPERIMENTAL)
+        target_compile_definitions(resend-gui-tests PRIVATE SLINT_FEATURE_EXPERIMENTAL
+            RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples")
         add_test(NAME gui-behavior COMMAND resend-gui-tests)
     endif()
 

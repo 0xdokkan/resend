@@ -1,7 +1,8 @@
 #pragma once
 
 #include "app/playback.hpp"
-#include "network.hpp"
+#include "scenario/scenario.hpp"
+#include "sim/simulation.hpp"
 
 #include <cstddef>
 #include <string>
@@ -9,8 +10,9 @@
 
 namespace resend {
 
-// What the canvas shows at the displayed instant, computed from the engine
-// and the playback without any Slint type, so it can be tested on its own.
+// What the canvas shows at the displayed instant, computed from the layout,
+// the simulation and the playback without any Slint type, so it can be
+// tested on its own.
 
 struct Point {
     float x = 0, y = 0;
@@ -25,10 +27,9 @@ constexpr float card_width = 160;
 constexpr float card_height = 94;
 constexpr int max_ports = 8;
 
-Box card_box(const netsim::Device& device);
-int port_count(const netsim::Device& device);
+Box card_box(const netsim::DeviceConfig& device);
 // The port light of `port` on the card's front panel, in canvas units.
-Box port_light(const netsim::Device& device, int port);
+Box port_light(const netsim::DeviceConfig& device, int port);
 
 // A straight cable between two cards, from border to border, `gap` units
 // outside each card. Equal centres give a zero-length cable.
@@ -70,12 +71,14 @@ constexpr netsim::SimTime marker_life = std::chrono::milliseconds(8);
 constexpr netsim::SimTime marker_fade = std::chrono::milliseconds(5);
 constexpr netsim::SimTime activity_life = std::chrono::milliseconds(4);
 
-Scene build_scene(const netsim::Engine& engine, const PlaybackController& playback);
+// `layout` gives positions and names: the scenario being edited, which the
+// simulation was built from; cards may have moved since.
+Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simulation, const PlaybackController& playback);
 
 // Short packet label and full name of a frame kind.
 std::string packet_label(netsim::PduKind kind);
 std::string frame_name(netsim::PduKind kind);
 // The frame by layer, one line per header: Ethernet, then ARP or IPv4 and ICMP.
-std::string describe_layers(const netsim::Frame& frame);
+std::string describe_layers(const netsim::EthernetFrame& frame);
 
 } // namespace resend

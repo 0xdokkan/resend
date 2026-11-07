@@ -5,6 +5,7 @@
 #include "sim/pdu.hpp"
 
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <vector>
 
@@ -24,6 +25,7 @@ enum class TraceKind : std::uint8_t {
     ArpTimeout,       // a retransmission interval passed without a reply
     PingSucceeded,
     PingFailed,
+    PingStarted,      // a host starts a ping; `value` is the ping's id
 };
 
 enum class Reason : std::uint8_t {
@@ -42,15 +44,21 @@ enum class Reason : std::uint8_t {
 
 // `port` is zero-based. Switch decisions refer to the ingress port; the
 // FrameSent records that follow them name the egress ports.
+// `episode` groups the records produced by one scheduled event: a frame
+// arriving, a timer firing. `value` is a number whose meaning depends on the
+// kind: the attempt for ARP requests sent or dropped and for ArpTimeout, the
+// ping's id for PingStarted, PingSucceeded and PingFailed; 0 otherwise.
 struct TraceRecord {
     SimTime time{};
     std::uint64_t seq = 0;  // position in the trace
+    std::uint64_t episode = 0;
     TraceKind kind{};
     Reason reason = Reason::None;
     DeviceId device{};
     std::optional<std::uint8_t> port{};
     std::optional<LinkId> link{};
     std::optional<PduId> pdu{};
+    std::uint32_t value = 0;
     bool operator==(const TraceRecord&) const = default;
 };
 
@@ -69,10 +77,11 @@ struct Transmission {
 // Append-only records plus the frames they refer to. A frame is archived
 // once and shared by every record about it, including the copies a switch
 // floods, so a frame can be followed across the network by its id.
+// Archived frames never move: references to them stay valid.
 // Transmissions are kept in the order they start.
 class Trace {
 public:
-    PduId archive(const Frame& frame) {
+    PduId archive(const EthernetFrame& frame) {
         pdus_.push_back(frame);
         return PduId{static_cast<std::uint32_t>(pdus_.size() - 1)};
     }
@@ -87,14 +96,14 @@ public:
         pdus_.clear();
         transmissions_.clear();
     }
-    const Frame& pdu(PduId id) const { return pdus_.at(id.value); }
-    const std::vector<Frame>& pdus() const { return pdus_; }
+    const EthernetFrame& pdu(PduId id) const { return pdus_.at(id.value); }
+    const std::deque<EthernetFrame>& pdus() const { return pdus_; }
     const std::vector<TraceRecord>& records() const { return records_; }
     const std::vector<Transmission>& transmissions() const { return transmissions_; }
 
 private:
     std::vector<TraceRecord> records_;
-    std::vector<Frame> pdus_;
+    std::deque<EthernetFrame> pdus_;
     std::vector<Transmission> transmissions_;
 };
 

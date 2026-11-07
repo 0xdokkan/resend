@@ -3,12 +3,17 @@
 // actions or real pointer/keyboard events, as a user or screen reader would.
 #include "app_controller.hpp"
 #include "check.hpp"
+#include "scenario/scenario_json.hpp"
 
 #include <slint-testing.h>
 
 #include <chrono>
+#include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -18,6 +23,13 @@ using namespace std::chrono_literals;
 using slint::language::AccessibleRole;
 using slint::testing::ElementHandle;
 using Ui = slint::ComponentHandle<AppWindow>;
+using netsim::DeviceId;
+using netsim::LinkId;
+
+bool succeeded(const resend::AppController& app) {
+    const auto& pings = app.simulation().pings();
+    return !pings.empty() && std::all_of(pings.begin(), pings.end(), [](const auto& ping) { return ping.state == netsim::PingState::Succeeded; });
+}
 
 // Text elements are labelled by their own text, so a button and its caption
 // share a label: every lookup ignores plain text.
@@ -44,16 +56,16 @@ void type(const Ui& ui, std::string_view label, std::string_view value) {
 // Steps through the experiment, letting real time pass after every press so
 // each step's animation completes.
 void run_to_end(const Ui& ui, resend::AppController& app) {
-    for (int step = 0; step < 500 && app.engine().pending(); ++step) {
+    for (int step = 0; step < 500 && app.simulation().pending(); ++step) {
         press(ui, "Step →");
         app.advance_playback(2s);
     }
-    CHECK(!app.engine().pending());
+    CHECK(!app.simulation().pending());
 }
 void play_to_end(const Ui& ui, resend::AppController& app) {
     press(ui, "▷ Run");
-    for (int frame = 0; frame < 2000 && app.engine().pending(); ++frame) app.advance_playback(100ms);
-    CHECK(!app.engine().pending() && !ui->get_running());
+    for (int frame = 0; frame < 2000 && app.simulation().pending(); ++frame) app.advance_playback(100ms);
+    CHECK(!app.simulation().pending() && !ui->get_running());
 }
 slint::LogicalPosition center(const ElementHandle& item) {
     const auto at = item.absolute_position();
@@ -75,7 +87,7 @@ void initial_view_shows_whole_network(const Ui& ui) {
 }
 
 void drag_and_keyboard_move(const Ui& ui, const resend::AppController& app) {
-    const auto before = *app.engine().device(1);
+    const auto before = *app.scenario().device(DeviceId{1});
     auto& window = ui->window();
     auto from = center(element(ui, "PC-A, 192.168.1.10/24"));
     from.y -= 20;  // away from the connector button in the lower right corner
@@ -83,61 +95,63 @@ void drag_and_keyboard_move(const Ui& ui, const resend::AppController& app) {
     for (int step = 1; step <= 5; ++step)
         window.dispatch_pointer_move_event(slint::LogicalPosition({from.x + 10.f * step, from.y + 6.f * step}));
     window.dispatch_pointer_release_event(slint::LogicalPosition({from.x + 50, from.y + 30}), slint::PointerEventButton::Left);
-    const auto after = *app.engine().device(1);
-    const float dx = after.x - before.x, dy = after.y - before.y;
+    const auto after = *app.scenario().device(DeviceId{1});
+    const int dx = after.x - before.x, dy = after.y - before.y;
     CHECK(dx > 0 && dy > 0);
-    CHECK(std::abs(dx * 30 - dy * 50) < 1.0f);  // same direction as the pointer, whatever the zoom
+    // Same direction as the pointer, whatever the zoom; positions are whole
+    // canvas units, so each may be off by half a unit.
+    CHECK(std::abs(dx * 30 - dy * 50) <= 40);
 
     // Pressing a card focuses it; the arrow keys then move it by 10 units.
     window.dispatch_key_press_event(slint::platform::key_codes::RightArrow);
     window.dispatch_key_release_event(slint::platform::key_codes::RightArrow);
-    CHECK(app.engine().device(1)->x == after.x + 10);
+    CHECK(app.scenario().device(DeviceId{1})->x == after.x + 10);
 }
 
 void ping_through_buttons(const Ui& ui, resend::AppController& app) {
     press(ui, "PC-A, 192.168.1.10/24");
     CHECK(element(ui, "Destination IPv4").accessible_value() == slint::SharedString("192.168.1.20"));
     press(ui, "Send");
-    CHECK(app.engine().pending());
+    CHECK(app.simulation().pending());
     run_to_end(ui, app);
-    CHECK(app.engine().ping_succeeded());
+    CHECK(succeeded(app));
     CHECK(ui->get_event_count() == 9);
     // The list follows the latest event: its row is entirely in view.
     CHECK(inside(element(ui, "ICMP: Ping succeeded · 192.168.1.20 → PC-A"), element(ui, "Event list")));
     press(ui, "Switch-01, 8 Ethernet ports");
-    CHECK(app.engine().mac_table(3).size() == 2);
+    CHECK(app.simulation().mac_table(DeviceId{3}).size() == 2);
 }
 
 void invalid_input_keeps_configuration(const Ui& ui, const resend::AppController& app) {
     press(ui, "PC-A, 192.168.1.10/24");
     type(ui, "IPv4 address", "invalid");
     press(ui, "Apply configuration");
-    CHECK(app.engine().device(1)->ip.to_string() == "192.168.1.10");
+    CHECK(app.scenario().device(DeviceId{1})->ports[0].ipv4->to_string() == "192.168.1.10/24");
     CHECK(std::string_view(ui->get_status_text()).find("Invalid IPv4 host address") != std::string_view::npos);
 }
 
 void disabled_cable_breaks_ping(const Ui& ui, resend::AppController& app) {
     press(ui, "Disable PC-B :1 — Switch-01 :2");
-    CHECK(!app.engine().link(2)->enabled);
+    CHECK(!app.scenario().link(LinkId{2})->up);
     press(ui, "PC-A, 192.168.1.10/24");
     press(ui, "Send");
     run_to_end(ui, app);
-    CHECK(!app.engine().ping_succeeded());
+    CHECK(!succeeded(app));
     CHECK(exists(ui, "ARP: Ping failed · ARP resolution timed out"));
 }
 
 void build_and_delete_device(const Ui& ui, const resend::AppController& app) {
     press(ui, "Sample network");
     press(ui, "Add Host");
-    CHECK(app.engine().devices().size() == 4);
+    CHECK(app.scenario().devices.size() == 4);
     // New cards appear in the visible area: clipped controls are not found.
     CHECK(inside(element(ui, "PC-4, 192.168.1.13/24"), element(ui, "Network topology")));
     press(ui, "Connect PC-4");
     press(ui, "Connect Switch-01");
-    CHECK(app.engine().links().size() == 3);
+    CHECK(app.scenario().links.size() == 3);
     press(ui, "PC-4, 192.168.1.13/24");
     press(ui, "Delete device");
-    CHECK(app.engine().devices().size() == 3 && app.engine().links().size() == 2);
+    CHECK(app.scenario().devices.size() == 3 && app.scenario().links.size() == 2);
 }
 
 void packets_move_on_the_canvas(const Ui& ui, resend::AppController& app) {
@@ -153,7 +167,7 @@ void packets_move_on_the_canvas(const Ui& ui, resend::AppController& app) {
     app.advance_playback(300ms);  // halfway along the cable
     CHECK(ui->get_sim_clock() == slint::SharedString("5.000 ms"));
     CHECK(exists(ui, "Packet: ARP Request, broadcast, PC-A → Switch-01"));
-    CHECK(app.engine().events().size() == 1);  // nothing arrived yet
+    CHECK(app.explainer().events().size() == 1);  // nothing arrived yet
     app.advance_playback(300ms);
     CHECK(!ui->get_running());
     // The switch's decisions appear on the switch, and the flooded copy leaves.
@@ -179,7 +193,7 @@ void flood_copies_travel_together(const Ui& ui, resend::AppController& app) {
     CHECK(exists(ui, "Packet: ARP Request, broadcast, Switch-01 → PC-4"));
     CHECK(shown(ui, "flood ×2"));
     play_to_end(ui, app);
-    CHECK(app.engine().ping_succeeded());
+    CHECK(succeeded(app));
     CHECK(shown(ui, "✓ ping reply"));
 }
 
@@ -187,7 +201,7 @@ void drops_and_playback_controls(const Ui& ui, resend::AppController& app) {
     press(ui, "Sample network");
     press(ui, "PC-B, 192.168.1.20/24");
     press(ui, "Power off");
-    CHECK(!app.engine().device(2)->enabled);
+    CHECK(!app.scenario().device(DeviceId{2})->powered);
     CHECK(exists(ui, "Power on"));
     press(ui, "PC-A, 192.168.1.10/24");
     press(ui, "Send");
@@ -209,7 +223,48 @@ void drops_and_playback_controls(const Ui& ui, resend::AppController& app) {
     CHECK(!ui->get_reduced_motion());
     press(ui, "Reset");
     CHECK(ui->get_sim_clock() == slint::SharedString("0.000 ms"));
-    CHECK(!app.engine().pending());
+    CHECK(!app.simulation().pending());
+}
+
+void pings_overlap(const Ui& ui, resend::AppController& app) {
+    // A second ping can start while the first is on its way.
+    press(ui, "Sample network");
+    press(ui, "PC-A, 192.168.1.10/24");
+    press(ui, "Send");
+    app.seek(25ms);
+    press(ui, "PC-B, 192.168.1.20/24");
+    type(ui, "Destination IPv4", "192.168.1.10");
+    press(ui, "Send");
+    CHECK(app.simulation().pings().size() == 2);
+    CHECK(app.simulation().pings()[1].started == 25ms);
+    play_to_end(ui, app);
+    CHECK(succeeded(app));
+    CHECK(std::string_view(ui->get_status_text()).starts_with("Every ping succeeded"));
+    // A refused ping says why.
+    type(ui, "Destination IPv4", "192.168.1.255");
+    press(ui, "Send");
+    CHECK(std::string_view(ui->get_status_text()) == "Pinging network or broadcast addresses is not supported.");
+    type(ui, "Destination IPv4", "192.168.1.20");
+}
+
+void open_scenario_file(const Ui& ui, resend::AppController& app) {
+    const auto path = std::filesystem::path(RESEND_EXAMPLES_DIR) / "office-floor.json";
+    std::ifstream file(path, std::ios::binary);
+    const std::string text{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+    std::string error;
+    auto scenario = netsim::scenario_from_json(text, error);
+    CHECK(scenario.has_value());
+    app.open(std::move(*scenario));
+    CHECK(std::string_view(ui->get_status_text()).starts_with("Office floor loaded."));
+    // The view fits the new network, and the first host is selected.
+    const auto canvas = element(ui, "Network topology");
+    CHECK(inside(element(ui, "Desk-1, 10.0.0.11/24"), canvas));
+    CHECK(inside(element(ui, "Printer-Room, 10.0.0.23/24"), canvas));
+    CHECK(ui->get_selected_id() == static_cast<int>(app.scenario().device_named("Desk-1")->id.value));
+    type(ui, "Destination IPv4", "10.0.0.22");
+    press(ui, "Send");
+    play_to_end(ui, app);
+    CHECK(succeeded(app));
 }
 
 void about_dialog(const Ui& ui) {
@@ -240,6 +295,8 @@ int main() {
     packets_move_on_the_canvas(ui, app);
     flood_copies_travel_together(ui, app);
     drops_and_playback_controls(ui, app);
+    pings_overlap(ui, app);
+    open_scenario_file(ui, app);
     about_dialog(ui);
     std::cout << "GUI tests passed: " << test::checks << " checks.\n";
 }

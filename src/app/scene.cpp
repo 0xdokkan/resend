@@ -24,9 +24,10 @@ Point exit_point(const Box& box, Point target) {
     return {c.x + dx * s, c.y + dy * s};
 }
 
-std::string owner_name(const netsim::Engine& engine, const netsim::MacAddress& mac) {
-    for (const auto& item : engine.devices())
-        if (item.mac == mac) return item.name;
+std::string owner_name(const netsim::Scenario& layout, const netsim::MacAddress& mac) {
+    for (const auto& item : layout.devices)
+        for (const auto& port : item.ports)
+            if (port.mac == mac) return item.name;
     return mac.to_string();
 }
 
@@ -57,8 +58,8 @@ std::string ping_failure_text(Reason reason) {
 
 // The marker a record leaves on its device, if any. `index` is the record's
 // position, used to look at the records that follow it at the same instant.
-bool marker_for(const netsim::Engine& engine, std::size_t index, Marker& marker) {
-    const auto& records = engine.trace().records();
+bool marker_for(const netsim::Scenario& layout, const netsim::Trace& trace, std::size_t index, Marker& marker) {
+    const auto& records = trace.records();
     const TraceRecord& record = records[index];
     marker.device = static_cast<int>(record.device.value);
     // Egress records a switch decision produces right after it.
@@ -71,8 +72,8 @@ bool marker_for(const netsim::Engine& engine, std::size_t index, Marker& marker)
     };
     switch (record.kind) {
     case TraceKind::MacLearned: {
-        const auto& frame = engine.trace().pdu(*record.pdu);
-        marker.text = "learn " + owner_name(engine, frame.src_mac) + " → " + port_name(*record.port);
+        const auto& frame = trace.pdu(*record.pdu);
+        marker.text = "learn " + owner_name(layout, frame.src) + " → " + port_name(*record.port);
         marker.tone = Tone::Learn;
         return true;
     }
@@ -97,8 +98,8 @@ bool marker_for(const netsim::Engine& engine, std::size_t index, Marker& marker)
         marker.tone = Tone::Muted;
         return true;
     case TraceKind::ArpCacheUpdated: {
-        const auto& frame = engine.trace().pdu(*record.pdu);
-        marker.text = "ARP + " + frame.src_ip.to_string();
+        const auto& frame = trace.pdu(*record.pdu);
+        marker.text = "ARP + " + (frame.arp() ? frame.arp()->sender_ip.to_string() : std::string("?"));
         marker.tone = Tone::Learn;
         return true;
     }
@@ -120,19 +121,21 @@ bool marker_for(const netsim::Engine& engine, std::size_t index, Marker& marker)
         return true;
     case TraceKind::FrameSent:
     case TraceKind::FrameReceived:
+    case TraceKind::PingStarted:
         return false;
     }
     return false;
 }
 } // namespace
 
-Box card_box(const netsim::Device& device) { return {device.x, device.y, card_width, card_height}; }
+Box card_box(const netsim::DeviceConfig& device) {
+    return {static_cast<float>(device.x), static_cast<float>(device.y), card_width, card_height};
+}
 
-int port_count(const netsim::Device& device) { return device.kind == netsim::DeviceKind::Host ? 1 : max_ports; }
-
-Box port_light(const netsim::Device& device, int port) {
-    if (device.kind == netsim::DeviceKind::Host) return {device.x + 112, device.y + 69, 11, 8};
-    return {device.x + 12 + 14 * static_cast<float>(port), device.y + 69, 11, 8};
+Box port_light(const netsim::DeviceConfig& device, int port) {
+    const auto card = card_box(device);
+    if (device.kind == netsim::DeviceKind::Host) return {card.x + 112, card.y + 69, 11, 8};
+    return {card.x + 12 + 14 * static_cast<float>(port), card.y + 69, 11, 8};
 }
 
 Segment cable_between(const Box& a, const Box& b, float gap) {
@@ -154,6 +157,7 @@ std::string packet_label(PduKind kind) {
     case PduKind::ArpReply: return "ARP rep";
     case PduKind::EchoRequest: return "Echo req";
     case PduKind::EchoReply: return "Echo rep";
+    case PduKind::OtherIcmp: return "ICMP";
     }
     return "Frame";
 }
@@ -164,38 +168,44 @@ std::string frame_name(PduKind kind) {
     case PduKind::ArpReply: return "ARP Reply";
     case PduKind::EchoRequest: return "Echo Request";
     case PduKind::EchoReply: return "Echo Reply";
+    case PduKind::OtherIcmp: return "ICMP message";
     }
     return "Frame";
 }
 
-std::string describe_layers(const netsim::Frame& frame) {
-    const bool arp = netsim::is_arp(frame.kind);
-    std::string text = "Ethernet II · dst " + frame.dst_mac.to_string() + " · src " + frame.src_mac.to_string() +
-        (arp ? " · type 0x0806 (ARP)" : " · type 0x0800 (IPv4)");
-    if (frame.kind == PduKind::ArpRequest) {
-        text += "\nARP · request · sender " + frame.src_mac.to_string() + " " + frame.src_ip.to_string() +
-            " · target " + frame.dst_ip.to_string();
-    } else if (frame.kind == PduKind::ArpReply) {
-        text += "\nARP · reply · sender " + frame.src_mac.to_string() + " " + frame.src_ip.to_string() +
-            " · target " + frame.dst_mac.to_string() + " " + frame.dst_ip.to_string();
-    } else {
-        const bool request = frame.kind == PduKind::EchoRequest;
-        text += "\nIPv4 · " + frame.src_ip.to_string() + " → " + frame.dst_ip.to_string() + " · protocol 1 (ICMP)";
-        text += std::string("\nICMP · type ") + (request ? "8 Echo Request" : "0 Echo Reply") +
-            " · code 0 · identifier " + std::to_string(frame.ping_id);
+std::string describe_layers(const netsim::EthernetFrame& frame) {
+    std::string text = "Ethernet II · dst " + frame.dst.to_string() + " · src " + frame.src.to_string() +
+        (frame.arp() ? " · type 0x0806 (ARP)" : " · type 0x0800 (IPv4)");
+    if (const auto* arp = frame.arp()) {
+        const bool request = arp->op == netsim::ArpPacket::Op::Request;
+        text += std::string("\nARP · ") + (request ? "request" : "reply") + " · sender " + arp->sender_mac.to_string() +
+            " " + arp->sender_ip.to_string() + " · target " +
+            (request ? "" : arp->target_mac.to_string() + " ") + arp->target_ip.to_string();
+        return text;
     }
+    const auto& packet = *frame.ipv4();
+    text += "\nIPv4 · " + packet.src.to_string() + " → " + packet.dst.to_string() + " · TTL " +
+        std::to_string(packet.ttl) + " · id " + std::to_string(packet.identification) + " · protocol 1 (ICMP)";
+    const auto& message = packet.icmp;
+    const char* name = message.type == netsim::icmp::echo_request ? " Echo Request"
+        : message.type == netsim::icmp::echo_reply ? " Echo Reply"
+        : message.type == netsim::icmp::destination_unreachable ? " Destination Unreachable"
+        : message.type == netsim::icmp::time_exceeded ? " Time Exceeded" : "";
+    text += "\nICMP · type " + std::to_string(message.type) + name + " · code " + std::to_string(message.code);
+    if (message.type == netsim::icmp::echo_request || message.type == netsim::icmp::echo_reply)
+        text += " · identifier " + std::to_string(message.identifier) + " · sequence " + std::to_string(message.sequence);
     return text;
 }
 
-Scene build_scene(const netsim::Engine& engine, const PlaybackController& playback) {
+Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simulation, const PlaybackController& playback) {
     Scene scene;
     const auto now = playback.now();
-    const auto& trace = engine.trace();
+    const auto& trace = simulation.trace();
 
     for (const auto& flight : playback.in_flight()) {
         const auto& sent = trace.transmissions()[flight.transmission];
-        const auto* from = engine.device(static_cast<int>(sent.from.value));
-        const auto* to = engine.device(static_cast<int>(sent.to.value));
+        const auto* from = layout.device(sent.from);
+        const auto* to = layout.device(sent.to);
         if (!from || !to) continue;
         const auto cable = cable_between(card_box(*from), card_box(*to));
         const auto progress = static_cast<float>(flight.progress);
@@ -207,10 +217,10 @@ Scene build_scene(const netsim::Engine& engine, const PlaybackController& playba
         sprite.pdu = static_cast<int>(sent.pdu.value);
         sprite.at = lerp(cable.a, cable.b, progress);
         sprite.tail = lerp(cable.a, cable.b, progress - back);
-        sprite.kind = frame.kind;
-        sprite.broadcast = frame.dst_mac.is_broadcast();
-        sprite.label = packet_label(frame.kind);
-        sprite.description = frame_name(frame.kind) + (sprite.broadcast ? ", broadcast, " : ", ") +
+        sprite.kind = netsim::kind_of(frame);
+        sprite.broadcast = frame.dst.is_broadcast();
+        sprite.label = packet_label(sprite.kind);
+        sprite.description = frame_name(sprite.kind) + (sprite.broadcast ? ", broadcast, " : ", ") +
             from->name + " → " + to->name;
         scene.packets.push_back(std::move(sprite));
     }
@@ -230,7 +240,7 @@ Scene build_scene(const netsim::Engine& engine, const PlaybackController& playba
              record.kind == TraceKind::FrameDropped))
             activity[static_cast<int>(record.device.value)] |= 1U << *record.port;
         Marker marker;
-        if (!marker_for(engine, index, marker)) continue;
+        if (!marker_for(layout, trace, index, marker)) continue;
         outcome_shown |= record.kind == TraceKind::PingSucceeded || record.kind == TraceKind::PingFailed;
         if (age > marker_fade) {
             const auto fading = static_cast<float>((age - marker_fade).count()) /
@@ -245,7 +255,7 @@ Scene build_scene(const netsim::Engine& engine, const PlaybackController& playba
         if (record.kind == TraceKind::FrameSent) break;
         if (record.kind == TraceKind::PingSucceeded || record.kind == TraceKind::PingFailed) {
             Marker marker;
-            if (marker_for(engine, back - 1, marker)) markers.push_back(std::move(marker));
+            if (marker_for(layout, trace, back - 1, marker)) markers.push_back(std::move(marker));
             break;
         }
     }
@@ -255,10 +265,11 @@ Scene build_scene(const netsim::Engine& engine, const PlaybackController& playba
     std::map<int, int> remaining;
     for (const auto& marker : markers) ++remaining[marker.device];
     for (auto& marker : markers) {
-        const auto* device = engine.device(marker.device);
+        const auto* device = layout.device(netsim::DeviceId{static_cast<std::uint32_t>(marker.device)});
         if (!device) continue;
         marker.stack = --remaining[marker.device];
-        marker.anchor = {device->x + card_width / 2, device->y};
+        const auto card = card_box(*device);
+        marker.anchor = {card.x + card_width / 2, card.y};
         scene.markers.push_back(std::move(marker));
     }
     scene.port_activity.assign(activity.begin(), activity.end());
