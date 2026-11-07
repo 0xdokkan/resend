@@ -119,13 +119,14 @@ The prototype implements a teaching subset and claims neither full standards com
 | `scripts/fetch-slint.sh`, `scripts/run.sh` | Verified download of the Slint SDK; build, test and launch |
 | `spikes/canvas/` | Canvas prototype used to evaluate Slint (`-DRESEND_BUILD_SPIKES=ON`); results in `docs/decisions/0002-ui-toolkit.md` |
 | `docs/engine.md` | The engine today, the target architecture, the trace and the determinism rules |
+| `docs/roadmap.md` | Milestones up to 1.0, with their tasks and exit checks |
 | `docs/decisions/` | Design decisions and their reasons, including the license and the name |
 
 CI (`.github/workflows/ci.yml`) builds and tests the GUI on Ubuntu 22.04 (the oldest glibc the Slint SDK supports), the engine under AddressSanitizer/UndefinedBehaviorSanitizer with GCC and Clang, and the engine alone with MSVC on Windows. CTest also checks the CLI's exit codes.
 
 The event queue orders operations by simulated time (in nanoseconds) and then by insertion order. How often the GUI refreshes changes how fast you watch, never the result of the simulation. Each step also writes a structured trace with no text in it: frames sent and received, drops with their reason, switch learning, ARP cache updates, the ping's outcome. The tests check that trace instead of the event texts; details are in [`docs/engine.md`](docs/engine.md).
 
-Next steps are saving networks, fuller handling of caches and failures, routers with static routing and IPv4 TTL, then transport protocols and services. For TCP the baseline reference will be [RFC 9293](https://www.rfc-editor.org/rfc/rfc9293); for IPv6, [RFC 8200](https://www.rfc-editor.org/rfc/rfc8200), with the complementary specifications they need. Every extension must add verifiable behaviour and state the simplifications that remain.
+The plan up to 1.0, with the checks that close each milestone, is in [`docs/roadmap.md`](docs/roadmap.md): animated playback, the new core, live faults, a usable sandbox, routers, then distribution. For TCP the baseline reference will be [RFC 9293](https://www.rfc-editor.org/rfc/rfc9293); for IPv6, [RFC 8200](https://www.rfc-editor.org/rfc/rfc8200), with the complementary specifications they need. Every extension must add verifiable behaviour and state the simplifications that remain.
 
 ## License
 

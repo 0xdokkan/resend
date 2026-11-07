@@ -182,6 +182,9 @@ Given the same scenario, seed and sequence of commands, the trace must be identi
 
 ## Next steps (M2)
 
+The full breakdown, with exit checks, is in [`roadmap.md`](roadmap.md).
+
+
 1. `Ipv4Prefix` and `Ipv4Interface` in `core/`, then the scenario with explicit ports and the versioned JSON format.
 2. `Simulation` with a `Medium` and nodes built from modules (`Nic`, `Bridge`, `Arp`, `Ipv4`, `Icmp`, `PingApp`) on top of the same `Scheduler` and `Trace`, with layered PDUs instead of `Frame`.
 3. The `explain` module, producing from the records the same text as today's `Event`s; comparing the two texts serves as a parity test during the transition.
