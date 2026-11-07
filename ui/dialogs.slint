@@ -1,0 +1,143 @@
+import { AboutSlint, LineEdit, ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Caption } from "widgets.slint";
+import { UiApp } from "state.slint";
+
+// A card in the middle of a dimmed window. Clicks outside do nothing:
+// every dialog has its own way out.
+component DialogFrame inherits Rectangle {
+    in property <string> label;
+    in property <length> card-width: 420px;
+    in property <length> card-height: 200px;
+    background: #000000b0;
+    TouchArea { }
+    Rectangle {
+        width: min(root.card-width, root.width - 32px);
+        height: min(root.card-height, root.height - 32px);
+        border-radius: 12px;
+        border-width: 1px;
+        border-color: Theme.line;
+        background: Theme.panel;
+        accessible-role: groupbox;
+        accessible-label: root.label;
+        TouchArea { }
+        @children
+    }
+}
+
+// Open and Save as: Slint has no file dialog, so the app has its own.
+export component FileDialog inherits DialogFrame {
+    in property <bool> saving;
+    label: root.saving ? @tr("Save the network") : @tr("Open a network");
+    card-width: 560px;
+    card-height: 470px;
+    VerticalLayout {
+        padding: 20px;
+        spacing: 10px;
+        Text { text: root.label; color: Theme.ink; font-size: 17px; font-weight: 700; }
+        HorizontalLayout {
+            spacing: 6px;
+            Action { text: "↑"; accessible-text: @tr("Parent folder"); small: true; width: 30px; clicked => { UiApp.browse-up(); } }
+            Action { text: "⌂"; accessible-text: @tr("Home folder"); small: true; width: 30px; clicked => { UiApp.browse-home(); } }
+            Text { text: UiApp.folder; color: Theme.muted; font-size: 11px; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: Theme.line;
+            background: Theme.sunken;
+            accessible-role: list;
+            accessible-label: @tr("Files");
+            ListView {
+                for entry in UiApp.entries: Rectangle {
+                    height: 28px;
+                    background: entry-touch.has-hover ? Theme.hover : transparent;
+                    HorizontalLayout {
+                        padding-left: 10px; padding-right: 10px; spacing: 8px;
+                        Text { text: entry.folder ? "▸" : "·"; color: entry.folder ? Theme.blue : Theme.muted; width: 12px; vertical-alignment: center; }
+                        Text { text: entry.name; color: entry.folder ? Theme.ink : Theme.mint; font-size: 12px; overflow: elide; vertical-alignment: center; }
+                    }
+                    accessible-role: button;
+                    accessible-label: entry.name;
+                    accessible-action-default => { if entry.folder { UiApp.browse-enter(entry.name); } else { UiApp.browse-pick(entry.name); } }
+                    entry-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { if entry.folder { UiApp.browse-enter(entry.name); } else { UiApp.browse-pick(entry.name); } }
+                    }
+                }
+            }
+            if UiApp.entries.length == 0: Text {
+                text: root.saving ? @tr("No networks in this folder yet.") : @tr("No networks in this folder.");
+                color: Theme.muted; font-size: 12px;
+                horizontal-alignment: center; vertical-alignment: center;
+            }
+        }
+        if UiApp.browser-error != "": Text { text: UiApp.browser-error; color: Theme.red; font-size: 11px; wrap: word-wrap; }
+        if root.saving: HorizontalLayout {
+            spacing: 8px;
+            Text { text: @tr("File name"); color: Theme.muted; font-size: 11px; vertical-alignment: center; }
+            name-field := LineEdit {
+                horizontal-stretch: 1;
+                text <=> UiApp.file-name;
+                placeholder-text: "network.json";
+                accessible-label: @tr("File name");
+                accepted => { UiApp.browse-confirm(); }
+                init => { self.focus(); }
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            spacing: 8px;
+            Action { text: @tr("Cancel"); quiet: true; clicked => { UiApp.close-dialog(); } }
+            if root.saving: Action { text: @tr("Save"); primary: true; clicked => { UiApp.browse-confirm(); } }
+        }
+    }
+}
+
+// A question with a few answers, such as Save, Discard and Cancel.
+export component ConfirmDialog inherits DialogFrame {
+    label: UiApp.dialog-title;
+    card-width: 460px;
+    card-height: confirm-layout.preferred-height;
+    confirm-layout := VerticalLayout {
+        padding: 22px;
+        spacing: 12px;
+        Text { text: UiApp.dialog-title; color: Theme.ink; font-size: 16px; font-weight: 700; wrap: word-wrap; }
+        Text { text: UiApp.dialog-message; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+        HorizontalLayout {
+            alignment: end;
+            spacing: 8px;
+            for answer[i] in UiApp.dialog-answers: Action {
+                text: UiApp.dialog-answer-texts[i];
+                primary: i == 0;
+                quiet: i == UiApp.dialog-answers.length - 1 && i > 0;
+                clicked => { UiApp.answer(answer); }
+            }
+        }
+    }
+}
+
+// Slint's Royalty-free license asks for the AboutSlint widget in an
+// "About" screen reachable from the main window.
+export component AboutDialog inherits DialogFrame {
+    label: @tr("About resend");
+    card-width: 400px;
+    card-height: about-layout.preferred-height;
+    about-layout := VerticalLayout {
+        padding: 24px;
+        spacing: 10px;
+        Text { text: "resend"; color: Theme.ink; font-size: 22px; font-weight: 700; }
+        Text {
+            text: @tr("Version {0} · a local network sandbox with Ethernet, ARP, IPv4 and ICMP.", UiApp.version);
+            color: Theme.muted; font-size: 12px; wrap: word-wrap;
+        }
+        Text { text: "© 2026 Zayd Soulmani · MIT License"; color: Theme.ink; font-size: 12px; }
+        Text { text: @tr("The interface uses Slint under the Royalty-free License 2.0."); color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+        AboutSlint { }
+        HorizontalLayout {
+            alignment: end;
+            Action { text: @tr("Close"); clicked => { UiApp.close-dialog(); } }
+        }
+    }
+}

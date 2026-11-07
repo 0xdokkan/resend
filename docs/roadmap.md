@@ -96,23 +96,23 @@ After A, a public **0.1.1 preview** can collect early feedback.
 
 **Outcome:** a desktop sandbox you can build, save, undo and study in.
 
-- [ ] **M4.1 Final canvas.** The spike's `CanvasController` moves into the app: port-to-port cables, cable selection with a pixel tolerance, keyboard, fit view, semantic zoom (simplified cards when zoomed out), cables in one `Path`.
-- [ ] **M4.2 Properties.** Per device: name, power, per-port admin state and IPv4; per cable: delay and state; switch ageing time.
-- [ ] **M4.3 Tables** with `StandardTableView`: ARP cache (address, MAC, state, expiry) and MAC table (MAC, port, age).
-- [ ] **M4.4 Timeline.** Filters (protocol, device, drops only, edits, simulator), a time scrubber that moves back by replaying the deterministic simulation, and the playback speeds of A.
-- [ ] **M4.5 Layered inspector with hex view:** every field of Ethernet, ARP, IPv4 and ICMP, and the bytes of the selected field highlighted.
-- [ ] **M4.6 Files.** Open and save scenarios, autosave, recovery after a crash, unsaved-changes marker. Slint has no file dialog: an in-app dialog over `std::filesystem` first, native dialogs later.
-- [ ] **M4.7 Undo and redo** on scenario snapshots; a drag is one step; while the simulation runs, undo applies the inverse edit at the current time.
-- [ ] **M4.8 Example scenarios** reachable from the interface.
-- [ ] **M4.9 Translation.** Interface strings in `@tr()` with bundled translations, explanation texts in a C++ catalog, Italian as the first translation, language from the system with an override.
-- [ ] **M4.10 Layout:** collapsible side panels, so the canvas keeps room at 2× scale.
+- [x] **M4.1 Final canvas.** The spike's `CanvasController` moves into the app (`src/app/canvas.hpp`): port-to-port cables, cable selection with a pixel tolerance, keyboard, fit view, semantic zoom (simplified cards when zoomed out), cables in one `Path` per state. One touch area over the whole canvas sends the pointer to C++, which decides what lies under it; new cards go to the free place nearest the middle of the view.
+- [x] **M4.2 Properties.** Per device: name, power, per-port admin state and IPv4; per cable: delay and state; switch ageing time. A refused value says why and changes nothing.
+- [x] **M4.3 Tables** with `StandardTableView`: ARP cache (address, MAC, state, expiry) and MAC table (MAC, port, age), at the instant shown.
+- [x] **M4.4 Timeline.** Filters (protocol, device, problems only, changes, simulator), a time scrubber that moves back by replaying the deterministic simulation, and the playback speeds of A. While changes recorded later lie ahead, the network cannot be changed and the timeline says so.
+- [x] **M4.5 Layered inspector with hex view:** every field of Ethernet, ARP, IPv4 and ICMP with its value and meaning (`wire::dissect()`), and the bytes of the selected field highlighted; a byte selects the smallest field that holds it.
+- [x] **M4.6 Files.** Open and save scenarios, autosave every 5 s while there are unsaved changes, recovery after a crash, unsaved-changes marker, questions before changes are lost. Slint has no file dialog: an in-app dialog over `std::filesystem` first, native dialogs later.
+- [x] **M4.7 Undo and redo.** Each step keeps its edits and their exact inverses (`edit::inverse()`, with `RestoreLink` and `RestoreDevice` for what was removed), so undoing gives back the same scenario; a drag is one step; while the simulation runs, undo applies the inverse edit at the current time.
+- [x] **M4.8 Example scenarios** in File ▸ Open example, built into the app.
+- [x] **M4.9 Translation.** Interface strings in `@tr()` with bundled translations, explanation texts in a C++ catalog read from the same `.po` files, Italian as the first translation, language from the system with an override in View ▸ Language. `scripts/update-translations.py` brings the catalogs up to date with the source.
+- [x] **M4.10 Layout:** collapsible palette, inspector and timeline, so the canvas keeps room at 2× scale: the window has no fixed minimum, and a 1080p screen at 2× (960 × 540 logical pixels) holds the whole interface with the side panels folded.
 
 **Exit checks**
 
-- [ ] Saving and reopening gives an identical file.
-- [ ] 50 random commands followed by 50 undos give back the initial scenario.
-- [ ] The inspector's fields match tshark's for every frame of the example scenarios.
-- [ ] Every interface string is translatable and the Italian translation is complete.
+- [x] Saving and reopening gives an identical file. (`saving_and_opening` in `tests/files_tests.cpp` for every example; the GUI tests save, reopen and save again through the interface.)
+- [x] 50 random commands followed by 50 undos give back the initial scenario. (`random_commands_and_undos` in `tests/workspace_tests.cpp`, running and not, then 50 redos give back the last one.)
+- [x] The inspector's fields match tshark's for every frame of the example scenarios. (CTest `dissection-tshark`: position, size and value of every field, 405 frames, skipped when tshark is missing.)
+- [x] Every interface string is translatable and the Italian translation is complete. (CTest `translations`: every `@tr()` and `tr()` text and every example's title and notes has an Italian entry with the same placeholders, and no entry is unused.)
 - [ ] A 10-device network can be built in under 5 minutes (checked with 2–3 people, by hand).
 
 ## M5 — Routers and static routing (40–60 h)

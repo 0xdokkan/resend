@@ -1,0 +1,2019 @@
+# Italian translation of resend.
+# Copyright (c) 2026 Zayd Soulmani
+# This file is distributed under the same license as resend (MIT).
+#
+# The texts of the interface (@tr in ui/*.slint) and of the C++ code
+# (tr() in src/) share this catalog; tests/translation_tests.cpp checks
+# that every one of them has a translation.
+msgid ""
+msgstr ""
+"Project-Id-Version: resend\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/app_controller.cpp
+msgid "Local sandbox. Drag devices, connect ports and watch a ping."
+msgstr "Sandbox locale. Trascina i dispositivi, collega le porte e guarda un ping."
+
+#: src/app_controller.cpp src/app/canvas.cpp
+msgid "The instant shown is before later changes: go to the latest instant to change the network."
+msgstr "L'istante mostrato viene prima di modifiche successive: vai all'ultimo istante per cambiare la rete."
+
+#: src/app_controller.cpp
+msgid "Plugging a cable: end it on a free port or on another device. Escape cancels."
+msgstr "Stai collegando un cavo: terminalo su una porta libera o su un altro dispositivo. Esc annulla."
+
+#: src/app_controller.cpp
+msgid "Drag a card to move it · drag from a port or + to plug a cable · wheel to zoom"
+msgstr "Trascina una scheda per spostarla · trascina da una porta o da + per collegare un cavo · rotella per lo zoom"
+
+#: src/app_controller.cpp
+msgid "{0} Ethernet ports"
+msgstr "{0} porte Ethernet"
+
+#: src/app_controller.cpp ui/app.slint
+msgid "Your own network"
+msgstr "La tua rete"
+
+#: src/app_controller.cpp
+msgid "1 device"
+msgstr "1 dispositivo"
+
+#: src/app_controller.cpp
+msgid "{0} devices"
+msgstr "{0} dispositivi"
+
+#: src/app_controller.cpp
+msgid "1 cable"
+msgstr "1 cavo"
+
+#: src/app_controller.cpp
+msgid "{0} cables"
+msgstr "{0} cavi"
+
+#: src/app_controller.cpp
+msgid "The network is ready for your first experiment."
+msgstr "La rete è pronta per il tuo primo esperimento."
+
+#: src/app_controller.cpp
+msgid "Select a host, choose an IPv4 address and press Send. Step plays one event at a time; Run plays the whole experiment. The tables show the state of the network at the instant on the canvas. Several pings can run at once."
+msgstr "Seleziona un host, scegli un indirizzo IPv4 e premi Invia. Passo riproduce un evento alla volta; Avvia riproduce tutto l'esperimento. Le tabelle mostrano lo stato della rete nell'istante sul canvas. Più ping possono essere in corso insieme."
+
+#: src/app_controller.cpp
+msgid "{0} · {1} bytes"
+msgstr "{0} · {1} byte"
+
+#: src/app_controller.cpp
+msgid "{0} ({1})"
+msgstr "{0} ({1})"
+
+#: src/app_controller.cpp
+msgid "byte {0}"
+msgstr "byte {0}"
+
+#: src/app_controller.cpp
+msgid "bytes {0}–{1}"
+msgstr "byte {0}–{1}"
+
+#: src/app_controller.cpp
+msgid "{0}: {1} · {2}"
+msgstr "{0}: {1} · {2}"
+
+#: src/app_controller.cpp
+msgid "Storm protection: a frame went round an Ethernet loop and the simulator removed its copies. Playback paused."
+msgstr "Protezione dalle tempeste: un frame ha girato in un anello Ethernet e il simulatore ne ha rimosso le copie. Riproduzione in pausa."
+
+#: src/app_controller.cpp
+msgid "Every ping succeeded. Explore the events and the learned tables."
+msgstr "Tutti i ping sono riusciti. Esplora gli eventi e le tabelle apprese."
+
+#: src/app_controller.cpp
+msgid "Ping succeeded. Explore the events and the learned tables."
+msgstr "Ping riuscito. Esplora gli eventi e le tabelle apprese."
+
+#: src/app_controller.cpp
+msgid "Experiment finished: read the last event to understand the result."
+msgstr "Esperimento finito: leggi l'ultimo evento per capire il risultato."
+
+#: src/app_controller.cpp
+msgid "{0}: applied at t = {1}."
+msgstr "{0}: applicato a t = {1}."
+
+#: src/app_controller.cpp
+msgid "Send 1 to 1000 Echo Requests per ping."
+msgstr "Invia da 1 a 1000 Echo Request per ping."
+
+#: src/app_controller.cpp
+msgid "Ping started."
+msgstr "Ping avviato."
+
+#: src/app_controller.cpp
+msgid "Ping ready. Press Step or Run to advance simulated time."
+msgstr "Ping pronto. Premi Passo o Avvia per far avanzare il tempo simulato."
+
+#: src/app_controller.cpp
+msgid "Nothing to undo."
+msgstr "Niente da annullare."
+
+#: src/app_controller.cpp src/app_documents.cpp
+msgid "Undo {0}"
+msgstr "Annulla {0}"
+
+#: src/app_controller.cpp
+msgid "Nothing to redo."
+msgstr "Niente da ripetere."
+
+#: src/app_controller.cpp src/app_documents.cpp
+msgid "Redo {0}"
+msgstr "Ripeti {0}"
+
+#: src/app_controller.cpp
+msgid "Add a host"
+msgstr "Aggiungi un host"
+
+#: src/app_controller.cpp
+msgid "Add a switch"
+msgstr "Aggiungi uno switch"
+
+#: src/app_controller.cpp
+msgid "Select a device to see only its events."
+msgstr "Seleziona un dispositivo per vedere solo i suoi eventi."
+
+#: src/app_controller.cpp
+msgid "Prepare a ping to start an experiment."
+msgstr "Prepara un ping per iniziare un esperimento."
+
+#: src/app_controller.cpp
+msgid "Caches, tables and events cleared. The topology stays as it is."
+msgstr "Cache, tabelle ed eventi azzerati. La topologia resta com'è."
+
+#: src/app_controller.cpp
+msgid "Reduced motion: events appear one instant at a time, without moving packets."
+msgstr "Movimento ridotto: gli eventi appaiono un istante alla volta, senza pacchetti in movimento."
+
+#: src/app_controller.cpp
+msgid "Packets move along the cables again."
+msgstr "I pacchetti si muovono di nuovo lungo i cavi."
+
+#: src/app_documents.cpp
+msgid "A new network: add hosts and switches from the palette."
+msgstr "Una nuova rete: aggiungi host e switch dalla tavolozza."
+
+#: src/app_documents.cpp
+msgid "{0} cannot be opened: {1}"
+msgstr "Impossibile aprire {0}: {1}"
+
+#: src/app_documents.cpp
+msgid "{0} opened."
+msgstr "{0} aperto."
+
+#: src/app_documents.cpp
+msgid "Untitled"
+msgstr "Senza titolo"
+
+#: src/app_documents.cpp
+msgid "Undo"
+msgstr "Annulla"
+
+#: src/app_documents.cpp
+msgid "Redo"
+msgstr "Ripeti"
+
+#: src/app_documents.cpp
+msgid "Save the changes to {0}?"
+msgstr "Salvare le modifiche a {0}?"
+
+#: src/app_documents.cpp
+msgid "Your changes will be lost if you don't save them."
+msgstr "Se non le salvi, le modifiche andranno perse."
+
+#: src/app_documents.cpp ui/app.slint ui/dialogs.slint
+msgid "Save"
+msgstr "Salva"
+
+#: src/app_documents.cpp
+msgid "Don't save"
+msgstr "Non salvare"
+
+#: src/app_documents.cpp ui/dialogs.slint
+msgid "Cancel"
+msgstr "Annulla"
+
+#: src/app_documents.cpp
+msgid "Type a name for the file, without folders."
+msgstr "Scrivi un nome per il file, senza cartelle."
+
+#: src/app_documents.cpp
+msgid "Replace {0}?"
+msgstr "Sostituire {0}?"
+
+#: src/app_documents.cpp
+msgid "A file with this name already exists in {0}. Replacing it overwrites its contents."
+msgstr "In {0} esiste già un file con questo nome. Sostituirlo ne sovrascrive il contenuto."
+
+#: src/app_documents.cpp
+msgid "Replace"
+msgstr "Sostituisci"
+
+#: src/app_documents.cpp
+msgid "The network could not be saved"
+msgstr "Impossibile salvare la rete"
+
+#: src/app_documents.cpp
+msgid "{0}: {1}"
+msgstr "{0}: {1}"
+
+#: src/app_documents.cpp
+msgid "OK"
+msgstr "OK"
+
+#: src/app_documents.cpp
+msgid "Saved {0}."
+msgstr "{0} salvato."
+
+#: src/app_documents.cpp
+msgid "an untitled network"
+msgstr "una rete senza titolo"
+
+#: src/app_documents.cpp
+msgid "Recover the unsaved network?"
+msgstr "Recuperare la rete non salvata?"
+
+#: src/app_documents.cpp
+msgid "resend closed before the changes to {0} were saved. Recover the network as it was then?"
+msgstr "resend si è chiuso prima che le modifiche a {0} fossero salvate. Recuperare la rete com'era allora?"
+
+#: src/app_documents.cpp
+msgid "Recover"
+msgstr "Recupera"
+
+#: src/app_documents.cpp
+msgid "Recovered network"
+msgstr "Rete recuperata"
+
+#: src/app_documents.cpp
+msgid "Network recovered. Save it to keep it."
+msgstr "Rete recuperata. Salvala per conservarla."
+
+#: src/app_documents.cpp
+msgid "Discard"
+msgstr "Scarta"
+
+#: src/app_documents.cpp
+msgid "Language changed."
+msgstr "Lingua cambiata."
+
+#: src/app_inspector.cpp
+msgid "Power on {0}"
+msgstr "Accendi {0}"
+
+#: src/app_inspector.cpp
+msgid "Power off {0}"
+msgstr "Spegni {0}"
+
+#: src/app_inspector.cpp
+msgid "Enable {0}"
+msgstr "Abilita {0}"
+
+#: src/app_inspector.cpp
+msgid "Disable {0}"
+msgstr "Disabilita {0}"
+
+#: src/app_inspector.cpp
+msgid "Disable cable {0}"
+msgstr "Disabilita il cavo {0}"
+
+#: src/app_inspector.cpp
+msgid "Enable cable {0}"
+msgstr "Abilita il cavo {0}"
+
+#: src/app_inspector.cpp
+msgid "Port {0}"
+msgstr "Porta {0}"
+
+#: src/app_inspector.cpp
+msgid "Cable"
+msgstr "Cavo"
+
+#: src/app_inspector.cpp
+msgid "incomplete"
+msgstr "incompleta"
+
+#: src/app_inspector.cpp
+msgid "reachable"
+msgstr "raggiungibile"
+
+#: src/app_inspector.cpp
+msgid "1 datagram waits"
+msgstr "1 datagramma in attesa"
+
+#: src/app_inspector.cpp
+msgid "{0} datagrams wait"
+msgstr "{0} datagrammi in attesa"
+
+#: src/app_inspector.cpp
+msgid "No mappings learned yet. Send a ping to watch ARP."
+msgstr "Nessuna associazione appresa finora. Invia un ping per osservare ARP."
+
+#: src/app_inspector.cpp
+msgid "No addresses learned yet. The switch learns from incoming frames."
+msgstr "Nessun indirizzo appreso finora. Lo switch impara dai frame in arrivo."
+
+#: src/app_inspector.cpp
+msgid "The prefix length is a whole number, for example 24."
+msgstr "La lunghezza del prefisso è un numero intero, per esempio 24."
+
+#: src/app_inspector.cpp
+msgid "Write the ageing time as a duration, for example 300s."
+msgstr "Scrivi il tempo di invecchiamento come durata, per esempio 300s."
+
+#: src/app_inspector.cpp
+msgid "Nothing to change."
+msgstr "Niente da cambiare."
+
+#: src/app_inspector.cpp
+msgid "Configure {0}"
+msgstr "Configura {0}"
+
+#: src/app_inspector.cpp
+msgid "Write the delay as a duration, for example 10ms or 250us."
+msgstr "Scrivi il ritardo come durata, per esempio 10ms o 250us."
+
+#: src/app_inspector.cpp
+msgid "Set the delay of cable {0}"
+msgstr "Imposta il ritardo del cavo {0}"
+
+#: src/app/canvas.cpp
+msgid "Connection cancelled."
+msgstr "Collegamento annullato."
+
+#: src/app/canvas.cpp
+msgid "Release on a free port or on another device."
+msgstr "Rilascia su una porta libera o su un altro dispositivo."
+
+#: src/app/canvas.cpp
+msgid "Release on another device or one of its ports, or click it."
+msgstr "Rilascia su un altro dispositivo o su una delle sue porte, oppure fai clic su di esso."
+
+#: src/app/canvas.cpp
+msgid "Move {0}"
+msgstr "Sposta {0}"
+
+#: src/app/canvas.cpp
+msgid "Now click another device or one of its free ports. Escape cancels."
+msgstr "Ora fai clic su un altro dispositivo o su una sua porta libera. Esc annulla."
+
+#: src/app/canvas.cpp
+msgid "Connection cancelled: a cable needs another device."
+msgstr "Collegamento annullato: un cavo richiede un altro dispositivo."
+
+#: src/app/canvas.cpp ui/canvas.slint
+msgid "Connect {0}"
+msgstr "Collega {0}"
+
+#: src/app/canvas.cpp
+msgid "Cable plugged: {0}."
+msgstr "Cavo collegato: {0}."
+
+#: src/app/canvas.cpp
+msgid "Remove {0}"
+msgstr "Rimuovi {0}"
+
+#: src/app/canvas.cpp
+msgid "Device and its cables removed."
+msgstr "Dispositivo e relativi cavi rimossi."
+
+#: src/app/canvas.cpp
+msgid "Unplug {0}"
+msgstr "Scollega {0}"
+
+#: src/app/canvas.cpp
+msgid "Cable unplugged."
+msgstr "Cavo scollegato."
+
+#: src/app/canvas.cpp
+msgid "Select another device and press Enter to connect them. Escape cancels."
+msgstr "Seleziona un altro dispositivo e premi Invio per collegarli. Esc annulla."
+
+#: src/app/files.cpp
+msgid "cannot write to {0}"
+msgstr "impossibile scrivere in {0}"
+
+#: src/app/files.cpp
+msgid "the disk refused the data"
+msgstr "il disco ha rifiutato i dati"
+
+#: src/app/files.cpp
+msgid "cannot open the file"
+msgstr "impossibile aprire il file"
+
+#: src/app/scene.cpp
+msgid "link down"
+msgstr "collegamento interrotto"
+
+#: src/app/scene.cpp
+msgid "device off"
+msgstr "dispositivo spento"
+
+#: src/app/scene.cpp
+msgid "no cable"
+msgstr "nessun cavo"
+
+#: src/app/scene.cpp
+msgid "not my MAC"
+msgstr "MAC non mio"
+
+#: src/app/scene.cpp
+msgid "not my IP"
+msgstr "IP non mio"
+
+#: src/app/scene.cpp
+msgid "no route back"
+msgstr "nessuna via di ritorno"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "ARP queue full"
+msgstr "coda ARP piena"
+
+#: src/app/scene.cpp
+msgid "reply too late"
+msgstr "risposta troppo tardi"
+
+#: src/app/scene.cpp
+msgid "dropped"
+msgstr "scartato"
+
+#: src/app/scene.cpp
+msgid "ping: no ARP reply"
+msgstr "ping: nessuna risposta ARP"
+
+#: src/app/scene.cpp
+msgid "ping: timed out"
+msgstr "ping: tempo scaduto"
+
+#: src/app/scene.cpp
+msgid "ping: no route"
+msgstr "ping: nessun percorso"
+
+#: src/app/scene.cpp
+msgid "ping: PC off"
+msgstr "ping: PC spento"
+
+#: src/app/scene.cpp
+msgid "ping: ARP queue full"
+msgstr "ping: coda ARP piena"
+
+#: src/app/scene.cpp
+msgid "ping failed"
+msgstr "ping fallito"
+
+#: src/app/scene.cpp
+msgid "powered on"
+msgstr "acceso"
+
+#: src/app/scene.cpp
+msgid "powered off"
+msgstr "spento"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "{0} enabled"
+msgstr "{0} abilitata"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "{0} disabled"
+msgstr "{0} disabilitata"
+
+#: src/app/scene.cpp
+msgid "ageing {0}"
+msgstr "invecchiamento {0}"
+
+#: src/app/scene.cpp
+msgid "added"
+msgstr "aggiunto"
+
+#: src/app/scene.cpp
+msgid "restored"
+msgstr "ripristinato"
+
+#: src/app/scene.cpp
+msgid "learn {0} → {1}"
+msgstr "impara {0} → {1}"
+
+#: src/app/scene.cpp
+msgid "flood ×{0}"
+msgstr "inonda ×{0}"
+
+#: src/app/scene.cpp
+msgid "forward"
+msgstr "inoltra"
+
+#: src/app/scene.cpp
+msgid "forward → {0}"
+msgstr "inoltra → {0}"
+
+#: src/app/scene.cpp
+msgid "filtered"
+msgstr "filtrato"
+
+#: src/app/scene.cpp
+msgid "ARP timeout"
+msgstr "timeout ARP"
+
+#: src/app/scene.cpp
+msgid "ping {0}/{1}"
+msgstr "ping {0}/{1}"
+
+#: src/app/scene.cpp
+msgid "ping reply"
+msgstr "risposta al ping"
+
+#: src/app/scene.cpp
+msgid "reply {0}"
+msgstr "risposta {0}"
+
+#: src/app/scene.cpp
+msgid "request {0} lost"
+msgstr "richiesta {0} persa"
+
+#: src/app/scene.cpp
+msgid "ARP entry expired"
+msgstr "voce ARP scaduta"
+
+#: src/app/scene.cpp
+msgid "entry aged out"
+msgstr "voce invecchiata"
+
+#: src/app/scene.cpp
+msgid "reply discarded"
+msgstr "risposta scartata"
+
+#: src/app/scene.cpp
+msgid "storm stopped"
+msgstr "tempesta fermata"
+
+#: src/app/scene.cpp
+msgid "ARP req"
+msgstr "ARP rich"
+
+#: src/app/scene.cpp
+msgid "ARP rep"
+msgstr "ARP risp"
+
+#: src/app/scene.cpp
+msgid "Echo req"
+msgstr "Echo rich"
+
+#: src/app/scene.cpp
+msgid "Echo rep"
+msgstr "Echo risp"
+
+#: src/app/scene.cpp ui/timeline.slint
+msgid "Frame"
+msgstr "Frame"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "ARP Request"
+msgstr "ARP Request"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "ARP Reply"
+msgstr "ARP Reply"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "Echo Request"
+msgstr "Echo Request"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "Echo Reply"
+msgstr "Echo Reply"
+
+#: src/app/scene.cpp src/explain/explain.cpp
+msgid "ICMP message"
+msgstr "messaggio ICMP"
+
+#: src/app/scene.cpp
+msgid "{0}, broadcast, {1} → {2}"
+msgstr "{0}, broadcast, {1} → {2}"
+
+#: src/app/scene.cpp
+msgid "{0}, {1} → {2}"
+msgstr "{0}, {1} → {2}"
+
+#: src/core/json.cpp
+msgid "unexpected text after the end of the document"
+msgstr "testo inatteso dopo la fine del documento"
+
+#: src/core/json.cpp
+msgid "nesting is too deep"
+msgstr "annidamento troppo profondo"
+
+#: src/core/json.cpp
+msgid "unexpected end of the document"
+msgstr "fine del documento inattesa"
+
+#: src/core/json.cpp
+msgid "expected a value"
+msgstr "atteso un valore"
+
+#: src/core/json.cpp
+msgid "expected a member name in double quotes"
+msgstr "atteso il nome di un membro tra virgolette doppie"
+
+#: src/core/json.cpp
+msgid "duplicate member \"{0}\""
+msgstr "membro \"{0}\" duplicato"
+
+#: src/core/json.cpp
+msgid "expected ':' after the member name"
+msgstr "atteso ':' dopo il nome del membro"
+
+#: src/core/json.cpp
+msgid "expected ',' or '}'"
+msgstr "atteso ',' o '}'"
+
+#: src/core/json.cpp
+msgid "expected ',' or ']'"
+msgstr "atteso ',' o ']'"
+
+#: src/core/json.cpp
+msgid "numbers cannot have leading zeros"
+msgstr "i numeri non possono avere zeri iniziali"
+
+#: src/core/json.cpp
+msgid "expected a digit"
+msgstr "attesa una cifra"
+
+#: src/core/json.cpp
+msgid "number out of range"
+msgstr "numero fuori intervallo"
+
+#: src/core/json.cpp
+msgid "only whole numbers are allowed"
+msgstr "sono ammessi solo numeri interi"
+
+#: src/core/json.cpp
+msgid "unterminated string"
+msgstr "stringa non terminata"
+
+#: src/core/json.cpp
+msgid "control characters must be escaped in strings"
+msgstr "nelle stringhe i caratteri di controllo vanno preceduti da escape"
+
+#: src/core/json.cpp
+msgid "invalid UTF-8 in string"
+msgstr "UTF-8 non valido nella stringa"
+
+#: src/core/json.cpp
+msgid "invalid \\u escape"
+msgstr "sequenza \\u non valida"
+
+#: src/core/json.cpp
+msgid "unpaired surrogate in \\u escape"
+msgstr "surrogato spaiato in una sequenza \\u"
+
+#: src/core/json.cpp
+msgid "invalid escape in string"
+msgstr "sequenza di escape non valida nella stringa"
+
+#: src/explain/explain.cpp
+msgid "device {0}"
+msgstr "dispositivo {0}"
+
+#: src/explain/explain.cpp
+msgid "{0} port {1}"
+msgstr "{0} porta {1}"
+
+#: src/explain/explain.cpp
+msgid "{0} request"
+msgstr "{0} richiesta"
+
+#: src/explain/explain.cpp
+msgid "{0} requests"
+msgstr "{0} richieste"
+
+#: src/explain/explain.cpp
+msgid "{0} reply"
+msgstr "{0} risposta"
+
+#: src/explain/explain.cpp
+msgid "{0} replies"
+msgstr "{0} risposte"
+
+#: src/explain/explain.cpp
+msgid "{0}% loss."
+msgstr "{0}% di perdita."
+
+#: src/explain/explain.cpp
+msgid "Round trip min/avg/max: {0}/{1}/{2} ms."
+msgstr "Andata e ritorno min/media/max: {0}/{1}/{2} ms."
+
+#: src/explain/explain.cpp
+msgid "The destination {0} is outside the local subnet. This prototype has no routers or gateways yet, so no ARP request is sent for the remote host."
+msgstr "La destinazione {0} è fuori dalla sottorete locale. Questo prototipo non ha ancora router né gateway, quindi per l'host remoto non viene inviata alcuna richiesta ARP."
+
+#: src/explain/explain.cpp
+msgid "No reply after three ARP requests. Check the address, the cables and that the devices are on. No ICMP was sent."
+msgstr "Nessuna risposta dopo tre richieste ARP. Controlla l'indirizzo, i cavi e che i dispositivi siano accesi. Nessun ICMP è stato inviato."
+
+#: src/explain/explain.cpp
+msgid "More datagrams were waiting for the same ARP answer than the PC keeps ({0}): the oldest was discarded to keep the latest."
+msgstr "In attesa della stessa risposta ARP c'erano più datagrammi di quanti il PC ne conservi ({0}): il più vecchio è stato scartato per tenere il più recente."
+
+#: src/explain/explain.cpp
+msgid "The PC was powered off or removed: its pings stop and their requests get no reply."
+msgstr "Il PC è stato spento o rimosso: i suoi ping si fermano e le loro richieste non ricevono risposta."
+
+#: src/explain/explain.cpp
+msgid "The MAC is known but no Echo Reply arrived. Check the subnet and the return path too, and whether the cached MAC still belongs to that address."
+msgstr "Il MAC è noto ma nessuna Echo Reply è arrivata. Controlla anche la sottorete e il percorso di ritorno, e se il MAC in cache appartiene ancora a quell'indirizzo."
+
+#: src/explain/explain.cpp
+msgid "no route"
+msgstr "nessun percorso"
+
+#: src/explain/explain.cpp
+msgid "ARP resolution timed out"
+msgstr "risoluzione ARP scaduta"
+
+#: src/explain/explain.cpp
+msgid "the PC is off"
+msgstr "il PC è spento"
+
+#: src/explain/explain.cpp
+msgid "reply timed out"
+msgstr "risposta scaduta"
+
+#: src/explain/explain.cpp
+msgid "Storm protection · frame stopped at {0}"
+msgstr "Protezione dalle tempeste · frame fermato in {0}"
+
+#: src/explain/explain.cpp
+msgid "This {0} was sent {1} times: more often than a network without loops could ever send it. The network has an Ethernet loop and nothing stops the copies going round, so the simulator removed them all. Real switches would keep flooding; spanning tree (STP) prevents this and is not implemented yet."
+msgstr "Questo {0} è stato inviato {1} volte: più spesso di quanto una rete senza anelli potrebbe mai inviarlo. La rete ha un anello Ethernet e nulla ferma le copie che girano, quindi il simulatore le ha rimosse tutte. Gli switch reali continuerebbero a inondare; lo spanning tree (STP) lo impedisce e non è ancora implementato."
+
+#: src/explain/explain.cpp
+msgid "{0}; ingress port {1}."
+msgstr "{0}; porta di ingresso {1}."
+
+#: src/explain/explain.cpp
+msgid "Lost on the way: the cable was disabled, unplugged or moved while the frame was on it."
+msgstr "Perso per strada: il cavo è stato disabilitato, scollegato o spostato mentre il frame lo percorreva."
+
+#: src/explain/explain.cpp
+msgid "Cannot be received: the device is powered off."
+msgstr "Non può essere ricevuto: il dispositivo è spento."
+
+#: src/explain/explain.cpp
+msgid "This PC owns the requested IP: it sends a unicast ARP reply."
+msgstr "Questo PC possiede l'IP richiesto: invia una risposta ARP unicast."
+
+#: src/explain/explain.cpp
+msgid "ICMP Echo Request received: an Echo Reply with the same identifier is generated."
+msgstr "Echo Request ICMP ricevuta: viene generata una Echo Reply con lo stesso identificatore."
+
+#: src/explain/explain.cpp
+msgid "MAC resolved: the {0} IPv4 datagrams waiting for it can be sent."
+msgstr "MAC risolto: i {0} datagrammi IPv4 che lo attendevano possono partire."
+
+#: src/explain/explain.cpp
+msgid "MAC resolved: the IPv4 datagram carrying the ICMP Echo Request can be sent."
+msgstr "MAC risolto: il datagramma IPv4 con la Echo Request ICMP può partire."
+
+#: src/explain/explain.cpp
+msgid "MAC resolved: the waiting Echo Reply can be sent."
+msgstr "MAC risolto: la Echo Reply in attesa può partire."
+
+#: src/explain/explain.cpp
+msgid "ICMP Echo Request received, but there is no ARP entry for the sender: the Echo Reply waits while an ARP request asks for {0}."
+msgstr "Echo Request ICMP ricevuta, ma non c'è una voce ARP per il mittente: la Echo Reply attende mentre una richiesta ARP chiede di {0}."
+
+#: src/explain/explain.cpp
+msgid "Learned source MAC {0} on port {1}."
+msgstr "Appreso il MAC sorgente {0} sulla porta {1}."
+
+#: src/explain/explain.cpp
+msgid "The entry for {0} had aged out: no frame from it for {1}."
+msgstr "La voce per {0} era invecchiata: nessun frame da lì per {1}."
+
+#: src/explain/explain.cpp
+msgid "To be flooded, but no other port has an active cable."
+msgstr "Da inondare, ma nessun'altra porta ha un cavo attivo."
+
+#: src/explain/explain.cpp
+msgid "Flooded to every active port except the ingress port: {0} copy."
+msgstr "Inondato su ogni porta attiva tranne quella di ingresso: {0} copia."
+
+#: src/explain/explain.cpp
+msgid "Flooded to every active port except the ingress port: {0} copies."
+msgstr "Inondato su ogni porta attiva tranne quella di ingresso: {0} copie."
+
+#: src/explain/explain.cpp
+msgid "Frame filtered: the destination is on the ingress port."
+msgstr "Frame filtrato: la destinazione è sulla porta di ingresso."
+
+#: src/explain/explain.cpp
+msgid "Unicast on port {0}."
+msgstr "Unicast sulla porta {0}."
+
+#: src/explain/explain.cpp
+msgid "Unicast on port {0}: the port has no active cable."
+msgstr "Unicast sulla porta {0}: la porta non ha un cavo attivo."
+
+#: src/explain/explain.cpp
+msgid "ARP cache updated: {0} = {1}."
+msgstr "Cache ARP aggiornata: {0} = {1}."
+
+#: src/explain/explain.cpp
+msgid "The ARP entry for {0} has expired: no update for 60 s."
+msgstr "La voce ARP per {0} è scaduta: nessun aggiornamento per 60 s."
+
+#: src/explain/explain.cpp
+msgid "Frame ignored: the destination MAC is not the local MAC."
+msgstr "Frame ignorato: il MAC di destinazione non è il MAC locale."
+
+#: src/explain/explain.cpp
+msgid "Request for another address: no reply."
+msgstr "Richiesta per un altro indirizzo: nessuna risposta."
+
+#: src/explain/explain.cpp
+msgid "Datagram ignored: the destination IP is not the local IP."
+msgstr "Datagramma ignorato: l'IP di destinazione non è l'IP locale."
+
+#: src/explain/explain.cpp
+msgid "Echo Reply ignored: no request is waiting for it. Its request already timed out, or its ping ended."
+msgstr "Echo Reply ignorata: nessuna richiesta la sta aspettando. La sua richiesta è già scaduta, o il suo ping è finito."
+
+#: src/explain/explain.cpp
+msgid "Echo received, but there is no return route: the source is outside the local subnet. Routers and gateways are not implemented yet."
+msgstr "Echo ricevuto, ma non c'è un percorso di ritorno: la sorgente è fuori dalla sottorete locale. Router e gateway non sono ancora implementati."
+
+#: src/explain/explain.cpp
+msgid "An Echo Reply waiting for ARP was discarded: {0}."
+msgstr "Una Echo Reply in attesa di ARP è stata scartata: {0}."
+
+#: src/explain/explain.cpp
+msgid "Reply {0}/{1} · {2} → {3}"
+msgstr "Risposta {0}/{1} · {2} → {3}"
+
+#: src/explain/explain.cpp
+msgid "Echo Reply for request {0} of the ping. Round trip: {1}."
+msgstr "Echo Reply per la richiesta {0} del ping. Andata e ritorno: {1}."
+
+#: src/explain/explain.cpp
+msgid "Ping succeeded · {0} → {1}"
+msgstr "Ping riuscito · {0} → {1}"
+
+#: src/explain/explain.cpp
+msgid "Echo Reply matching the current ping. The destination is reachable. Round trip: {0}."
+msgstr "Echo Reply corrispondente al ping in corso. La destinazione è raggiungibile. Andata e ritorno: {0}."
+
+#: src/explain/explain.cpp
+msgid "Ping finished: {0}"
+msgstr "Ping finito: {0}"
+
+#: src/explain/explain.cpp
+msgid "Local ping succeeded"
+msgstr "Ping locale riuscito"
+
+#: src/explain/explain.cpp
+msgid "The destination is the PC's own address: no frame crosses the cables."
+msgstr "La destinazione è l'indirizzo del PC stesso: nessun frame attraversa i cavi."
+
+#: src/explain/explain.cpp
+msgid "Ping failed · {0}"
+msgstr "Ping fallito · {0}"
+
+#: src/explain/explain.cpp
+msgid "Ping finished · {0}/{1} replies"
+msgstr "Ping finito · {0}/{1} risposte"
+
+#: src/explain/explain.cpp
+msgid "Ping failed · no reply"
+msgstr "Ping fallito · nessuna risposta"
+
+#: src/explain/explain.cpp
+msgid "Ping from {0} to {1}: {2}"
+msgstr "Ping da {0} a {1}: {2}"
+
+#: src/explain/explain.cpp
+msgid "{0} · who has {1}?"
+msgstr "{0} · chi ha {1}?"
+
+#: src/explain/explain.cpp
+msgid "ARP Request sent to broadcast ({0}). Attempt {1}/{2}."
+msgstr "ARP Request inviata in broadcast ({0}). Tentativo {1}/{2}."
+
+#: src/explain/explain.cpp
+msgid "The destination is in the local subnet. Looking for its MAC address."
+msgstr "La destinazione è nella sottorete locale. Si cerca il suo indirizzo MAC."
+
+#: src/explain/explain.cpp
+msgid "The port has no active link: no frame can leave."
+msgstr "La porta non ha un collegamento attivo: nessun frame può uscire."
+
+#: src/explain/explain.cpp
+msgid "No ARP reply · retrying"
+msgstr "Nessuna risposta ARP · nuovo tentativo"
+
+#: src/explain/explain.cpp
+msgid "One simulated second has passed. The PC repeats the ARP request."
+msgstr "È passato un secondo simulato. Il PC ripete la richiesta ARP."
+
+#: src/explain/explain.cpp
+msgid "{0} · ARP entry for {1} expired"
+msgstr "{0} · voce ARP per {1} scaduta"
+
+#: src/explain/explain.cpp
+msgid "The entry was not refreshed for 60 s, so the PC no longer trusts it and asks again."
+msgstr "La voce non è stata rinnovata per 60 s, quindi il PC non se ne fida più e chiede di nuovo."
+
+#: src/explain/explain.cpp
+msgid "Local reply {0}/{1}"
+msgstr "Risposta locale {0}/{1}"
+
+#: src/explain/explain.cpp
+msgid "Request {0}/{1} lost · {2}"
+msgstr "Richiesta {0}/{1} persa · {2}"
+
+#: src/explain/explain.cpp
+msgid "{0} · Echo Reply to {1} discarded"
+msgstr "{0} · Echo Reply per {1} scartata"
+
+#: src/explain/explain.cpp
+msgid "The reply waited for ARP to find the requester's MAC address, but {0}."
+msgstr "La risposta attendeva che ARP trovasse l'indirizzo MAC del richiedente, ma {0}."
+
+#: src/explain/explain.cpp
+msgid "Cable enabled · {0}"
+msgstr "Cavo abilitato · {0}"
+
+#: src/explain/explain.cpp
+msgid "Cable disabled · {0}"
+msgstr "Cavo disabilitato · {0}"
+
+#: src/explain/explain.cpp
+msgid "Frames can cross it again."
+msgstr "I frame possono attraversarlo di nuovo."
+
+#: src/explain/explain.cpp
+msgid "Frames on it are lost when they reach the end, and the ports at its ends have no carrier until it is enabled again."
+msgstr "I frame che lo percorrono si perdono quando arrivano in fondo, e le porte alle sue estremità non hanno portante finché non viene riabilitato."
+
+#: src/explain/explain.cpp
+msgid "Cable delay {0} · {1}"
+msgstr "Ritardo del cavo {0} · {1}"
+
+#: src/explain/explain.cpp
+msgid "Frames already on the cable keep their arrival time; the next ones take {0}."
+msgstr "I frame già sul cavo mantengono il loro orario di arrivo; i successivi impiegano {0}."
+
+#: src/explain/explain.cpp
+msgid "The port can carry frames again if its cable is up."
+msgstr "La porta può di nuovo trasportare frame se il suo cavo è attivo."
+
+#: src/explain/explain.cpp
+msgid "A disabled port has no carrier: neither it nor the port at the other end of its cable can send, and frames on the cable are lost."
+msgstr "Una porta disabilitata non ha portante: né lei né la porta all'altro capo del cavo possono trasmettere, e i frame sul cavo si perdono."
+
+#: src/explain/explain.cpp
+msgid "{0} powered on"
+msgstr "{0} acceso"
+
+#: src/explain/explain.cpp
+msgid "{0} powered off"
+msgstr "{0} spento"
+
+#: src/explain/explain.cpp
+msgid "It starts with empty tables, as after a reboot."
+msgstr "Riparte con le tabelle vuote, come dopo un riavvio."
+
+#: src/explain/explain.cpp
+msgid "Its caches, tables and pings are gone; frames reaching it are dropped."
+msgstr "Cache, tabelle e ping sono spariti; i frame che lo raggiungono vengono scartati."
+
+#: src/explain/explain.cpp
+msgid "{0} · address {1}"
+msgstr "{0} · indirizzo {1}"
+
+#: src/explain/explain.cpp
+msgid "It was {0}. The PC does not announce the change: other hosts keep the old mapping in their ARP caches until the entry expires."
+msgstr "Era {0}. Il PC non annuncia il cambiamento: gli altri host mantengono la vecchia associazione nelle loro cache ARP finché la voce non scade."
+
+#: src/explain/explain.cpp
+msgid "{0} · ageing time {1}"
+msgstr "{0} · tempo di invecchiamento {1}"
+
+#: src/explain/explain.cpp
+msgid "MAC addresses not seen for {0} are forgotten."
+msgstr "Gli indirizzi MAC non visti per {0} vengono dimenticati."
+
+#: src/explain/explain.cpp
+msgid "Cable plugged · {0}"
+msgstr "Cavo collegato · {0}"
+
+#: src/explain/explain.cpp
+msgid "Frames take {0} from one end to the other."
+msgstr "I frame impiegano {0} da un capo all'altro."
+
+#: src/explain/explain.cpp
+msgid "Cable unplugged · {0}"
+msgstr "Cavo scollegato · {0}"
+
+#: src/explain/explain.cpp
+msgid "Frames on it are lost."
+msgstr "I frame che lo percorrono si perdono."
+
+#: src/explain/explain.cpp
+msgid "Cable moved · {0} → {1}"
+msgstr "Cavo spostato · {0} → {1}"
+
+#: src/explain/explain.cpp
+msgid "Frames on it are lost. Switches keep sending frames for the hosts behind it to the old port until a frame from them arrives on the new one or their entry ages out."
+msgstr "I frame che lo percorrono si perdono. Gli switch continuano a inviare i frame per gli host dietro di esso alla vecchia porta, finché un loro frame non arriva sulla nuova o la loro voce non invecchia."
+
+#: src/explain/explain.cpp
+msgid "{0} added"
+msgstr "{0} aggiunto"
+
+#: src/explain/explain.cpp
+msgid "It starts with empty tables."
+msgstr "Parte con le tabelle vuote."
+
+#: src/explain/explain.cpp
+msgid "{0} removed"
+msgstr "{0} rimosso"
+
+#: src/explain/explain.cpp
+msgid "Its cables are unplugged and frames on them are lost."
+msgstr "I suoi cavi vengono scollegati e i frame che li percorrono si perdono."
+
+#: src/explain/explain.cpp
+msgid "Cable plugged back · {0}"
+msgstr "Cavo ricollegato · {0}"
+
+#: src/explain/explain.cpp
+msgid "It is back as it was before it was unplugged. Frames take {0} from one end to the other."
+msgstr "È tornato com'era prima di essere scollegato. I frame impiegano {0} da un capo all'altro."
+
+#: src/explain/explain.cpp
+msgid "{0} restored"
+msgstr "{0} ripristinato"
+
+#: src/explain/explain.cpp
+msgid "It is back as it was before it was removed, with no cable, and starts with empty tables, as after a reboot."
+msgstr "È tornato com'era prima di essere rimosso, senza cavi, e riparte con le tabelle vuote, come dopo un riavvio."
+
+#: src/explain/explain.cpp
+msgid "It is back as it was before it was removed, with its cable, and starts with empty tables, as after a reboot."
+msgstr "È tornato com'era prima di essere rimosso, con il suo cavo, e riparte con le tabelle vuote, come dopo un riavvio."
+
+#: src/explain/explain.cpp
+msgid "It is back as it was before it was removed, with its {0} cables, and starts with empty tables, as after a reboot."
+msgstr "È tornato com'era prima di essere rimosso, con i suoi {0} cavi, e riparte con le tabelle vuote, come dopo un riavvio."
+
+#: src/explain/explain.cpp
+msgid "Two devices have the same id."
+msgstr "Due dispositivi hanno lo stesso id."
+
+#: src/explain/explain.cpp
+msgid "Device ids start from 1."
+msgstr "Gli id dei dispositivi partono da 1."
+
+#: src/explain/explain.cpp
+msgid "Use a name of 1 to 48 characters, without control characters."
+msgstr "Usa un nome da 1 a 48 caratteri, senza caratteri di controllo."
+
+#: src/explain/explain.cpp
+msgid "A PC has one port, a switch has eight."
+msgstr "Un PC ha una porta, uno switch ne ha otto."
+
+#: src/explain/explain.cpp
+msgid "Every PC needs an IPv4 address."
+msgstr "Ogni PC ha bisogno di un indirizzo IPv4."
+
+#: src/explain/explain.cpp
+msgid "Invalid IPv4 host address: network, broadcast, loopback and multicast addresses are excluded."
+msgstr "Indirizzo IPv4 di host non valido: sono esclusi gli indirizzi di rete, broadcast, loopback e multicast."
+
+#: src/explain/explain.cpp
+msgid "IPv4 prefixes go from /1 to /32."
+msgstr "I prefissi IPv4 vanno da /1 a /32."
+
+#: src/explain/explain.cpp
+msgid "Switch ports have no IPv4 address."
+msgstr "Le porte degli switch non hanno un indirizzo IPv4."
+
+#: src/explain/explain.cpp
+msgid "Two cables have the same id."
+msgstr "Due cavi hanno lo stesso id."
+
+#: src/explain/explain.cpp
+msgid "Cable ids start from 1."
+msgstr "Gli id dei cavi partono da 1."
+
+#: src/explain/explain.cpp
+msgid "Device not found."
+msgstr "Dispositivo non trovato."
+
+#: src/explain/explain.cpp
+msgid "Port not found."
+msgstr "Porta non trovata."
+
+#: src/explain/explain.cpp
+msgid "Link not found."
+msgstr "Collegamento non trovato."
+
+#: src/explain/explain.cpp
+msgid "That port already has a cable."
+msgstr "Quella porta ha già un cavo."
+
+#: src/explain/explain.cpp
+msgid "Connect two different devices."
+msgstr "Collega due dispositivi diversi."
+
+#: src/explain/explain.cpp
+msgid "A cable's delay goes from 1 µs to 10 s."
+msgstr "Il ritardo di un cavo va da 1 µs a 10 s."
+
+#: src/explain/explain.cpp
+msgid "A switch's ageing time goes from 10 s to 1,000,000 s."
+msgstr "Il tempo di invecchiamento di uno switch va da 10 s a 1.000.000 s."
+
+#: src/explain/explain.cpp
+msgid "A network holds at most 100 devices."
+msgstr "Una rete contiene al massimo 100 dispositivi."
+
+#: src/explain/explain.cpp
+msgid "No free port: a PC has one port, a switch has eight."
+msgstr "Nessuna porta libera: un PC ha una porta, uno switch ne ha otto."
+
+#: src/explain/explain.cpp
+msgid "Select a PC to configure IPv4."
+msgstr "Seleziona un PC per configurare IPv4."
+
+#: src/explain/explain.cpp
+msgid "Only switches have an ageing time."
+msgstr "Solo gli switch hanno un tempo di invecchiamento."
+
+#: src/explain/explain.cpp
+msgid "Select a PC as the ping source."
+msgstr "Seleziona un PC come sorgente del ping."
+
+#: src/explain/explain.cpp
+msgid "The source PC is powered off."
+msgstr "Il PC sorgente è spento."
+
+#: src/explain/explain.cpp
+msgid "Enter a valid unicast IPv4 address."
+msgstr "Inserisci un indirizzo IPv4 unicast valido."
+
+#: src/explain/explain.cpp
+msgid "Pinging network or broadcast addresses is not supported."
+msgstr "Il ping verso indirizzi di rete o di broadcast non è supportato."
+
+#: src/explain/explain.cpp
+msgid "A ping sends 1 to 1000 requests; its interval and timeout go from 10 ms to 60 s."
+msgstr "Un ping invia da 1 a 1000 richieste; intervallo e timeout vanno da 10 ms a 60 s."
+
+#: src/explain/explain.cpp
+msgid "Unknown problem."
+msgstr "Problema sconosciuto."
+
+#: src/explain/explain.cpp
+msgid "the cable stopped carrying frames while the frame was on it"
+msgstr "il cavo ha smesso di trasportare frame mentre il frame lo percorreva"
+
+#: src/explain/explain.cpp
+msgid "the device is powered off"
+msgstr "il dispositivo è spento"
+
+#: src/explain/explain.cpp
+msgid "the port has no active cable"
+msgstr "la porta non ha un cavo attivo"
+
+#: src/explain/explain.cpp
+msgid "the destination MAC belongs to another device"
+msgstr "il MAC di destinazione appartiene a un altro dispositivo"
+
+#: src/explain/explain.cpp
+msgid "the ARP request asks for another address"
+msgstr "la richiesta ARP chiede di un altro indirizzo"
+
+#: src/explain/explain.cpp
+msgid "the destination IP belongs to another device"
+msgstr "l'IP di destinazione appartiene a un altro dispositivo"
+
+#: src/explain/explain.cpp
+msgid "the address is outside the local subnet, and there are no routers yet"
+msgstr "l'indirizzo è fuori dalla sottorete locale, e non ci sono ancora router"
+
+#: src/explain/explain.cpp
+msgid "three ARP requests went unanswered"
+msgstr "tre richieste ARP sono rimaste senza risposta"
+
+#: src/explain/explain.cpp
+msgid "no Echo Reply within the timeout"
+msgstr "nessuna Echo Reply entro il timeout"
+
+#: src/explain/explain.cpp
+msgid "newer datagrams for the same address took its place in the ARP queue"
+msgstr "datagrammi più recenti per lo stesso indirizzo hanno preso il suo posto nella coda ARP"
+
+#: src/explain/explain.cpp
+msgid "no request is waiting for this Echo Reply"
+msgstr "nessuna richiesta sta aspettando questa Echo Reply"
+
+#: src/scenario/scenario_json.cpp
+msgid "unknown member \"{0}\""
+msgstr "membro \"{0}\" sconosciuto"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected an object"
+msgstr "atteso un oggetto"
+
+#: src/scenario/scenario_json.cpp
+msgid "missing member \"{0}\""
+msgstr "manca il membro \"{0}\""
+
+#: src/scenario/scenario_json.cpp
+msgid "expected a string"
+msgstr "attesa una stringa"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected true or false"
+msgstr "atteso true o false"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected a whole number from {0} to {1}"
+msgstr "atteso un numero intero da {0} a {1}"
+
+#: src/scenario/scenario_json.cpp
+msgid "line {0}, column {1}"
+msgstr "riga {0}, colonna {1}"
+
+#: src/scenario/scenario_json.cpp
+msgid "this is not a resend scenario file"
+msgstr "questo non è un file di scenario di resend"
+
+#: src/scenario/scenario_json.cpp
+msgid "this file needs a newer version of resend (format {0})"
+msgstr "questo file richiede una versione più recente di resend (formato {0})"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected an array"
+msgstr "atteso un array"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected \"host\" or \"switch\""
+msgstr "atteso \"host\" o \"switch\""
+
+#: src/scenario/scenario_json.cpp
+msgid "only switches have an ageing time"
+msgstr "solo gli switch hanno un tempo di invecchiamento"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected a duration such as 300s"
+msgstr "attesa una durata come 300s"
+
+#: src/scenario/scenario_json.cpp
+msgid "a host has {0} port"
+msgstr "un host ha {0} porta"
+
+#: src/scenario/scenario_json.cpp
+msgid "a switch has {0} ports"
+msgstr "uno switch ha {0} porte"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected a MAC address such as 02:00:00:00:00:01"
+msgstr "atteso un indirizzo MAC come 02:00:00:00:00:01"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected an IPv4 address with its prefix, such as 192.168.1.10/24"
+msgstr "atteso un indirizzo IPv4 con il suo prefisso, come 192.168.1.10/24"
+
+#: src/scenario/scenario_json.cpp
+msgid "expected a duration such as 10ms or 250us"
+msgstr "attesa una durata come 10ms o 250us"
+
+#: src/wire/wire.cpp
+msgid "correct"
+msgstr "corretto"
+
+#: src/wire/wire.cpp
+msgid "incorrect"
+msgstr "errato"
+
+#: src/wire/wire.cpp
+msgid "Broadcast"
+msgstr "Broadcast"
+
+#: src/wire/wire.cpp
+msgid "Destination"
+msgstr "Destinazione"
+
+#: src/wire/wire.cpp
+msgid "Source"
+msgstr "Sorgente"
+
+#: src/wire/wire.cpp
+msgid "Type"
+msgstr "Tipo"
+
+#: src/wire/wire.cpp
+msgid "Hardware type"
+msgstr "Tipo di hardware"
+
+#: src/wire/wire.cpp
+msgid "Protocol type"
+msgstr "Tipo di protocollo"
+
+#: src/wire/wire.cpp
+msgid "Hardware size"
+msgstr "Dimensione hardware"
+
+#: src/wire/wire.cpp
+msgid "Protocol size"
+msgstr "Dimensione protocollo"
+
+#: src/wire/wire.cpp
+msgid "Opcode"
+msgstr "Codice operativo"
+
+#: src/wire/wire.cpp
+msgid "request"
+msgstr "richiesta"
+
+#: src/wire/wire.cpp
+msgid "reply"
+msgstr "risposta"
+
+#: src/wire/wire.cpp
+msgid "Sender MAC address"
+msgstr "Indirizzo MAC del mittente"
+
+#: src/wire/wire.cpp
+msgid "Sender IP address"
+msgstr "Indirizzo IP del mittente"
+
+#: src/wire/wire.cpp
+msgid "Target MAC address"
+msgstr "Indirizzo MAC cercato"
+
+#: src/wire/wire.cpp
+msgid "Target IP address"
+msgstr "Indirizzo IP cercato"
+
+#: src/wire/wire.cpp
+msgid "Version"
+msgstr "Versione"
+
+#: src/wire/wire.cpp
+msgid "Header length"
+msgstr "Lunghezza intestazione"
+
+#: src/wire/wire.cpp
+msgid "bytes"
+msgstr "byte"
+
+#: src/wire/wire.cpp
+msgid "Differentiated services"
+msgstr "Servizi differenziati"
+
+#: src/wire/wire.cpp
+msgid "Total length"
+msgstr "Lunghezza totale"
+
+#: src/wire/wire.cpp
+msgid "Identification"
+msgstr "Identificazione"
+
+#: src/wire/wire.cpp
+msgid "Flags"
+msgstr "Flag"
+
+#: src/wire/wire.cpp
+msgid "none"
+msgstr "nessuno"
+
+#: src/wire/wire.cpp
+msgid "Fragment offset"
+msgstr "Offset del frammento"
+
+#: src/wire/wire.cpp
+msgid "Time to live"
+msgstr "Tempo di vita (TTL)"
+
+#: src/wire/wire.cpp
+msgid "hops left"
+msgstr "salti rimasti"
+
+#: src/wire/wire.cpp
+msgid "Protocol"
+msgstr "Protocollo"
+
+#: src/wire/wire.cpp
+msgid "Header checksum"
+msgstr "Checksum dell'intestazione"
+
+#: src/wire/wire.cpp
+msgid "Source address"
+msgstr "Indirizzo sorgente"
+
+#: src/wire/wire.cpp
+msgid "Destination address"
+msgstr "Indirizzo di destinazione"
+
+#: src/wire/wire.cpp
+msgid "Echo (ping) request"
+msgstr "Richiesta echo (ping)"
+
+#: src/wire/wire.cpp
+msgid "Echo (ping) reply"
+msgstr "Risposta echo (ping)"
+
+#: src/wire/wire.cpp
+msgid "Code"
+msgstr "Codice"
+
+#: src/wire/wire.cpp
+msgid "Checksum"
+msgstr "Checksum"
+
+#: src/wire/wire.cpp
+msgid "Identifier"
+msgstr "Identificatore"
+
+#: src/wire/wire.cpp
+msgid "Sequence number"
+msgstr "Numero di sequenza"
+
+#: src/wire/wire.cpp
+msgid "Data"
+msgstr "Dati"
+
+#: src/wire/wire.cpp
+msgid "{0} bytes"
+msgstr "{0} byte"
+
+#: src/wire/wire.cpp
+msgid "Padding"
+msgstr "Riempimento"
+
+#: ui/app.slint
+msgid "Add {0}"
+msgstr "Aggiungi {0}"
+
+#: ui/app.slint
+msgid "Build"
+msgstr "Costruisci"
+
+#: ui/app.slint
+msgid "Hide the palette"
+msgstr "Nascondi la tavolozza"
+
+#: ui/app.slint
+msgid "Host"
+msgstr "Host"
+
+#: ui/app.slint
+msgid "IPv4 · 1 Ethernet port"
+msgstr "IPv4 · 1 porta"
+
+#: ui/app.slint
+msgid "Switch"
+msgstr "Switch"
+
+#: ui/app.slint
+msgid "Layer 2 · 8 ports"
+msgstr "Livello 2 · 8 porte"
+
+#: ui/app.slint
+msgid "Drag a card to move it. Drag from a port light or from + to another card to plug a cable."
+msgstr "Trascina una scheda per spostarla. Trascina da una spia di porta o da + a un'altra scheda per collegare un cavo."
+
+#: ui/app.slint
+msgid "LESSON"
+msgstr "LEZIONE"
+
+#: ui/app.slint
+msgid "Build a network, send a ping and follow every frame. Examples in the File menu come with a lesson."
+msgstr "Costruisci una rete, invia un ping e segui ogni frame. Gli esempi nel menu File hanno ognuno una lezione."
+
+#: ui/app.slint
+msgid "File"
+msgstr "File"
+
+#: ui/app.slint
+msgid "New"
+msgstr "Nuovo"
+
+#: ui/app.slint
+msgid "Open…"
+msgstr "Apri…"
+
+#: ui/app.slint
+msgid "Open example"
+msgstr "Apri un esempio"
+
+#: ui/app.slint
+msgid "Save as…"
+msgstr "Salva come…"
+
+#: ui/app.slint
+msgid "Quit"
+msgstr "Esci"
+
+#: ui/app.slint
+msgid "Edit"
+msgstr "Modifica"
+
+#: ui/app.slint
+msgid "Add host"
+msgstr "Aggiungi host"
+
+#: ui/app.slint
+msgid "Add switch"
+msgstr "Aggiungi switch"
+
+#: ui/app.slint
+msgid "Delete selection"
+msgstr "Elimina la selezione"
+
+#: ui/app.slint
+msgid "View"
+msgstr "Vista"
+
+#: ui/app.slint ui/canvas.slint
+msgid "Fit the network in view"
+msgstr "Adatta la rete alla vista"
+
+#: ui/app.slint ui/canvas.slint
+msgid "Zoom in"
+msgstr "Ingrandisci"
+
+#: ui/app.slint ui/canvas.slint
+msgid "Zoom out"
+msgstr "Rimpicciolisci"
+
+#: ui/app.slint ui/canvas.slint
+msgid "Actual size"
+msgstr "Dimensione reale"
+
+#: ui/app.slint
+msgid "Palette"
+msgstr "Tavolozza"
+
+#: ui/app.slint ui/inspector.slint
+msgid "Inspector"
+msgstr "Ispettore"
+
+#: ui/app.slint ui/timeline.slint
+msgid "Timeline"
+msgstr "Cronologia"
+
+#: ui/app.slint
+msgid "Reduce motion"
+msgstr "Riduci il movimento"
+
+#: ui/app.slint
+msgid "Language"
+msgstr "Lingua"
+
+#: ui/app.slint
+msgid "As the system"
+msgstr "Come il sistema"
+
+#: ui/app.slint
+msgid "Simulation"
+msgstr "Simulazione"
+
+#: ui/app.slint
+msgid "Pause"
+msgstr "Pausa"
+
+#: ui/app.slint
+msgid "Run"
+msgstr "Avvia"
+
+#: ui/app.slint
+msgid "Step"
+msgstr "Passo"
+
+#: ui/app.slint ui/timeline.slint
+msgid "Go to the latest instant"
+msgstr "Vai all'ultimo istante"
+
+#: ui/app.slint
+msgid "Reset"
+msgstr "Azzera"
+
+#: ui/app.slint
+msgid "Speed"
+msgstr "Velocità"
+
+#: ui/app.slint
+msgid "Help"
+msgstr "Aiuto"
+
+#: ui/app.slint ui/dialogs.slint
+msgid "About resend"
+msgstr "Informazioni su resend"
+
+#: ui/app.slint
+msgid "{0}, not saved"
+msgstr "{0}, non salvato"
+
+#: ui/app.slint
+msgid "Show the palette"
+msgstr "Mostra la tavolozza"
+
+#: ui/app.slint
+msgid "Destination IPv4"
+msgstr "IPv4 di destinazione"
+
+#: ui/app.slint
+msgid "Echo Requests per ping"
+msgstr "Echo Request per ping"
+
+#: ui/app.slint
+msgid "Send"
+msgstr "Invia"
+
+#: ui/app.slint
+msgid "Send the ping"
+msgstr "Invia il ping"
+
+#: ui/app.slint
+msgid "Playback speed"
+msgstr "Velocità di riproduzione"
+
+#: ui/app.slint
+msgid "Reset the simulation"
+msgstr "Azzera la simulazione"
+
+#: ui/app.slint
+msgid "Show the inspector"
+msgstr "Mostra l'ispettore"
+
+#: ui/app.slint
+msgid "Show the timeline"
+msgstr "Mostra la cronologia"
+
+#: ui/app.slint
+msgid "● RUNNING"
+msgstr "● IN CORSO"
+
+#: ui/app.slint
+msgid "● PAUSED"
+msgstr "● IN PAUSA"
+
+#: ui/app.slint
+msgid "● READY"
+msgstr "● PRONTO"
+
+#: ui/canvas.slint
+msgid "Arrows to move, Enter to connect, Delete to remove."
+msgstr "Frecce per spostare, Invio per collegare, Canc per rimuovere."
+
+#: ui/canvas.slint
+msgid "SWITCH L2"
+msgstr "SWITCH L2"
+
+#: ui/canvas.slint
+msgid "HOST"
+msgstr "HOST"
+
+#: ui/canvas.slint
+msgid "Network topology"
+msgstr "Topologia della rete"
+
+#: ui/canvas.slint
+msgid "Cable {0}"
+msgstr "Cavo {0}"
+
+#: ui/canvas.slint
+msgid "Packet: {0}"
+msgstr "Pacchetto: {0}"
+
+#: ui/canvas.slint
+msgid "A network starts\nwith a connection."
+msgstr "Una rete comincia\nda un collegamento."
+
+#: ui/canvas.slint
+msgid "Add a host or a switch from the panel on the left."
+msgstr "Aggiungi un host o uno switch dal pannello a sinistra."
+
+#: ui/canvas.slint
+msgid "Simulated time {0}"
+msgstr "Tempo simulato {0}"
+
+#: ui/canvas.slint
+msgid "Fit"
+msgstr "Adatta"
+
+#: ui/dialogs.slint
+msgid "Save the network"
+msgstr "Salva la rete"
+
+#: ui/dialogs.slint
+msgid "Open a network"
+msgstr "Apri una rete"
+
+#: ui/dialogs.slint
+msgid "Parent folder"
+msgstr "Cartella superiore"
+
+#: ui/dialogs.slint
+msgid "Home folder"
+msgstr "Cartella home"
+
+#: ui/dialogs.slint
+msgid "Files"
+msgstr "File"
+
+#: ui/dialogs.slint
+msgid "No networks in this folder yet."
+msgstr "Ancora nessuna rete in questa cartella."
+
+#: ui/dialogs.slint
+msgid "No networks in this folder."
+msgstr "Nessuna rete in questa cartella."
+
+#: ui/dialogs.slint
+msgid "File name"
+msgstr "Nome del file"
+
+#: ui/dialogs.slint
+msgid "Version {0} · a local network sandbox with Ethernet, ARP, IPv4 and ICMP."
+msgstr "Versione {0} · una sandbox di rete locale con Ethernet, ARP, IPv4 e ICMP."
+
+#: ui/dialogs.slint
+msgid "The interface uses Slint under the Royalty-free License 2.0."
+msgstr "L'interfaccia usa Slint con la Royalty-free License 2.0."
+
+#: ui/dialogs.slint
+msgid "Close"
+msgstr "Chiudi"
+
+#: ui/frame.slint
+msgid "Select an event or a packet to see its frame, field by field."
+msgstr "Seleziona un evento o un pacchetto per vederne il frame, campo per campo."
+
+#: ui/frame.slint
+msgid "BYTES"
+msgstr "BYTE"
+
+#: ui/inspector.slint
+msgid "No cable"
+msgstr "Nessun cavo"
+
+#: ui/inspector.slint
+msgid "Select the cable of {0}"
+msgstr "Seleziona il cavo della {0}"
+
+#: ui/inspector.slint
+msgid "On"
+msgstr "On"
+
+#: ui/inspector.slint
+msgid "Off"
+msgstr "Off"
+
+#: ui/inspector.slint
+msgid "Hide the inspector"
+msgstr "Nascondi l'ispettore"
+
+#: ui/inspector.slint
+msgid "NETWORK"
+msgstr "RETE"
+
+#: ui/inspector.slint
+msgid "Select a device or a cable to see and change its properties."
+msgstr "Seleziona un dispositivo o un cavo per vederne e cambiarne le proprietà."
+
+#: ui/inspector.slint
+msgid "ETHERNET SWITCH"
+msgstr "SWITCH ETHERNET"
+
+#: ui/inspector.slint
+msgid "IPv4 HOST"
+msgstr "HOST IPv4"
+
+#: ui/inspector.slint
+msgid "Name"
+msgstr "Nome"
+
+#: ui/inspector.slint
+msgid "IPv4 address"
+msgstr "Indirizzo IPv4"
+
+#: ui/inspector.slint
+msgid "Prefix length"
+msgstr "Prefisso"
+
+#: ui/inspector.slint
+msgid "MAC ageing time"
+msgstr "Invecchiamento MAC"
+
+#: ui/inspector.slint
+msgid "Apply"
+msgstr "Applica"
+
+#: ui/inspector.slint
+msgid "Apply the configuration"
+msgstr "Applica la configurazione"
+
+#: ui/inspector.slint
+msgid "Power off"
+msgstr "Spegni"
+
+#: ui/inspector.slint
+msgid "Power on"
+msgstr "Accendi"
+
+#: ui/inspector.slint
+msgid "Delete device"
+msgstr "Elimina il dispositivo"
+
+#: ui/inspector.slint
+msgid "PORTS"
+msgstr "PORTE"
+
+#: ui/inspector.slint
+msgid "MAC TABLE"
+msgstr "TABELLA MAC"
+
+#: ui/inspector.slint
+msgid "ARP CACHE"
+msgstr "CACHE ARP"
+
+#: ui/inspector.slint
+msgid "Address"
+msgstr "Indirizzo"
+
+#: ui/inspector.slint
+msgid "State"
+msgstr "Stato"
+
+#: ui/inspector.slint
+msgid "Expires in"
+msgstr "Scade tra"
+
+#: ui/inspector.slint
+msgid "MAC address"
+msgstr "Indirizzo MAC"
+
+#: ui/inspector.slint
+msgid "Port"
+msgstr "Porta"
+
+#: ui/inspector.slint
+msgid "Age"
+msgstr "Età"
+
+#: ui/inspector.slint
+msgid "CABLE"
+msgstr "CAVO"
+
+#: ui/inspector.slint
+msgid "Delay"
+msgstr "Ritardo"
+
+#: ui/inspector.slint
+msgid "Apply the delay"
+msgstr "Applica il ritardo"
+
+#: ui/inspector.slint
+msgid "Disable cable"
+msgstr "Disabilita il cavo"
+
+#: ui/inspector.slint
+msgid "Enable cable"
+msgstr "Abilita il cavo"
+
+#: ui/inspector.slint
+msgid "Unplug cable"
+msgstr "Scollega il cavo"
+
+#: ui/inspector.slint
+msgid "A disabled cable stays plugged in but carries nothing: frames on it are lost."
+msgstr "Un cavo disabilitato resta collegato ma non trasporta nulla: i frame che lo percorrono si perdono."
+
+#: ui/timeline.slint
+msgid "Instant shown"
+msgstr "Istante mostrato"
+
+#: ui/timeline.slint
+msgid "Latest"
+msgstr "Ultimo"
+
+#: ui/timeline.slint
+msgid "Hide the timeline"
+msgstr "Nascondi la cronologia"
+
+#: ui/timeline.slint
+msgid "You are looking at the past: later changes lie ahead. Go to the latest instant to change the network."
+msgstr "Stai guardando il passato: più avanti ci sono altre modifiche. Vai all'ultimo istante per cambiare la rete."
+
+#: ui/timeline.slint
+msgid "Changes"
+msgstr "Modifiche"
+
+#: ui/timeline.slint
+msgid "Simulator"
+msgstr "Simulatore"
+
+#: ui/timeline.slint
+msgid "Problems"
+msgstr "Problemi"
+
+#: ui/timeline.slint
+msgid "Selected device"
+msgstr "Dispositivo"
+
+#: ui/timeline.slint
+msgid "Event list"
+msgstr "Elenco degli eventi"
+
+#: ui/timeline.slint
+msgid "CHANGE"
+msgstr "MODIFICA"
+
+#: ui/timeline.slint
+msgid "The next experiment starts with a ping. Events will appear here."
+msgstr "Il prossimo esperimento comincia con un ping. Gli eventi appariranno qui."
+
+#: ui/timeline.slint
+msgid "No event matches the filters."
+msgstr "Nessun evento corrisponde ai filtri."
+
+#: ui/timeline.slint
+msgid "Why"
+msgstr "Perché"
+
+#: ui/timeline.slint
+msgid "SEE WHY"
+msgstr "SCOPRI PERCHÉ"
+
+#: ui/timeline.slint
+msgid "A CHANGE TO THE NETWORK"
+msgstr "UNA MODIFICA ALLA RETE"
+
+#: ui/timeline.slint
+msgid "THE SIMULATOR STEPPED IN"
+msgstr "IL SIMULATORE È INTERVENUTO"
+
+#: ui/timeline.slint
+msgid "INSIDE THE PACKET  /  {0}"
+msgstr "DENTRO IL PACCHETTO  /  {0}"
+
+#: examples/mismatched-masks.json
+msgid "Mismatched masks"
+msgstr "Maschere diverse"
+
+#: examples/mismatched-masks.json
+msgid "PC-A has a /16 mask and believes PC-B is on its network, so ARP succeeds and the Echo Request arrives. PC-B has a /24 mask: for it PC-A is on another network, and without a router it cannot reply. The ping times out."
+msgstr "PC-A ha una maschera /16 e crede che PC-B sia nella sua rete, quindi ARP riesce e l'Echo Request arriva. PC-B ha una maschera /24: per PC-B, PC-A è su un'altra rete e, senza un router, non può rispondere. Il ping scade senza risposta."
+
+#: examples/office-floor.json
+msgid "Office floor"
+msgstr "Piano dell'ufficio"
+
+#: examples/office-floor.json
+msgid "Six PCs on two switches. Start several pings at once and watch the switches fill their MAC tables. Printer-Room has its port disabled on the switch side."
+msgstr "Sei PC su due switch. Avvia più ping insieme e guarda gli switch riempire le loro tabelle MAC. Printer-Room ha la porta disabilitata dal lato dello switch."
+
+#: examples/sample-lan.json
+msgid "Sample LAN"
+msgstr "LAN di esempio"
+
+#: examples/sample-lan.json
+msgid "Two PCs on one switch. Ping PC-B from PC-A: ARP finds PC-B's MAC address first, then the ICMP echo crosses the switch and comes back."
+msgstr "Due PC su uno switch. Invia un ping da PC-A a PC-B: prima ARP trova l'indirizzo MAC di PC-B, poi l'echo ICMP attraversa lo switch e torna indietro."
+
+#: examples/switch-loop.json
+msgid "Switch loop"
+msgstr "Anello di switch"
+
+#: examples/switch-loop.json
+msgid "Three switches joined in a ring. An Ethernet frame has no TTL, so PC-A's broadcast ARP request goes round the ring both ways for ever, and the switches keep learning PC-A's MAC on the wrong ports. resend stops each storm with a guard of its own; real networks prevent loops with spanning tree (STP), not implemented yet. Disable one cable of the ring and ping again."
+msgstr "Tre switch collegati ad anello. Un frame Ethernet non ha TTL, quindi la richiesta ARP broadcast di PC-A gira nell'anello nei due sensi senza fine, e gli switch continuano a imparare il MAC di PC-A sulle porte sbagliate. resend ferma ogni tempesta con una protezione propria; le reti reali evitano gli anelli con lo spanning tree (STP), non ancora implementato. Disabilita un cavo dell'anello e invia di nuovo il ping."
+
+#: examples/two-switches.json
+msgid "Two switches"
+msgstr "Due switch"
+
+#: examples/two-switches.json
+msgid "PC-A reaches PC-B across two switches joined by a short cable. Each switch learns PC-A's MAC from the broadcast ARP request, so the reply is forwarded, never flooded. PC-C only sees the broadcast."
+msgstr "PC-A raggiunge PC-B attraverso due switch uniti da un cavo corto. Ogni switch impara il MAC di PC-A dalla richiesta ARP broadcast, quindi la risposta viene inoltrata, mai inondata. PC-C vede solo il broadcast."
+
+#: examples/unplugged.json
+msgid "Unplugged"
+msgstr "Cavo staccato"
+
+#: examples/unplugged.json
+msgid "The cable to PC-B is down. The switch floods PC-A's ARP request, but no copy can reach PC-B: after three requests, one second apart, PC-A gives up without sending any ICMP."
+msgstr "Il cavo verso PC-B è disabilitato. Lo switch inonda la richiesta ARP di PC-A, ma nessuna copia può raggiungere PC-B: dopo tre richieste, a un secondo di distanza, PC-A rinuncia senza inviare alcun pacchetto ICMP."

@@ -1,31 +1,30 @@
 #include "app_controller.hpp"
 
 #include "app/scene.hpp"
-#include "scenario/edit.hpp"
+#include "core/text.hpp"
+#include "wire/wire.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <iterator>
 #include <map>
-#include <set>
 #include <sstream>
-#include <stdexcept>
 #include <utility>
-#include <vector>
 
 using namespace std::chrono_literals;
 
 namespace resend {
 namespace {
+using netsim::text::tr;
+
 constexpr double speeds[] = {0.25, 0.5, 1, 2, 4};
 // Longest real time a single frame may advance: after a stall the animation
 // resumes where it was instead of jumping ahead.
 constexpr auto max_frame_step = 100ms;
-// Space above the cards for the decision chips, in canvas units.
-constexpr float marker_room = 40;
-
-std::string text(const slint::SharedString& value) { return std::string(value.data(), value.size()); }
+constexpr auto autosave_interval = 5s;
+// A packet is under the pointer this close to its centre, in pixels.
+constexpr float packet_reach = 12;
 
 template<class T>
 void replace_rows(const std::shared_ptr<slint::VectorModel<T>>& model, const std::vector<T>& rows) {
@@ -39,10 +38,6 @@ void replace_rows(const std::shared_ptr<slint::VectorModel<T>>& model, const std
 
 template<class T>
 int id_or_none(std::optional<T> id) { return id ? static_cast<int>(id->value) : -1; }
-
-netsim::DeviceId device_id(int id) { return netsim::DeviceId{static_cast<std::uint32_t>(std::max(id, 0))}; }
-netsim::LinkId link_id(int id) { return netsim::LinkId{static_cast<std::uint32_t>(std::max(id, 0))}; }
-int canvas(float value) { return static_cast<int>(std::lround(value)); }
 
 std::string speed_text(double speed) {
     std::ostringstream out;
@@ -63,163 +58,198 @@ const char* tone_name(Tone tone) {
     }
     return "muted";
 }
+
+float milliseconds(netsim::SimTime time) { return static_cast<float>(std::chrono::duration<double, std::milli>(time).count()); }
+netsim::SimTime from_milliseconds(float value) {
+    return netsim::SimTime(std::llround(std::max(0.0, static_cast<double>(value)) * 1e6));
+}
+
+std::string segment_path(const Segment& segment) {
+    char buffer[96];
+    const int length = std::snprintf(buffer, sizeof buffer, "M%.1f %.1fL%.1f %.1f", segment.a.x, segment.a.y, segment.b.x, segment.b.y);
+    return std::string(buffer, static_cast<std::size_t>(std::max(length, 0)));
+}
+
+std::string hex_byte(std::uint8_t value) {
+    static constexpr char numerals[] = "0123456789abcdef";
+    return {numerals[value >> 4], numerals[value & 0xfU]};
+}
+
+std::optional<CanvasController::Key> key_named(std::string_view name) {
+    using Key = CanvasController::Key;
+    static const std::map<std::string_view, Key> keys{
+        {"left", Key::Left}, {"right", Key::Right}, {"up", Key::Up}, {"down", Key::Down},
+        {"delete", Key::Delete}, {"escape", Key::Escape}, {"enter", Key::Connect},
+        {"zoom-in", Key::ZoomIn}, {"zoom-out", Key::ZoomOut}, {"fit", Key::Fit},
+    };
+    const auto found = keys.find(name);
+    return found == keys.end() ? std::nullopt : std::optional(found->second);
+}
 } // namespace
 
-AppController::AppController(slint::ComponentHandle<AppWindow> ui)
+AppController::AppController(slint::ComponentHandle<AppWindow> ui, Options options)
     : ui_(std::move(ui)),
+      state_directory_(std::move(options.state_directory)),
+      settings_(load_settings(state_directory_)),
+      session_language_(std::move(options.language)),
       nodes_(std::make_shared<slint::VectorModel<NodeView>>()),
       links_(std::make_shared<slint::VectorModel<LinkView>>()),
       packets_(std::make_shared<slint::VectorModel<PacketView>>()),
       markers_(std::make_shared<slint::VectorModel<MarkerView>>()),
-      traces_(std::make_shared<slint::VectorModel<TraceView>>()) {
+      events_(std::make_shared<slint::VectorModel<EventView>>()),
+      fields_(std::make_shared<slint::VectorModel<FieldRow>>()),
+      hex_(std::make_shared<slint::VectorModel<HexRow>>()),
+      ports_(std::make_shared<slint::VectorModel<PortView>>()),
+      table_(std::make_shared<slint::VectorModel<std::shared_ptr<slint::Model<slint::StandardListViewItem>>>>()),
+      recovery_(state_directory_) {
     const auto& geometry = ui_->global<Geometry>();
     geometry.set_card_width(card_width);
     geometry.set_card_height(card_height);
-    ui_->set_nodes(nodes_);
-    ui_->set_links(links_);
-    ui_->set_packets(packets_);
-    ui_->set_markers(markers_);
-    ui_->set_traces(traces_);
-    ui_->set_target_ip("192.168.1.20");
-    ui_->set_speed_label(speed_text(playback_.speed()).c_str());
-    ui_->set_version(RESEND_VERSION);
+    const auto& canvas = ui_->global<UiCanvas>();
+    canvas.set_nodes(nodes_);
+    canvas.set_links(links_);
+    canvas.set_packets(packets_);
+    canvas.set_markers(markers_);
+    ui_->global<UiTimeline>().set_events(events_);
+    ui_->global<UiFrame>().set_rows(fields_);
+    ui_->global<UiFrame>().set_hex(hex_);
+    ui_->global<UiInspector>().set_ports(ports_);
+    ui_->global<UiInspector>().set_table_rows(table_);
+    ui_->global<UiApp>().set_version(RESEND_VERSION);
+    playback_.set_reduced_motion(settings_.reduced_motion);
+
     bind_callbacks();
-    refresh(true);
-    ui_->invoke_fit_view();
-    status("Local sandbox. Drag devices, connect ports and watch a ping.");
+    bind_inspector();
+    bind_documents();
+    apply_language();
+    open(netsim::sample_lan());
+    status(tr("Local sandbox. Drag devices, connect ports and watch a ping."));
+
+    autosave_timer_.start(slint::TimerMode::Repeated, autosave_interval, [this] { autosave(); });
+    ui_->window().on_close_requested([this] {
+        return close_requested() ? slint::CloseRequestResponse::HideWindow : slint::CloseRequestResponse::KeepWindowShown;
+    });
 }
 
-void AppController::status(const std::string& value) { ui_->set_status_text(value.c_str()); }
-
-void AppController::open(netsim::Scenario scenario) {
-    const auto first_host = std::find_if(scenario.devices.begin(), scenario.devices.end(),
-                                         [](const auto& device) { return device.kind == netsim::DeviceKind::Host; });
-    selected_ = first_host != scenario.devices.end() ? static_cast<int>(first_host->id.value)
-        : scenario.devices.empty() ? -1 : static_cast<int>(scenario.devices.front().id.value);
-    connection_source_ = -1;
-    const auto message = scenario.title.empty() ? std::string("Network loaded.") : scenario.title + " loaded.";
-    rebuild(std::move(scenario), message);
-    ui_->invoke_fit_view();
+AppController::~AppController() {
+    // Closing normally: nothing is left to recover.
+    recovery_.clear();
 }
 
-void AppController::rebuild(netsim::Scenario scenario, const std::string& message) {
-    simulation_ = netsim::Simulation(std::move(scenario));
-    explainer_.clear();
-    playback_.reset();
-    sync_playback();
-    selected_event_ = -1;
-    selected_pdu_ = -1;
-    follow_events_ = true;
-    status(message);
-    refresh(true);
+void AppController::status(const std::string& value) { ui_->global<UiApp>().set_status(value.c_str()); }
+
+std::string AppController::past_text() const {
+    return tr("The instant shown is before later changes: go to the latest instant to change the network.");
 }
 
-bool AppController::change(const netsim::Edit& edit, const std::string& message) {
-    // Before anything happened there is nothing to change while running:
-    // the edit gives a new network, and the event list stays empty.
-    const bool untouched = simulation_.trace().records().empty() && !simulation_.pending();
-    if (untouched && netsim::affects_network(edit)) {
-        auto scenario = simulation_.scenario();
-        const auto problem = netsim::edit::apply(scenario, edit);
-        if (!netsim::ok(problem)) {
-            status(netsim::explain::describe(problem));
-            return false;
-        }
-        rebuild(std::move(scenario), message);
-        return true;
+void AppController::sync() {
+    // A new simulation: its events and its playback start over.
+    if (workspace_.generation() != generation_) {
+        generation_ = workspace_.generation();
+        explainer_.clear();
+        playback_.reset();
+        events_->set_vector({});
+        shown_events_.clear();
+        listed_ = 0;
     }
-    const auto problem = simulation_.apply(edit);
-    if (!netsim::ok(problem)) {
-        status(netsim::explain::describe(problem));
-        return false;
-    }
-    status(netsim::affects_network(edit) ? message + " Applied at t = " + netsim::format_ms(simulation_.now()) + "." : message);
-    refresh(true);
-    return true;
+    explainer_.update(workspace_.simulation());
+    if (selected_pdu_ >= static_cast<int>(simulation().trace().pdus().size())) selected_pdu_ = -1;
 }
 
-std::string AppController::table_text() const {
-    std::ostringstream out;
-    const auto* device = scenario().device(device_id(selected_));
-    if (!device) return "Select a device to see its state.";
-    const auto now = simulation_.now();
-    const auto seconds = [](netsim::SimTime time) {
-        std::ostringstream text;
-        text.setf(std::ios::fixed);
-        text.precision(1);
-        text << std::chrono::duration<double>(time).count() << " s";
-        return text.str();
-    };
-    if (device->kind == netsim::DeviceKind::Host) {
-        out << "ARP CACHE\n";
-        const auto table = simulation_.arp_cache(device->id);
-        if (table.empty()) out << "No mappings learned yet.\nSend a ping to watch ARP.";
-        for (const auto& row : table) {
-            out << row.ip.to_string() << "\n";
-            if (row.state == netsim::ArpState::Incomplete)
-                out << "incomplete · " << row.queued << (row.queued == 1 ? " datagram waits\n" : " datagrams wait\n");
-            else
-                out << row.mac.to_string() << " · expires in " << seconds(row.expires - now) << "\n";
-        }
-    } else {
-        out << "MAC TABLE\n";
-        const auto table = simulation_.mac_table(device->id);
-        if (table.empty()) out << "No addresses learned yet.\nThe switch learns from incoming frames.";
-        for (const auto& row : table)
-            out << row.mac.to_string() << "  /  port " << row.port + 1 << "  ·  " << seconds(now - row.updated) << "\n";
-    }
-    return out.str();
+void AppController::refresh_all() {
+    sync();
+    refresh_view();
+    refresh_topology();
+    refresh_scene();
+    refresh_events();
+    refresh_inspector(true);
+    refresh_run();
+    refresh_document();
 }
 
-// Nodes, cables and content bounds only: cheap enough to run on every drag step.
-void AppController::refresh_topology() {
+void AppController::network_changed() {
+    canvas_.validate();
+    sync();
+    refresh_topology();
+    refresh_scene();
+    refresh_events();
+    refresh_inspector(true);
+    refresh_run();
+    refresh_document();
+}
+
+void AppController::refresh_view() {
+    const auto& canvas = ui_->global<UiCanvas>();
+    canvas.set_zoom(canvas_.zoom());
+    canvas.set_pan_x(canvas_.pan().x);
+    canvas.set_pan_y(canvas_.pan().y);
+    canvas.set_compact(canvas_.compact());
+    refresh_overlay();
+}
+
+// What is drawn over the cards' positions: the cables, which depend on the
+// view, and what the pointer is doing.
+void AppController::refresh_overlay() {
+    const auto& canvas = ui_->global<UiCanvas>();
     // Cables the selected frame has crossed so far, flooded copies included.
-    std::set<std::uint32_t> path;
+    std::vector<std::uint32_t> path;
     if (selected_pdu_ >= 0)
-        for (const auto& sent : simulation_.trace().transmissions())
-            if (sent.pdu.value == static_cast<std::uint32_t>(selected_pdu_)) path.insert(sent.link.value);
+        for (const auto& sent : simulation().trace().transmissions())
+            if (sent.pdu.value == static_cast<std::uint32_t>(selected_pdu_)) path.push_back(sent.link.value);
+    const auto paths = canvas_.cable_paths(path);
+    canvas.set_cables_up(paths.up.c_str());
+    canvas.set_cables_down(paths.down.c_str());
+    canvas.set_cables_highlight(paths.highlight.c_str());
+    canvas.set_cable_selected(paths.selected.c_str());
+    const auto band = canvas_.rubber_band();
+    canvas.set_rubber_band(band ? segment_path(*band).c_str() : "");
+
+    const auto& hover = canvas_.hover();
+    const bool on_device = hover.kind == CanvasHit::Kind::Device || hover.kind == CanvasHit::Kind::Port || hover.kind == CanvasHit::Kind::Connector;
+    canvas.set_hover_device(on_device ? static_cast<int>(hover.id) : -1);
+    canvas.set_hover_port(hover.kind == CanvasHit::Kind::Port ? hover.port : hover.kind == CanvasHit::Kind::Connector ? -1 : -2);
+    const auto source = canvas_.cable_source();
+    canvas.set_source_device(source && canvas_.drawing_cable() ? static_cast<int>(source->device.value) : -1);
+    canvas.set_panning(canvas_.panning());
+    canvas.set_hint(canvas_.drawing_cable() ? tr("Plugging a cable: end it on a free port or on another device. Escape cancels.").c_str()
+                                            : tr("Drag a card to move it · drag from a port or + to plug a cable · wheel to zoom").c_str());
+}
+
+// Cards and cables: cheap enough to run on every step of a drag.
+void AppController::refresh_topology() {
+    const auto& network = scenario();
     // A port is down when its cable is, or when it or the far end is disabled.
     std::map<netsim::DeviceId, unsigned> connected, down;
     const auto enabled = [&](netsim::PortRef port) {
-        const auto* device = scenario().device(port.device);
+        const auto* device = network.device(port.device);
         return device && device->ports.at(port.port).admin_up;
     };
-    for (const auto& link : scenario().links) {
+    for (const auto& link : network.links) {
         const bool up = link.up && enabled(link.a) && enabled(link.b);
         for (const auto end : {link.a, link.b}) {
             connected[end.device] |= 1U << end.port;
             if (!up) down[end.device] |= 1U << end.port;
         }
     }
-    const auto scene = build_scene(scenario(), simulation_, playback_);
+    const auto scene = build_scene(network, simulation(), playback_);
     const std::map<int, unsigned> activity(scene.port_activity.begin(), scene.port_activity.end());
+    const auto& selection = canvas_.selection();
 
     std::vector<NodeView> node_rows;
     shown_activity_.clear();
-    float left = 0, top = 0, right = 0, bottom = 0;
-    for (const auto& device : scenario().devices) {
-        const auto card = card_box(device);
-        if (node_rows.empty()) {
-            left = right = card.x;
-            top = bottom = card.y;
-        }
-        left = std::min(left, card.x);
-        top = std::min(top, card.y - marker_room);
-        right = std::max(right, card.x + card_width);
-        bottom = std::max(bottom, card.y + card_height);
+    for (const auto& device : network.devices) {
         const int id = static_cast<int>(device.id.value);
         NodeView row;
         row.id = id;
         row.title = device.name.c_str();
         row.kind = device.kind == netsim::DeviceKind::Host ? "host" : "switch";
         const auto address = device.kind == netsim::DeviceKind::Host ? device.ports.front().ipv4->to_string()
-                                                                     : std::to_string(device.ports.size()) + " Ethernet ports";
+                                                                     : tr("{0} Ethernet ports", {std::to_string(device.ports.size())});
         row.address = address.c_str();
-        row.mac = device.ports.front().mac.to_string().c_str();
-        row.x = card.x;
-        row.y = card.y;
-        row.enabled = device.powered;
-        row.selected = id == selected_;
+        row.x = static_cast<float>(device.x);
+        row.y = static_cast<float>(device.y);
+        row.powered = device.powered;
+        row.selected = selection.kind == Selection::Kind::Device && selection.id == device.id.value;
         row.port_count = static_cast<int>(device.ports.size());
         row.connected_ports = static_cast<int>(connected[device.id]);
         row.down_ports = static_cast<int>(down[device.id]);
@@ -229,38 +259,38 @@ void AppController::refresh_topology() {
         node_rows.push_back(row);
     }
     replace_rows(nodes_, node_rows);
-    ui_->set_bounds_left(left);
-    ui_->set_bounds_top(top);
-    ui_->set_bounds_right(right);
-    ui_->set_bounds_bottom(bottom);
 
     std::vector<LinkView> link_rows;
-    for (const auto& link : scenario().links) {
-        const auto* a = scenario().device(link.a.device);
-        const auto* b = scenario().device(link.b.device);
-        if (!a || !b) continue;
-        const auto cable = cable_between(card_box(*a), card_box(*b));
+    for (const auto& link : network.links) {
+        const auto* a = network.device(link.a.device);
+        const auto* b = network.device(link.b.device);
+        const auto segment = canvas_.cable_segment(link.id);
+        if (!a || !b || !segment) continue;
         LinkView row;
         row.id = static_cast<int>(link.id.value);
-        row.ax = cable.a.x;
-        row.ay = cable.a.y;
-        row.bx = cable.b.x;
-        row.by = cable.b.y;
-        row.enabled = link.up;
-        row.highlight = path.contains(link.id.value);
+        const auto label = netsim::explain::port_text(network, link.a) + " — " + netsim::explain::port_text(network, link.b);
+        row.label = label.c_str();
+        row.ax = segment->a.x;
+        row.ay = segment->a.y;
+        row.bx = segment->b.x;
+        row.by = segment->b.y;
+        row.up = link.up;
         row.a_port = a->kind == netsim::DeviceKind::Switch ? std::to_string(link.a.port + 1).c_str() : "";
         row.b_port = b->kind == netsim::DeviceKind::Switch ? std::to_string(link.b.port + 1).c_str() : "";
-        const auto label = a->name + " :" + std::to_string(link.a.port + 1)
-            + " — " + b->name + " :" + std::to_string(link.b.port + 1);
-        row.label = label.c_str();
         link_rows.push_back(row);
     }
     replace_rows(links_, link_rows);
+    ui_->global<UiInspector>().set_summary(
+        ((network.title.empty() ? tr("Your own network") : network.title) + "\n" +
+         (network.devices.size() == 1 ? tr("1 device") : tr("{0} devices", {std::to_string(network.devices.size())})) + " · " +
+         (network.links.size() == 1 ? tr("1 cable") : tr("{0} cables", {std::to_string(network.links.size())})))
+            .c_str());
+    refresh_overlay();
 }
 
-// Packets, decision chips, port lights and the clock: runs on every frame.
+// Packets, decision chips, port lights, the clock and the tables: runs on every frame.
 void AppController::refresh_scene() {
-    const auto scene = build_scene(scenario(), simulation_, playback_);
+    const auto scene = build_scene(scenario(), simulation(), playback_);
     std::vector<PacketView> packet_rows;
     for (const auto& packet : scene.packets) {
         PacketView row;
@@ -277,6 +307,7 @@ void AppController::refresh_scene() {
         packet_rows.push_back(row);
     }
     replace_rows(packets_, packet_rows);
+    shown_packets_ = scene.packets;
 
     std::vector<MarkerView> marker_rows;
     for (const auto& marker : scene.markers) {
@@ -304,71 +335,162 @@ void AppController::refresh_scene() {
             shown_activity_[row] = mask;
         }
     }
-    ui_->set_sim_clock(netsim::format_ms(playback_.now()).c_str());
+    const auto& canvas = ui_->global<UiCanvas>();
+    canvas.set_clock(netsim::format_ms(playback_.now()).c_str());
+    canvas.set_running(playback_.playing());
+    canvas.set_speed_label(speed_text(playback_.speed()).c_str());
+    const auto& timeline = ui_->global<UiTimeline>();
+    timeline.set_end_ms(milliseconds(std::max(workspace_.end_time(), playback_.now())));
+    timeline.set_now_ms(milliseconds(playback_.now()));
+    timeline.set_locked(workspace_.in_past());
+    refresh_tables();
 }
 
-void AppController::refresh(bool edit_fields) {
-    explainer_.update(simulation_);
-    const auto& history = explainer_.events();
-    if (history.empty()) selected_event_ = -1;
-    else if (follow_events_ || selected_event_ >= static_cast<int>(history.size()))
-        selected_event_ = static_cast<int>(history.size()) - 1;
-    if (follow_events_) selected_pdu_ = selected_event_ >= 0 ? id_or_none(history[selected_event_].pdu) : -1;
-    if (selected_pdu_ >= static_cast<int>(simulation_.trace().pdus().size())) selected_pdu_ = -1;
-    if (selected_event_ >= 0) {
-        const auto& event = history[selected_event_];
-        ui_->set_event_title(event.summary.c_str());
-        ui_->set_event_detail(event.detail.c_str());
-        ui_->set_event_protocol(event.protocol.c_str());
-    } else {
-        ui_->set_event_title("The network is ready for your first experiment.");
-        ui_->set_event_detail("Select a host, choose an IPv4 address and press Send. Step plays one event at a time; Run plays the whole experiment. The tables show the state of the network at the instant on the canvas. Several pings can run at once.");
-        ui_->set_event_protocol("WAITING");
-    }
-    ui_->set_frame_layers(selected_pdu_ >= 0
-        ? describe_layers(simulation_.trace().pdu(netsim::PduId{static_cast<std::uint32_t>(selected_pdu_)})).c_str() : "");
-    refresh_topology();
-    refresh_scene();
-
-    // Events are append-only until the simulation is reset.
-    if (traces_->row_count() > history.size()) traces_->set_vector({});
-    for (std::size_t index = traces_->row_count(); index < history.size(); ++index) {
-        const auto& event = history[index];
-        TraceView row;
-        row.index = static_cast<int>(index);
+void AppController::refresh_events() {
+    const auto& events = explainer_.events();
+    const auto& timeline = ui_->global<UiTimeline>();
+    // Events only grow until a new simulation; the filter may skip some.
+    for (; listed_ < events.size(); ++listed_) {
+        const auto& event = events[listed_];
+        if (!filter_.accepts(event)) continue;
+        EventView row;
+        row.index = static_cast<int>(listed_);
         row.time = netsim::format_ms(event.time).c_str();
         row.protocol = event.protocol.c_str();
         row.summary = event.summary.c_str();
-        row.detail = event.detail.c_str();
-        row.from_id = id_or_none(event.from);
-        row.to_id = id_or_none(event.to);
-        row.link_id = id_or_none(event.link);
-        traces_->push_back(row);
+        row.problem = !event.success;
+        events_->push_back(row);
+        shown_events_.push_back(listed_);
     }
-    ui_->set_event_count(static_cast<int>(history.size()));
-    ui_->set_selected_event(selected_event_);
-    ui_->set_follow_events(follow_events_);
-    if (follow_events_) ui_->invoke_reveal_event(selected_event_);
+    const int previous_pdu = selected_pdu_;
+    if (events.empty()) selected_event_ = -1;
+    else if (follow_events_ || selected_event_ >= static_cast<int>(events.size()))
+        selected_event_ = shown_events_.empty() ? -1 : static_cast<int>(shown_events_.back());
+    if (follow_events_) selected_pdu_ = selected_event_ >= 0 ? id_or_none(events[static_cast<std::size_t>(selected_event_)].pdu) : -1;
 
-    ui_->set_has_pending(simulation_.pending());
-    ui_->set_selected_id(selected_);
-    ui_->set_link_source_id(connection_source_);
-    const auto* device = scenario().device(device_id(selected_));
-    const auto* address = device && device->kind == netsim::DeviceKind::Host ? &*device->ports.front().ipv4 : nullptr;
-    ui_->set_selected_kind(device ? (device->kind == netsim::DeviceKind::Host ? "host" : "switch") : "");
-    ui_->set_selected_mac(device ? device->ports.front().mac.to_string().c_str() : "");
-    ui_->set_selected_enabled(device ? device->powered : true);
-    ui_->set_selected_details(table_text().c_str());
-    if (edit_fields) {
-        ui_->set_edit_name(device ? device->name.c_str() : "");
-        ui_->set_edit_ip(address ? address->address().to_string().c_str() : "");
-        ui_->set_edit_prefix(address ? std::to_string(address->length()).c_str() : "24");
+    timeline.set_total(static_cast<int>(events.size()));
+    timeline.set_selected(selected_event_);
+    timeline.set_follow(follow_events_);
+    timeline.set_arp(filter_.arp);
+    timeline.set_icmp(filter_.icmp);
+    timeline.set_ipv4(filter_.ipv4);
+    timeline.set_edits(filter_.edits);
+    timeline.set_simulator(filter_.simulator);
+    timeline.set_problems(filter_.problems_only);
+    timeline.set_device_only(filter_.device.has_value());
+    const auto* device = filter_.device ? scenario().device(*filter_.device) : nullptr;
+    timeline.set_device_name(device ? device->name.c_str() : "");
+    timeline.set_filtered(filter_.active());
+    if (follow_events_ && selected_event_ >= 0) {
+        const auto row = std::lower_bound(shown_events_.begin(), shown_events_.end(), static_cast<std::size_t>(selected_event_));
+        timeline.set_reveal_row(static_cast<int>(row - shown_events_.begin()));
+        timeline.set_reveal_serial(timeline.get_reveal_serial() + 1);
     }
+    refresh_explanation();
+    if (selected_pdu_ != previous_pdu || fields_->row_count() == 0) {
+        refresh_frame();
+        refresh_overlay();
+    }
+}
+
+void AppController::refresh_explanation() {
+    const auto& events = explainer_.events();
+    const auto& timeline = ui_->global<UiTimeline>();
+    if (selected_event_ >= 0 && selected_event_ < static_cast<int>(events.size())) {
+        const auto& event = events[static_cast<std::size_t>(selected_event_)];
+        timeline.set_title(event.summary.c_str());
+        timeline.set_detail(event.detail.c_str());
+        timeline.set_protocol(event.protocol.c_str());
+    } else {
+        timeline.set_title(tr("The network is ready for your first experiment.").c_str());
+        timeline.set_detail(tr("Select a host, choose an IPv4 address and press Send. Step plays one event at a time; Run "
+                               "plays the whole experiment. The tables show the state of the network at the instant on the "
+                               "canvas. Several pings can run at once.").c_str());
+        timeline.set_protocol("");
+    }
+}
+
+// The selected frame, field by field, and its bytes.
+void AppController::refresh_frame() {
+    const auto& frame = ui_->global<UiFrame>();
+    frame.set_selected_row(-1);
+    frame.set_selected_offset(-1);
+    frame.set_selected_length(0);
+    frame.set_selection("");
+    if (selected_pdu_ < 0) {
+        fields_->set_vector({});
+        hex_->set_vector({});
+        frame.set_title("");
+        return;
+    }
+    const auto& pdu = simulation().trace().pdu(netsim::PduId{static_cast<std::uint32_t>(selected_pdu_)});
+    const auto bytes = netsim::wire::encode(pdu);
+    std::vector<FieldRow> rows;
+    for (const auto& layer : netsim::wire::dissect(bytes)) {
+        rows.push_back({true, layer.label.c_str(), "", "", static_cast<int>(layer.offset), static_cast<int>(layer.length)});
+        for (const auto& field : layer.fields)
+            rows.push_back({false, field.label.c_str(), field.value.c_str(), field.meaning.c_str(), static_cast<int>(field.offset),
+                            static_cast<int>(field.length)});
+    }
+    fields_->set_vector(rows);
+    std::vector<HexRow> lines;
+    for (std::size_t start = 0; start < bytes.size(); start += 16) {
+        std::vector<HexByte> line;
+        for (std::size_t at = start; at < std::min(start + 16, bytes.size()); ++at)
+            line.push_back({static_cast<int>(at), hex_byte(bytes[at]).c_str()});
+        char offset[20];
+        std::snprintf(offset, sizeof offset, "%04zx", start);
+        lines.push_back({offset, std::make_shared<slint::VectorModel<HexByte>>(line)});
+    }
+    hex_->set_vector(lines);
+    frame.set_title(tr("{0} · {1} bytes", {frame_name(netsim::kind_of(pdu)), std::to_string(bytes.size())}).c_str());
+}
+
+void AppController::select_field(int row) {
+    const auto data = row >= 0 ? fields_->row_data(static_cast<std::size_t>(row)) : std::nullopt;
+    if (!data || data->header) return;
+    const auto& frame = ui_->global<UiFrame>();
+    frame.set_selected_row(row);
+    frame.set_selected_offset(data->offset);
+    frame.set_selected_length(data->length);
+    const auto value = data->meaning.empty() ? std::string(data->value) : tr("{0} ({1})", {std::string(data->value), std::string(data->meaning)});
+    const auto bytes = data->length == 1 ? tr("byte {0}", {std::to_string(data->offset)})
+                                         : tr("bytes {0}–{1}", {std::to_string(data->offset), std::to_string(data->offset + data->length - 1)});
+    frame.set_selection(tr("{0}: {1} · {2}", {std::string(data->label), value, bytes}).c_str());
+}
+
+void AppController::refresh_run() {
+    const auto& run = ui_->global<UiRun>();
+    const auto& selection = canvas_.selection();
+    const auto* device = selection.kind == Selection::Kind::Device ? scenario().device(netsim::DeviceId{selection.id}) : nullptr;
+    run.set_can_ping(device && device->kind == netsim::DeviceKind::Host);
+    run.set_running(playback_.playing());
+    run.set_pending(workspace_.next_event_time().has_value());
+    run.set_speed_label(speed_text(playback_.speed()).c_str());
+    run.set_speed(static_cast<float>(playback_.speed()));
+}
+
+void AppController::canvas_changed(unsigned change) {
+    if (change & CanvasController::Network) {
+        network_changed();
+        if (change & CanvasController::View) refresh_view();
+    } else {
+        if (change & CanvasController::View) refresh_view();
+        if (change & CanvasController::Selection) {
+            refresh_topology();
+            refresh_inspector(true);
+            refresh_run();
+        } else if (change & CanvasController::Overlay) {
+            refresh_overlay();
+        }
+    }
+    if (auto message = canvas_.take_status(); !message.empty()) status(message);
 }
 
 void AppController::sync_playback() {
     const bool playing = playback_.playing();
-    ui_->set_running(playing);
+    ui_->global<UiRun>().set_running(playing);
+    ui_->global<UiCanvas>().set_running(playing);
     if (playing && !frame_timer_.running()) {
         last_frame_ = std::chrono::steady_clock::now();
         frame_timer_.start(slint::TimerMode::Repeated, 16ms, [this] {
@@ -384,28 +506,40 @@ void AppController::sync_playback() {
 
 template<class Command>
 void AppController::playback_command(Command command) {
-    const bool was_pending = simulation_.pending();
-    const auto records = simulation_.trace().records().size();
+    const bool was_pending = workspace_.next_event_time().has_value();
+    const auto records = simulation().trace().records().size();
+    const auto edits = simulation().edits().size();
+    const bool was_past = workspace_.in_past();
     command();
-    const auto& trace = simulation_.trace().records();
+    const auto& trace = simulation().trace().records();
     // The storm guard pauses the animation: what follows is the simulator
     // stepping in, not the network, and deserves a look.
     const bool guarded = std::any_of(trace.begin() + static_cast<std::ptrdiff_t>(records), trace.end(),
                                      [](const auto& record) { return record.kind == netsim::TraceKind::SimulatorGuard; });
     if (guarded) playback_.pause();
-    if (trace.size() != records) refresh();
-    else refresh_scene();
+    if (trace.size() != records) {
+        sync();
+        refresh_events();
+    }
+    // Changes recorded for later instants are made again as their time comes.
+    if (simulation().edits().size() != edits || workspace_.in_past() != was_past) {
+        refresh_topology();
+        refresh_inspector(true);
+        refresh_document();
+    }
+    refresh_scene();
+    refresh_run();
     sync_playback();
     if (guarded) {
-        status("Storm protection: a frame went round an Ethernet loop and the simulator removed its copies. Playback paused.");
+        status(tr("Storm protection: a frame went round an Ethernet loop and the simulator removed its copies. Playback paused."));
         return;
     }
-    if (was_pending && !simulation_.pending()) {
-        const auto& pings = simulation_.pings();
+    if (was_pending && !workspace_.next_event_time()) {
+        const auto& pings = simulation().pings();
         const bool all = std::all_of(pings.begin(), pings.end(), [](const auto& ping) { return ping.state == netsim::PingState::Succeeded; });
-        status(all ? (pings.size() > 1 ? "Every ping succeeded. Explore the events and the learned tables."
-                                       : "Ping succeeded. Explore the events and the learned tables.")
-                   : "Experiment finished: read the last event to understand the result.");
+        status(all ? (pings.size() > 1 ? tr("Every ping succeeded. Explore the events and the learned tables.")
+                                       : tr("Ping succeeded. Explore the events and the learned tables."))
+                   : tr("Experiment finished: read the last event to understand the result."));
     }
 }
 
@@ -413,187 +547,319 @@ void AppController::advance_playback(std::chrono::nanoseconds elapsed) {
     playback_command([&] { playback_.tick(elapsed); });
 }
 
-void AppController::seek(netsim::SimTime time) {
-    playback_command([&] { playback_.seek(time); });
+void AppController::seek(netsim::SimTime time) { travel(time); }
+
+void AppController::travel(netsim::SimTime time) {
+    playback_.pause();
+    time = std::max(time, netsim::SimTime{});
+    if (time < playback_.now()) {
+        // Back: the run is replayed up to that instant.
+        workspace_.travel(time);
+        sync();
+    } else if (time > playback_.now()) {
+        playback_.seek(time);
+    }
+    follow_events_ = true;
+    sync();
+    refresh_topology();
+    refresh_scene();
+    refresh_events();
+    refresh_inspector(true);
+    refresh_run();
+    refresh_document();
+    sync_playback();
+}
+
+void AppController::select_event(int index) {
+    const auto& events = explainer_.events();
+    if (index < 0 || index >= static_cast<int>(events.size())) return;
+    selected_event_ = index;
+    selected_pdu_ = id_or_none(events[static_cast<std::size_t>(index)].pdu);
+    follow_events_ = false;
+    const auto& timeline = ui_->global<UiTimeline>();
+    timeline.set_selected(selected_event_);
+    timeline.set_follow(false);
+    refresh_explanation();
+    refresh_frame();
+    refresh_overlay();
+    refresh_scene();
 }
 
 void AppController::select_frame(int pdu) {
-    if (pdu < 0 || pdu >= static_cast<int>(simulation_.trace().pdus().size())) return;
+    if (pdu < 0 || pdu >= static_cast<int>(simulation().trace().pdus().size())) return;
     selected_pdu_ = pdu;
     follow_events_ = false;
-    const auto& history = explainer_.events();
-    for (auto index = history.size(); index-- > 0;) {
-        if (id_or_none(history[index].pdu) == pdu) {
+    // The latest event about this frame explains it.
+    const auto& events = explainer_.events();
+    for (auto index = events.size(); index-- > 0;) {
+        if (id_or_none(events[index].pdu) == pdu) {
             selected_event_ = static_cast<int>(index);
             break;
         }
     }
-    refresh();
+    const auto& timeline = ui_->global<UiTimeline>();
+    timeline.set_selected(selected_event_);
+    timeline.set_follow(false);
+    timeline.set_tab(1);
+    refresh_explanation();
+    refresh_frame();
+    refresh_overlay();
+    refresh_scene();
+}
+
+bool AppController::report(const Outcome& outcome, const std::string& label, std::size_t commands_before) {
+    if (outcome.in_past) {
+        status(past_text());
+        return false;
+    }
+    if (!outcome.ok()) {
+        status(netsim::explain::describe(outcome.problem));
+        return false;
+    }
+    if (workspace_.commands().size() > commands_before)
+        status(tr("{0}: applied at t = {1}.", {label, netsim::format_ms(simulation().now())}));
+    else
+        status(label + ".");
+    return true;
+}
+
+void AppController::start_ping() {
+    const auto& run = ui_->global<UiRun>();
+    const auto destination = netsim::Ipv4Address::parse(std::string(run.get_target()));
+    netsim::PingOptions options;
+    const std::string count_text(run.get_count());
+    int count = 1;
+    if (!count_text.empty()) {
+        std::size_t consumed = 0;
+        try {
+            count = std::stoi(count_text, &consumed);
+        } catch (const std::exception&) {
+            consumed = 0;
+        }
+        if (consumed != count_text.size()) count = 0;
+    }
+    if (count < 1 || count > netsim::max_ping_count) {
+        status(tr("Send 1 to 1000 Echo Requests per ping."));
+        return;
+    }
+    options.count = static_cast<std::uint16_t>(count);
+    const auto& selection = canvas_.selection();
+    const auto* device = selection.kind == Selection::Kind::Device ? scenario().device(netsim::DeviceId{selection.id}) : nullptr;
+    if (!device || device->kind != netsim::DeviceKind::Host) {
+        status(netsim::explain::describe(netsim::Problem::SourceNotHost));
+        return;
+    }
+    if (!destination) {
+        status(netsim::explain::describe(netsim::Problem::InvalidDestination));
+        return;
+    }
+    // Pings may overlap: a new one starts at the instant on screen.
+    const auto outcome = workspace_.ping(device->id, *destination, options);
+    if (outcome.in_past) {
+        status(past_text());
+        return;
+    }
+    if (!outcome.ok()) {
+        status(netsim::explain::describe(outcome.problem));
+        return;
+    }
+    follow_events_ = true;
+    status(playback_.playing() ? tr("Ping started.") : tr("Ping ready. Press Step or Run to advance simulated time."));
+    sync();
+    refresh_events();
+    refresh_scene();
+    refresh_run();
+    refresh_document();
+    sync_playback();
+}
+
+void AppController::undo() {
+    const auto* step = workspace_.history().undoable();
+    const auto label = step ? step->label : std::string();
+    const auto before = workspace_.commands().size();
+    const auto outcome = workspace_.undo();
+    if (!step && !outcome.in_past) {
+        status(tr("Nothing to undo."));
+        return;
+    }
+    if (report(outcome, tr("Undo {0}", {label}), before)) network_changed();
+}
+
+void AppController::redo() {
+    const auto* step = workspace_.history().redoable();
+    const auto label = step ? step->label : std::string();
+    const auto before = workspace_.commands().size();
+    const auto outcome = workspace_.redo();
+    if (!step && !outcome.in_past) {
+        status(tr("Nothing to redo."));
+        return;
+    }
+    if (report(outcome, tr("Redo {0}", {label}), before)) network_changed();
+}
+
+void AppController::add_device(netsim::DeviceKind kind) {
+    const auto place = canvas_.new_card_place();
+    const netsim::AddDevice edit{kind, static_cast<int>(std::lround(place.x)), static_cast<int>(std::lround(place.y))};
+    const auto label = kind == netsim::DeviceKind::Host ? tr("Add a host") : tr("Add a switch");
+    const auto before = workspace_.commands().size();
+    if (!report(workspace_.change(edit, label), label, before)) return;
+    canvas_.select({Selection::Kind::Device, scenario().devices.back().id.value});
+    network_changed();
 }
 
 void AppController::bind_callbacks() {
-    ui_->on_select_node([this](int id) {
-        if (id == -1 || scenario().device(device_id(id))) { selected_ = id; refresh(true); }
-    });
-    ui_->on_move_node([this](int id, float x, float y) {
-        // Positions are layout only: the simulation carries on.
-        if (std::isfinite(x) && std::isfinite(y) && netsim::ok(simulation_.apply(netsim::MoveDevice{device_id(id), canvas(x), canvas(y)}))) {
-            refresh_topology();
-            refresh_scene();
+    const auto& canvas = ui_->global<UiCanvas>();
+    canvas.on_resized([this](float width, float height) { canvas_changed(canvas_.resize(width, height)); });
+    canvas.on_press([this](float x, float y, int button) {
+        const Point point{x, y};
+        // Packets lie over everything: a click on one shows its frame.
+        if (button == 0) {
+            for (const auto& packet : shown_packets_) {
+                const auto at = canvas_.to_screen(packet.at);
+                if (std::hypot(at.x - x, at.y - y) <= packet_reach) {
+                    select_frame(packet.pdu);
+                    return;
+                }
+            }
         }
+        const auto which = button == 2 ? CanvasController::Button::Right : button == 1 ? CanvasController::Button::Middle
+                                                                                         : CanvasController::Button::Left;
+        canvas_changed(canvas_.press(point, which));
     });
-    ui_->on_add_node([this](slint::SharedString kind, float x, float y) {
-        if (!std::isfinite(x) || !std::isfinite(y)) return;
-        // Cards added in a row fan out instead of stacking exactly.
-        const auto offset = static_cast<float>(scenario().devices.size() % 5) * 22.0f;
-        const auto previous = selected_;
-        selected_ = static_cast<int>(scenario().next_device_id().value);
-        const netsim::AddDevice edit{text(kind) == "switch" ? netsim::DeviceKind::Switch : netsim::DeviceKind::Host,
-                                     canvas(x + offset), canvas(y + offset)};
-        if (!change(edit, "Device added. Use the connector on its card to connect it.")) selected_ = previous;
+    canvas.on_moved([this](float x, float y) {
+        canvas_changed(canvas_.move({x, y}));
     });
-    ui_->on_link_node([this](int id) {
-        if (!scenario().device(device_id(id))) return;
-        if (connection_source_ < 0) {
-            connection_source_ = id;
-            status("Select the connector of another device. Click the first one again to cancel.");
-        } else if (connection_source_ == id) {
-            connection_source_ = -1;
-            status("Connection cancelled.");
-        } else {
-            const auto from = connection_source_;
-            connection_source_ = -1;
-            auto problem = netsim::Problem::None;
-            if (const auto cable = netsim::edit::first_free_ports(scenario(), device_id(from), device_id(id), problem))
-                change(*cable, "Link created on the first free ports.");
-            else
-                status(netsim::explain::describe(problem));
-        }
-        ui_->set_link_source_id(connection_source_);
+    canvas.on_release([this](float x, float y) { canvas_changed(canvas_.release({x, y})); });
+    canvas.on_wheel([this](float x, float y, float delta) {
+        if (delta != 0) canvas_changed(canvas_.zoom_at({x, y}, delta > 0 ? 1.1f : 1 / 1.1f));
     });
-    ui_->on_delete_selected([this] {
-        if (selected_ < 0 || !scenario().device(device_id(selected_))) return;
-        const auto old = selected_;
-        const auto& devices = scenario().devices;
-        const auto next = std::find_if(devices.begin(), devices.end(), [&](const auto& item) { return static_cast<int>(item.id.value) != old; });
-        selected_ = next == devices.end() ? -1 : static_cast<int>(next->id.value);
-        if (connection_source_ == old) connection_source_ = -1;
-        if (!change(netsim::RemoveDevice{device_id(old)}, "Device and its links removed.")) selected_ = old;
+    canvas.on_key([this](slint::SharedString name, bool fine) {
+        const auto key = key_named(std::string_view(name));
+        if (!key) return false;
+        const auto change = canvas_.key(*key, fine);
+        canvas_changed(change);
+        return change != CanvasController::None || *key == CanvasController::Key::Delete;
     });
-    ui_->on_toggle_power([this] {
-        const auto* device = scenario().device(device_id(selected_));
-        if (!device) return;
-        const bool power = !device->powered;
-        change(netsim::SetPowered{device->id, power}, power ? "Device powered on." : "Device powered off.");
+    canvas.on_select_device([this](int id) {
+        if (id >= 0) canvas_changed(canvas_.select({Selection::Kind::Device, static_cast<std::uint32_t>(id)}));
     });
-    ui_->on_apply_node([this](slint::SharedString name, slint::SharedString ip, slint::SharedString prefix) {
-        const auto* device = scenario().device(device_id(selected_));
-        if (!device) return;
-        const auto id = device->id;
-        if (device->kind == netsim::DeviceKind::Switch) {
-            change(netsim::Rename{id, text(name)}, "Name updated.");
-            return;
-        }
-        int bits = 0;
-        try {
-            const auto prefix_text = text(prefix);
-            std::size_t consumed = 0;
-            bits = std::stoi(prefix_text, &consumed);
-            if (consumed != prefix_text.size()) throw std::invalid_argument("prefix");
-        } catch (const std::exception&) {
-            status("The prefix must be a whole number, for example 24.");
-            return;
-        }
-        auto problem = netsim::valid_name(text(name)) ? netsim::Problem::None : netsim::Problem::InvalidName;
-        const auto address = netsim::ok(problem) ? netsim::edit::host_address(scenario(), id, text(ip), bits, problem) : std::nullopt;
-        if (!address) {
-            status(netsim::explain::describe(problem));
-            return;
-        }
-        const bool readdressed = device->ports.front().ipv4 != address->address;
-        simulation_.apply(netsim::Rename{id, text(name)});
-        if (readdressed) {
-            change(*address, "Configuration applied.");
-        } else {
-            status("Configuration applied.");
-            refresh(true);
-        }
+    canvas.on_select_cable([this](int id) {
+        if (id >= 0) canvas_changed(canvas_.select({Selection::Kind::Cable, static_cast<std::uint32_t>(id)}));
     });
-    ui_->on_ping([this] {
-        // Pings may overlap: a new one starts at the instant on screen.
-        const auto destination = netsim::Ipv4Address::parse(text(ui_->get_target_ip()));
-        netsim::PingOptions options;
-        try {
-            const auto count_text = text(ui_->get_ping_count());
-            std::size_t consumed = 0;
-            const auto count = count_text.empty() ? 1 : std::stoi(count_text, &consumed);
-            if ((!count_text.empty() && consumed != count_text.size()) || count < 1 || count > netsim::max_ping_count)
-                throw std::out_of_range("count");
-            options.count = static_cast<std::uint16_t>(count);
-        } catch (const std::exception&) {
-            status("Send 1 to 1000 Echo Requests per ping.");
-            return;
-        }
-        auto problem = !scenario().device(device_id(selected_)) ? netsim::Problem::SourceNotHost
-            : destination ? netsim::Problem::None : netsim::Problem::InvalidDestination;
-        if (netsim::ok(problem)) simulation_.start_ping(device_id(selected_), *destination, problem, options);
-        if (!netsim::ok(problem)) {
-            status(netsim::explain::describe(problem));
-            return;
-        }
-        follow_events_ = true;
-        selected_event_ = -1;
-        status(playback_.playing() ? "Ping started." : "Ping ready. Press Step or Run to advance simulated time.");
-        refresh();
-        sync_playback();
+    canvas.on_connector([this](int id) {
+        if (id >= 0) canvas_changed(canvas_.connector(static_cast<std::uint32_t>(id)));
     });
-    ui_->on_step([this] { playback_command([this] { playback_.step(); }); });
-    ui_->on_run_toggle([this] {
+    canvas.on_select_frame([this](int pdu) { select_frame(pdu); });
+    canvas.on_zoom_by([this](float factor) { canvas_changed(canvas_.zoom_by(factor)); });
+    canvas.on_reset_zoom([this] { canvas_changed(canvas_.reset_zoom()); });
+    canvas.on_fit([this] { canvas_changed(canvas_.fit()); });
+
+    const auto& timeline = ui_->global<UiTimeline>();
+    timeline.on_select([this](int index) { select_event(index); });
+    timeline.on_toggle_filter([this](slint::SharedString which) {
+        const std::string_view name(which);
+        if (name == "arp") filter_.arp = !filter_.arp;
+        else if (name == "icmp") filter_.icmp = !filter_.icmp;
+        else if (name == "ipv4") filter_.ipv4 = !filter_.ipv4;
+        else if (name == "edits") filter_.edits = !filter_.edits;
+        else if (name == "simulator") filter_.simulator = !filter_.simulator;
+        else if (name == "problems") filter_.problems_only = !filter_.problems_only;
+        else if (name == "device") {
+            const auto& selection = canvas_.selection();
+            if (filter_.device) {
+                filter_.device.reset();
+            } else if (selection.kind == Selection::Kind::Device) {
+                filter_.device = netsim::DeviceId{selection.id};
+            } else {
+                status(tr("Select a device to see only its events."));
+                return;
+            }
+        }
+        events_->set_vector({});
+        shown_events_.clear();
+        listed_ = 0;
+        refresh_events();
+    });
+    timeline.on_clear_filters([this] {
+        filter_ = {};
+        events_->set_vector({});
+        shown_events_.clear();
+        listed_ = 0;
+        refresh_events();
+    });
+    timeline.on_scrub([this](float value) {
+        const auto time = from_milliseconds(value);
+        if (time != playback_.now()) travel(time);
+    });
+    timeline.on_latest([this] { travel(workspace_.end_time()); });
+
+    const auto& frame = ui_->global<UiFrame>();
+    frame.on_select_row([this](int row) { select_field(row); });
+    frame.on_select_byte([this](int index) {
+        // The smallest field holding the byte: a flag rather than its whole byte.
+        int best = -1, length = 0;
+        for (std::size_t row = 0; row < fields_->row_count(); ++row) {
+            const auto data = *fields_->row_data(row);
+            if (data.header || index < data.offset || index >= data.offset + data.length) continue;
+            if (best < 0 || data.length < length) {
+                best = static_cast<int>(row);
+                length = data.length;
+            }
+        }
+        select_field(best);
+    });
+
+    const auto& run = ui_->global<UiRun>();
+    run.on_ping([this] { start_ping(); });
+    run.on_step([this] { playback_command([this] { playback_.step(); }); });
+    run.on_run_toggle([this] {
         if (playback_.playing()) {
             playback_command([this] { playback_.pause(); });
             return;
         }
-        if (!simulation_.pending()) { status("Prepare a ping to start an experiment."); return; }
+        if (!workspace_.next_event_time()) {
+            status(tr("Prepare a ping to start an experiment."));
+            return;
+        }
         playback_command([this] { playback_.play(); });
     });
-    ui_->on_cycle_speed([this] {
+    run.on_cycle_speed([this] {
         const auto next = std::find_if(std::begin(speeds), std::end(speeds), [&](double s) { return s > playback_.speed(); });
         playback_.set_speed(next == std::end(speeds) ? speeds[0] : *next);
-        ui_->set_speed_label(speed_text(playback_.speed()).c_str());
+        refresh_run();
+        refresh_scene();
     });
-    ui_->on_toggle_motion([this] {
+    run.on_set_speed([this](float speed) {
+        playback_.set_speed(speed);
+        refresh_run();
+        refresh_scene();
+    });
+    run.on_reset([this] {
+        playback_.pause();
+        workspace_.reset();
+        follow_events_ = true;
+        selected_event_ = selected_pdu_ = -1;
+        refresh_all();
+        sync_playback();
+        status(tr("Caches, tables and events cleared. The topology stays as it is."));
+    });
+    run.on_latest([this] { travel(workspace_.end_time()); });
+
+    const auto& app = ui_->global<UiApp>();
+    app.on_undo([this] { undo(); });
+    app.on_redo([this] { redo(); });
+    app.on_add_device([this](slint::SharedString kind) {
+        add_device(std::string_view(kind) == "switch" ? netsim::DeviceKind::Switch : netsim::DeviceKind::Host);
+    });
+    app.on_delete_selection([this] { canvas_changed(canvas_.key(CanvasController::Key::Delete)); });
+    app.on_toggle_motion([this] {
         playback_.set_reduced_motion(!playback_.reduced_motion());
-        ui_->set_reduced_motion(playback_.reduced_motion());
-        status(playback_.reduced_motion() ? "Reduced motion: events appear one instant at a time, without moving packets."
-                                          : "Packets move along the cables again.");
+        settings_.reduced_motion = playback_.reduced_motion();
+        save_settings();
+        ui_->global<UiApp>().set_reduced_motion(playback_.reduced_motion());
+        status(playback_.reduced_motion() ? tr("Reduced motion: events appear one instant at a time, without moving packets.")
+                                          : tr("Packets move along the cables again."));
     });
-    ui_->on_reset([this] { rebuild(scenario(), "Caches, tables and events cleared. The topology stays as it is."); });
-    ui_->on_load_demo([this] {
-        ui_->set_target_ip("192.168.1.20");
-        open(netsim::sample_lan());
-    });
-    ui_->on_clear_workspace([this] {
-        selected_ = -1;
-        connection_source_ = -1;
-        rebuild({}, "Empty sandbox. Add hosts and switches from the panel on the left.");
-    });
-    ui_->on_toggle_link([this](int id) {
-        if (const auto* link = scenario().link(link_id(id))) {
-            const bool up = !link->up;
-            change(netsim::SetLinkUp{link->id, up}, up ? "Link enabled." : "Link disabled.");
-        }
-    });
-    ui_->on_remove_link([this](int id) { change(netsim::Disconnect{link_id(id)}, "Link removed."); });
-    ui_->on_select_event([this](int index) {
-        const auto& history = explainer_.events();
-        if (index >= 0 && index < static_cast<int>(history.size())) {
-            selected_event_ = index;
-            selected_pdu_ = id_or_none(history[static_cast<std::size_t>(index)].pdu);
-            follow_events_ = false;
-            refresh();
-        }
-    });
-    ui_->on_select_frame([this](int pdu) { select_frame(pdu); });
 }
 
 } // namespace resend

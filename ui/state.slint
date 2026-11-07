@@ -1,0 +1,89 @@
+// The document, the dialogs, the menus and the run controls
+// (src/app_controller.cpp, src/app_documents.cpp).
+
+export struct ExampleView { title: string, file: string }
+export struct LanguageView { code: string, name: string }
+export struct FileView { name: string, folder: bool }
+
+export global UiApp {
+    // The file's name, or "Untitled".
+    in property <string> document;
+    in property <bool> modified;
+    // The network's title and its lesson notes.
+    in property <string> title;
+    in property <string> notes;
+    in property <string> status;
+    in property <string> version: "dev";
+
+    in property <bool> can-undo;
+    in property <bool> can-redo;
+    // What undo and redo would do, e.g. "Undo Move PC-A".
+    in property <string> undo-text;
+    in property <string> redo-text;
+
+    in property <[ExampleView]> examples;
+    in property <[LanguageView]> languages;
+    // The language chosen, or "" to follow the system.
+    in property <string> language;
+    in property <bool> reduced-motion;
+
+    in-out property <bool> palette-open: true;
+    in-out property <bool> inspector-open: true;
+    in-out property <bool> timeline-open: true;
+
+    // "", "open", "save", "confirm", "about"
+    in property <string> dialog;
+    in property <string> dialog-title;
+    in property <string> dialog-message;
+    // The buttons of a confirmation, as answers: the first is the default.
+    in property <[string]> dialog-answers;
+    in property <[string]> dialog-answer-texts;
+    // The file dialog.
+    in property <string> folder;
+    in property <[FileView]> entries;
+    in-out property <string> file-name;
+    in property <string> browser-error;
+
+    callback new-document();
+    callback open-document();
+    callback open-example(int);
+    callback save();
+    callback save-as();
+    callback quit();
+    callback undo();
+    callback redo();
+    callback add-device(string);
+    callback delete-selection();
+    callback set-language(string);
+    callback toggle-motion();
+    callback about();
+
+    callback browse-enter(string);
+    callback browse-up();
+    callback browse-home();
+    // A file clicked in the list: opened, or its name taken for saving.
+    callback browse-pick(string);
+    callback browse-confirm();
+    callback answer(string);
+    callback close-dialog();
+}
+
+export global UiRun {
+    in-out property <string> target: "192.168.1.20";
+    // Echo Requests per ping.
+    in-out property <string> count: "1";
+    in property <bool> can-ping;
+    // True while the animation plays, including a step in progress.
+    in property <bool> running;
+    in property <bool> pending;
+    in property <string> speed-label: "1×";
+    in property <float> speed: 1;
+
+    callback ping();
+    callback step();
+    callback run-toggle();
+    callback reset();
+    callback cycle-speed();
+    callback set-speed(float);
+    callback latest();
+}

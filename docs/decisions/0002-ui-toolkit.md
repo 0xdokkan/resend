@@ -58,8 +58,9 @@ Rebuild times after a real change to `ui/app.slint` (changes to comments alone r
 1. **`TouchArea` and `ContextMenuArea`.** The `TouchArea` accepts the right click, so the menu does not open by itself. Solution: on a right click the controller selects the object and Slint calls `menu-area.show(position)`.
 2. **Scrolling the `ListView` to the last row.** Right after a row is added, the content height is not updated yet and scrolling is clamped. Solution in the app: scroll again in `changed content-height`. The testing backend does not reproduce the problem; it needs the real renderer.
 3. **Fluent `LineEdit`.** A click in the inner padding near the right edge does not focus the field. To be confirmed by hand; if needed, a `TouchArea` that forwards focus.
-4. **Large networks are unreadable.** At 25% zoom the cards of 150 devices cannot be read: semantic zoom is needed (simplified cards below a zoom threshold), which also reduces the work of the software renderer.
-5. **Fixed-width panels** (340 logical px) leave little room for the canvas at a 2.0 scale: relative widths or collapsible panels are needed.
+4. **Large networks are unreadable.** At 25% zoom the cards of 150 devices cannot be read: semantic zoom is needed (simplified cards below a zoom threshold), which also reduces the work of the software renderer. Done in M4: zoomed out, cards show only their icon and name.
+5. **Fixed-width panels** (340 logical px) leave little room for the canvas at a 2.0 scale: relative widths or collapsible panels are needed. Done in M4: the three panels fold away and the window has no fixed minimum size.
+6. **A `FocusScope` over a `TouchArea`** (found in M4). A focus scope that does not have the focus takes the press that gives it the focus, so the touch area below never sees it: the first click on the canvas did nothing. Solution: the canvas's focus scope lies under its touch area, which gives it the focus itself.
 
 ## Limits of display-less tests
 
@@ -68,6 +69,7 @@ The `slint::testing` backend suits behaviour tests in CI, but:
 - it does not produce snapshots;
 - it lays out the `ListView` synchronously, so it does not reproduce problem 2;
 - it puts menus and popups in a separate window with its own coordinates: a test can check that a menu opens, not pick an entry with the pointer;
+- `changed` handlers run with the event loop: tests call `slint::platform::update_timers_and_animations()` to run them, and again after a handler scrolled a `ListView`, whose new rows appear only once it is laid out;
 - it needs `SLINT_FEATURE_EXPERIMENTAL` and element debug information (see `CMakeLists.txt`);
 - a button and its text share the same accessible label: tests have to filter by role.
 

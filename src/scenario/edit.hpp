@@ -3,10 +3,12 @@
 #include "scenario/scenario.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
+#include <vector>
 
 namespace netsim {
 
@@ -87,9 +89,25 @@ struct RemoveDevice {
     DeviceId device{};
     bool operator==(const RemoveDevice&) const = default;
 };
+// Puts back a cable as it was, at `index` in the scenario's list: the
+// inverse of Disconnect, which undo uses.
+struct RestoreLink {
+    LinkConfig link;
+    std::size_t index = 0;
+    bool operator==(const RestoreLink&) const = default;
+};
+// Puts back a device as it was, at `index` in the scenario's list, with the
+// cables that were plugged into it, in increasing index order: the inverse
+// of RemoveDevice.
+struct RestoreDevice {
+    DeviceConfig device;
+    std::size_t index = 0;
+    std::vector<RestoreLink> links{};
+    bool operator==(const RestoreDevice&) const = default;
+};
 
 using Edit = std::variant<SetLinkUp, SetDelay, SetPortUp, SetPowered, SetAddress, SetAgeing, Rename, MoveDevice, Connect,
-                          Disconnect, Replug, AddDevice, RemoveDevice>;
+                          Disconnect, Replug, AddDevice, RemoveDevice, RestoreLink, RestoreDevice>;
 
 // Whether the edit changes how the network behaves. Names and positions do
 // not: a running simulation takes them without recording anything.
@@ -102,6 +120,12 @@ bool affects_network(const Edit& edit);
 namespace netsim::edit {
 
 Problem apply(Scenario& scenario, const Edit& edit);
+
+// The edit that takes the scenario back to `before` once `edit` is made on
+// it, exactly, down to the order of devices and cables; nothing if `edit`
+// would be refused. New devices and cables must carry their ids, as
+// Simulation::resolve() gives them.
+std::optional<Edit> inverse(const Scenario& before, const Edit& edit);
 
 // Shorthands for the edits above, as the interface and the tests use them.
 Problem add_device(Scenario& scenario, DeviceKind kind, int x, int y, DeviceId* created = nullptr);

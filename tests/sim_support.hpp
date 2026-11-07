@@ -3,12 +3,16 @@
 // Helpers shared by the simulation test executables.
 
 #include "check.hpp"
+#include "core/rng.hpp"
 #include "scenario/edit.hpp"
 #include "sim/simulation.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
+#include <iterator>
 #include <optional>
+#include <string>
 
 namespace simtest {
 using netsim::DeviceId;
@@ -64,6 +68,43 @@ inline Scenario star(int hosts) {
         CHECK(netsim::edit::connect(scenario, id, DeviceId{1}) == Problem::None);
     }
     return scenario;
+}
+
+constexpr netsim::SimTime delays[] = {std::chrono::microseconds(1), std::chrono::microseconds(100), std::chrono::milliseconds(1),
+                                      std::chrono::milliseconds(10), std::chrono::milliseconds(15)};
+
+// An edit of any kind, often one the scenario refuses. New devices and
+// cables come without an id.
+inline netsim::Edit random_edit(netsim::Rng& rng, const Scenario& scenario) {
+    using netsim::DeviceKind;
+    using netsim::LinkId;
+    using netsim::PortRef;
+    const auto device = [&] {
+        return scenario.devices.empty() ? DeviceId{1} : scenario.devices[rng.below(scenario.devices.size())].id;
+    };
+    const auto link = [&] { return scenario.links.empty() ? LinkId{1} : scenario.links[rng.below(scenario.links.size())].id; };
+    const auto port = [&](DeviceId id) {
+        const auto* item = scenario.device(id);
+        return PortRef{id, static_cast<std::uint8_t>(item ? rng.below(item->ports.size()) : 0)};
+    };
+    switch (rng.below(12)) {
+    case 0: return netsim::SetLinkUp{link(), rng.chance(1, 2)};
+    case 1: return netsim::SetDelay{link(), delays[rng.below(std::size(delays))]};
+    case 2: return netsim::SetPortUp{port(device()), rng.chance(1, 2)};
+    case 3: return netsim::SetPowered{device(), rng.chance(1, 2)};
+    case 4: return netsim::SetAddress{PortRef{device(), 0}, netsim::Ipv4Prefix(Ipv4Address(0xc0a80100U | static_cast<std::uint32_t>(rng.between(1, 30))), 24)};
+    case 5: return netsim::SetAgeing{device(), std::chrono::seconds(rng.between(5, 60))};
+    case 6: return netsim::Connect{port(device()), port(device()), delays[rng.below(std::size(delays))]};
+    case 7: return netsim::Disconnect{link()};
+    case 8: {
+        const auto* cable = scenario.link(link());
+        if (!cable) return netsim::Disconnect{link()};
+        return netsim::Replug{cable->id, rng.chance(1, 2) ? cable->a : cable->b, port(device())};
+    }
+    case 9: return netsim::AddDevice{rng.chance(1, 3) ? DeviceKind::Switch : DeviceKind::Host, 0, 0};
+    case 10: return netsim::RemoveDevice{device()};
+    default: return netsim::Rename{device(), "N" + std::to_string(rng.below(100))};
+    }
 }
 
 // FNV-1a over little-endian integers: the same bytes on every platform.

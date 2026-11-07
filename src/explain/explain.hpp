@@ -49,6 +49,8 @@ private:
 
 std::string describe(Problem problem);
 std::string describe(Reason reason);
+// A port by its device's name, counted from 1: "PC-A port 1".
+std::string port_text(const Scenario& scenario, PortRef port);
 // Identifiers for listings such as the CLI's trace: "FrameSent", "NoCarrier".
 std::string_view name(TraceKind kind);
 std::string_view name(Reason reason);

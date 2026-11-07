@@ -230,6 +230,48 @@ void removal() {
     CHECK(!simulation.pending());
 }
 
+void restored_device() {
+    // Undoing a removal while frames fly: the switch comes back with its
+    // cables, at the same place in the lists, but with empty tables, and
+    // the frames that were on its cables stay lost.
+    Simulation simulation(netsim::sample_lan());
+    const auto first = simulation.scenario();
+    ping(simulation, pc_a, ip("192.168.1.20"));
+    simulation.run_until(25ms);
+    CHECK(!simulation.mac_table(sw).empty());
+    const auto back = edit::inverse(simulation.scenario(), netsim::RemoveDevice{sw});
+    CHECK(back.has_value());
+    CHECK(simulation.apply(netsim::RemoveDevice{sw}) == Problem::None);
+    simulation.run_until(26ms);
+    CHECK(simulation.apply(*back) == Problem::None);
+    CHECK(simulation.scenario() == first);
+    CHECK(simulation.mac_table(sw).empty());
+    CHECK(simulation.edits().back().device->name == "Switch-01" && simulation.edits().back().links.size() == 2);
+    drain(simulation);
+    CHECK(count(simulation, TraceKind::FrameDropped, {}, Reason::LinkDown) == 1);
+
+    // Unplugged and plugged back: the frame on the cable is lost all the same.
+    const auto unplug = edit::inverse(simulation.scenario(), netsim::Disconnect{LinkId{2}});
+    const auto later = ping(simulation, pc_a, ip("192.168.1.20"), {.count = 2});
+    simulation.run_until(simulation.now() + 15ms);
+    CHECK(simulation.frames_in_flight() == 1);
+    CHECK(simulation.apply(netsim::Disconnect{LinkId{2}}) == Problem::None);
+    CHECK(simulation.apply(*unplug) == Problem::None);
+    CHECK(simulation.scenario() == first);
+    drain(simulation);
+    CHECK(count(simulation, TraceKind::FrameDropped, {}, Reason::LinkDown) == 2);
+    // The first request is lost on the cable; the second one gets through.
+    CHECK(simulation.ping(later)->state == PingState::Succeeded && simulation.ping(later)->replies() == 1);
+
+    netsim::explain::Explainer explainer;
+    explainer.update(simulation);
+    std::vector<std::string> edits;
+    for (const auto& event : explainer.events())
+        if (event.protocol == "EDIT") edits.push_back(event.summary);
+    CHECK(edits.size() == 4);
+    CHECK(edits.size() == 4 && edits[1] == "Switch-01 restored" && edits[3] == "Cable plugged back · PC-B port 1 — Switch-01 port 2");
+}
+
 void silent_edits() {
     // Names and positions do not change how the network behaves: a running
     // simulation takes them without a record.
@@ -593,37 +635,6 @@ struct LiveTally {
     int applied = 0, refused = 0, guards = 0, lost_on_cable = 0, pings = 0, replies = 0, echoes = 0;
 };
 
-constexpr netsim::SimTime delays[] = {1us, 100us, 1ms, 10ms, 15ms};
-
-netsim::Edit random_edit(netsim::Rng& rng, const Scenario& scenario) {
-    const auto device = [&] {
-        return scenario.devices.empty() ? DeviceId{1} : scenario.devices[rng.below(scenario.devices.size())].id;
-    };
-    const auto link = [&] { return scenario.links.empty() ? LinkId{1} : scenario.links[rng.below(scenario.links.size())].id; };
-    const auto port = [&](DeviceId id) {
-        const auto* item = scenario.device(id);
-        return PortRef{id, static_cast<std::uint8_t>(item ? rng.below(item->ports.size()) : 0)};
-    };
-    switch (rng.below(12)) {
-    case 0: return netsim::SetLinkUp{link(), rng.chance(1, 2)};
-    case 1: return netsim::SetDelay{link(), delays[rng.below(std::size(delays))]};
-    case 2: return netsim::SetPortUp{port(device()), rng.chance(1, 2)};
-    case 3: return netsim::SetPowered{device(), rng.chance(1, 2)};
-    case 4: return netsim::SetAddress{PortRef{device(), 0}, netsim::Ipv4Prefix(Ipv4Address(0xc0a80100U | static_cast<std::uint32_t>(rng.between(1, 30))), 24)};
-    case 5: return netsim::SetAgeing{device(), std::chrono::seconds(rng.between(5, 60))};
-    case 6: return netsim::Connect{port(device()), port(device()), delays[rng.below(std::size(delays))]};
-    case 7: return netsim::Disconnect{link()};
-    case 8: {
-        const auto* cable = scenario.link(link());
-        if (!cable) return netsim::Disconnect{link()};
-        return netsim::Replug{cable->id, rng.chance(1, 2) ? cable->a : cable->b, port(device())};
-    }
-    case 9: return netsim::AddDevice{rng.chance(1, 3) ? DeviceKind::Switch : DeviceKind::Host, 0, 0};
-    case 10: return netsim::RemoveDevice{device()};
-    default: return netsim::Rename{device(), "N" + std::to_string(rng.below(100))};
-    }
-}
-
 void random_live_run(std::uint64_t seed, Hash& hash, LiveTally& tally) {
     netsim::Rng rng(seed);
     Scenario scenario;
@@ -719,6 +730,46 @@ void random_live_run(std::uint64_t seed, Hash& hash, LiveTally& tally) {
     hash.add(simulation.edits().size());
 }
 
+void random_live_undo() {
+    // Random edits on running networks, each with its inverse taken first,
+    // then undone in reverse order while the frames keep flying: the network
+    // comes back exactly, and no frame is ever counted twice or forgotten.
+    int undone = 0;
+    for (std::uint64_t seed = 1; seed <= 100; ++seed) {
+        netsim::Rng rng(seed);
+        Simulation simulation(star(static_cast<int>(rng.between(2, 5))));
+        const auto first = simulation.scenario();
+        Ledger ledger;
+        std::vector<netsim::Edit> undo;
+        for (int count = 0; count < 50; ++count) {
+            const auto destination = Ipv4Address(0xc0a80100U | static_cast<std::uint32_t>(rng.between(9, 14)));
+            if (rng.chance(1, 4) && !simulation.scenario().devices.empty()) {
+                Problem problem = Problem::None;
+                simulation.start_ping(simulation.scenario().devices.back().id, destination, problem);
+            }
+            const auto change = simulation.resolve(random_edit(rng, simulation.scenario()));
+            const auto back = edit::inverse(simulation.scenario(), change);
+            if (ok(simulation.apply(change))) {
+                CHECK(back.has_value());
+                if (back) undo.push_back(*back);
+            }
+            simulation.run_until(simulation.now() + std::chrono::milliseconds(rng.between(0, 20)));
+            ledger.check(simulation);
+        }
+        while (!undo.empty()) {
+            CHECK(simulation.apply(undo.back()) == Problem::None);
+            undo.pop_back();
+            ++undone;
+            simulation.run_until(simulation.now() + std::chrono::milliseconds(rng.between(0, 20)));
+            ledger.check(simulation);
+        }
+        CHECK(simulation.scenario() == first);
+        drain(simulation);
+        ledger.check(simulation);
+    }
+    CHECK(undone > 1000);
+}
+
 void random_live_networks() {
     // 300 random networks, loops included, edited while they run. Hashed
     // like the loop-free runs: the constant changes only with the model.
@@ -743,6 +794,7 @@ int main() {
     moved_cable();
     power_cycles();
     removal();
+    restored_device();
     silent_edits();
     incomplete_entries();
     entries_expire();
@@ -753,6 +805,7 @@ int main() {
     ping_application();
     timeouts_and_late_replies();
     storm_guard();
+    random_live_undo();
     random_live_networks();
     std::cout << "Live network tests passed: " << test::checks << " checks.\n";
 }

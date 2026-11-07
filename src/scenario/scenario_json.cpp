@@ -1,6 +1,7 @@
 #include "scenario/scenario_json.hpp"
 
 #include "core/json.hpp"
+#include "core/text.hpp"
 
 #include <initializer_list>
 #include <limits>
@@ -9,6 +10,7 @@
 namespace netsim {
 namespace {
 using json::Value;
+using text::tr;
 
 const char* kind_name(DeviceKind kind) { return kind == DeviceKind::Host ? "host" : "switch"; }
 
@@ -38,43 +40,42 @@ public:
         for (const auto& [key, value] : *object.members()) {
             bool listed = false;
             for (const auto name : known) listed = listed || name == key;
-            if (!listed) return fail(path, "unknown member \"" + key + "\"");
+            if (!listed) return fail(path, tr("unknown member \"{0}\"", {key}));
         }
         return true;
     }
     const Value* object(const Value& value, const std::string& path) {
         if (!value.members()) {
-            fail(path, "expected an object");
+            fail(path, tr("expected an object"));
             return nullptr;
         }
         return &value;
     }
     const Value* member(const Value& object, std::string_view key, const std::string& path) {
         const auto* value = object.find(key);
-        if (!value) fail(path, "missing member \"" + std::string(key) + "\"");
+        if (!value) fail(path, tr("missing member \"{0}\"", {key}));
         return value;
     }
     bool text(const Value& object, std::string_view key, const std::string& path, std::string& out, bool required = true) {
         const auto* value = object.find(key);
-        if (!value) return !required || fail(path, "missing member \"" + std::string(key) + "\"");
-        if (!value->string()) return fail(path + "." + std::string(key), "expected a string");
+        if (!value) return !required || fail(path, tr("missing member \"{0}\"", {key}));
+        if (!value->string()) return fail(path + "." + std::string(key), tr("expected a string"));
         out = *value->string();
         return true;
     }
     bool flag(const Value& object, std::string_view key, const std::string& path, bool& out) {
         const auto* value = object.find(key);
         if (!value) return true;  // optional, keeps the default
-        if (!value->boolean()) return fail(path + "." + std::string(key), "expected true or false");
+        if (!value->boolean()) return fail(path + "." + std::string(key), tr("expected true or false"));
         out = *value->boolean();
         return true;
     }
     bool number(const Value& object, std::string_view key, const std::string& path, std::int64_t low, std::int64_t high,
                 std::int64_t& out, bool required = true) {
         const auto* value = object.find(key);
-        if (!value) return !required || fail(path, "missing member \"" + std::string(key) + "\"");
+        if (!value) return !required || fail(path, tr("missing member \"{0}\"", {key}));
         if (!value->integer() || *value->integer() < low || *value->integer() > high)
-            return fail(path + "." + std::string(key),
-                        "expected a whole number from " + std::to_string(low) + " to " + std::to_string(high));
+            return fail(path + "." + std::string(key), tr("expected a whole number from {0} to {1}", {std::to_string(low), std::to_string(high)}));
         out = *value->integer();
         return true;
     }
@@ -139,7 +140,7 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
     json::Error syntax;
     const auto document = json::parse(text, syntax);
     if (!document) {
-        error = "line " + std::to_string(syntax.line) + ", column " + std::to_string(syntax.column) + ": " + syntax.message;
+        error = tr("line {0}, column {1}", {std::to_string(syntax.line), std::to_string(syntax.column)}) + ": " + syntax.message;
         return std::nullopt;
     }
     Reader read;
@@ -152,12 +153,12 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
     std::int64_t version = 0;
     if (!read.text(*document, "format", "file", format)) return finish();
     if (format != "resend-scenario") {
-        read.fail("format", "this is not a resend scenario file");
+        read.fail("format", tr("this is not a resend scenario file"));
         return finish();
     }
     if (!read.number(*document, "version", "file", 1, std::numeric_limits<std::int32_t>::max(), version)) return finish();
     if (version > scenario_format_version) {
-        read.fail("version", "this file needs a newer version of resend (format " + std::to_string(version) + ")");
+        read.fail("version", tr("this file needs a newer version of resend (format {0})", {std::to_string(version)}));
         return finish();
     }
     if (!read.only(*document, "file", {"format", "version", "title", "notes", "seed", "devices", "links"})) return finish();
@@ -173,7 +174,7 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
     const auto* devices = read.member(*document, "devices", "file");
     if (!devices) return finish();
     if (!devices->array_items()) {
-        read.fail("devices", "expected an array");
+        read.fail("devices", tr("expected an array"));
         return finish();
     }
     for (std::size_t index = 0; index < devices->array_items()->size(); ++index) {
@@ -192,17 +193,17 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
             !read.text(item, "ageing", path, ageing, false))
             return finish();
         if (kind != "host" && kind != "switch") {
-            read.fail(path + ".kind", "expected \"host\" or \"switch\"");
+            read.fail(path + ".kind", tr("expected \"host\" or \"switch\""));
             return finish();
         }
         if (item.find("ageing")) {
             const auto parsed = parse_duration(ageing);
             if (kind != "switch") {
-                read.fail(path + ".ageing", "only switches have an ageing time");
+                read.fail(path + ".ageing", tr("only switches have an ageing time"));
                 return finish();
             }
             if (!parsed) {
-                read.fail(path + ".ageing", "expected a duration such as 300s");
+                read.fail(path + ".ageing", tr("expected a duration such as 300s"));
                 return finish();
             }
             device.mac_ageing = *parsed;
@@ -214,12 +215,12 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
         device.ports = default_ports(device.kind, device.id);
         if (const auto* ports = item.find("ports")) {
             if (!ports->array_items()) {
-                read.fail(path + ".ports", "expected an array");
+                read.fail(path + ".ports", tr("expected an array"));
                 return finish();
             }
             if (static_cast<int>(ports->array_items()->size()) != port_count(device.kind)) {
-                read.fail(path + ".ports", std::string("a ") + kind_name(device.kind) + " has " +
-                              std::to_string(port_count(device.kind)) + (device.kind == DeviceKind::Host ? " port" : " ports"));
+                read.fail(path + ".ports", device.kind == DeviceKind::Host ? tr("a host has {0} port", {std::to_string(port_count(device.kind))})
+                                                                           : tr("a switch has {0} ports", {std::to_string(port_count(device.kind))}));
                 return finish();
             }
             for (std::size_t p = 0; p < ports->array_items()->size(); ++p) {
@@ -234,7 +235,7 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
                 if (entry.find("mac")) {
                     const auto parsed = MacAddress::parse(mac);
                     if (!parsed) {
-                        read.fail(port_path + ".mac", "expected a MAC address such as 02:00:00:00:00:01");
+                        read.fail(port_path + ".mac", tr("expected a MAC address such as 02:00:00:00:00:01"));
                         return finish();
                     }
                     port.mac = *parsed;
@@ -242,7 +243,7 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
                 if (entry.find("ipv4")) {
                     port.ipv4 = Ipv4Prefix::parse(address);
                     if (!port.ipv4) {
-                        read.fail(port_path + ".ipv4", "expected an IPv4 address with its prefix, such as 192.168.1.10/24");
+                        read.fail(port_path + ".ipv4", tr("expected an IPv4 address with its prefix, such as 192.168.1.10/24"));
                         return finish();
                     }
                 }
@@ -254,7 +255,7 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
     const auto* links = read.member(*document, "links", "file");
     if (!links) return finish();
     if (!links->array_items()) {
-        read.fail("links", "expected an array");
+        read.fail("links", tr("expected an array"));
         return finish();
     }
     for (std::size_t index = 0; index < links->array_items()->size(); ++index) {
@@ -274,7 +275,7 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
         if (item.find("delay")) {
             const auto parsed = parse_duration(delay);
             if (!parsed) {
-                read.fail(path + ".delay", "expected a duration such as 10ms or 250us");
+                read.fail(path + ".delay", tr("expected a duration such as 10ms or 250us"));
                 return finish();
             }
             cable.delay = *parsed;

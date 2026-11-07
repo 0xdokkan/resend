@@ -1,4 +1,5 @@
 #include "check.hpp"
+#include "sim_support.hpp"
 #include "core/json.hpp"
 #include "core/rng.hpp"
 #include "scenario/edit.hpp"
@@ -326,6 +327,132 @@ void edit_values() {
     CHECK(!netsim::affects_network(netsim::Rename{}) && !netsim::affects_network(netsim::MoveDevice{}));
 }
 
+// New devices and cables get the next ids, as on a scenario of its own.
+netsim::Edit with_ids(const Scenario& scenario, netsim::Edit edit) {
+    if (auto* item = std::get_if<netsim::AddDevice>(&edit); item && !item->id) item->id = scenario.next_device_id();
+    if (auto* item = std::get_if<netsim::Connect>(&edit); item && !item->id) item->id = scenario.next_link_id();
+    return edit;
+}
+
+void restores() {
+    namespace edit = netsim::edit;
+    using netsim::PortRef;
+    auto scenario = netsim::sample_lan();
+    const DeviceId a{1}, sw{3};
+    const auto before = scenario;
+    const auto refused = [&](const netsim::Edit& change, Problem expected) {
+        CHECK(edit::apply(scenario, change) == expected);
+        CHECK(scenario == before);
+        CHECK(!edit::inverse(scenario, change));
+    };
+    // A device comes back with its cables, where they were in the lists.
+    const auto removal = edit::inverse(scenario, netsim::RemoveDevice{sw});
+    CHECK(removal.has_value());
+    const auto& restore = std::get<netsim::RestoreDevice>(*removal);
+    CHECK(restore.device == *scenario.device(sw) && restore.index == 2 && restore.links.size() == 2);
+    CHECK(restore.links[0].index == 0 && restore.links[1].index == 1 && restore.links[1].link == scenario.links[1]);
+    CHECK(edit::apply(scenario, netsim::RemoveDevice{sw}) == Problem::None);
+    CHECK(scenario.devices.size() == 2 && scenario.links.empty());
+    CHECK(edit::inverse(scenario, *removal) == netsim::Edit{netsim::RemoveDevice{sw}});
+    CHECK(edit::apply(scenario, *removal) == Problem::None);
+    CHECK(scenario == before);
+
+    // A cable too, with its state and delay.
+    scenario.links[1].up = false;
+    scenario.links[1].delay = 3ms;
+    const auto changed = scenario;
+    const auto unplug = edit::inverse(scenario, netsim::Disconnect{LinkId{2}});
+    CHECK((unplug == netsim::Edit{netsim::RestoreLink{changed.links[1], 1}}));
+    CHECK(edit::apply(scenario, netsim::Disconnect{LinkId{2}}) == Problem::None && edit::apply(scenario, *unplug) == Problem::None);
+    CHECK(scenario == changed);
+    scenario = before;
+
+    auto pc = *scenario.device(a);
+    refused(netsim::RestoreDevice{pc, 0}, Problem::DuplicateDeviceId);
+    pc.id = DeviceId{0};
+    refused(netsim::RestoreDevice{pc, 0}, Problem::InvalidDeviceId);
+    pc.id = DeviceId{7};
+    pc.ports.push_back(pc.ports.front());
+    refused(netsim::RestoreDevice{pc, 0}, Problem::WrongPortCount);
+    pc.ports.pop_back();
+    pc.name = "";
+    refused(netsim::RestoreDevice{pc, 0}, Problem::InvalidName);
+    pc.name = "PC-7";
+    // Its cables must be its own, and free: then nothing comes back.
+    const netsim::LinkConfig busy{LinkId{5}, PortRef{DeviceId{7}, 0}, PortRef{sw, 0}};
+    refused(netsim::RestoreDevice{pc, 0, {{busy, 0}}}, Problem::PortInUse);
+    const netsim::LinkConfig foreign{LinkId{5}, PortRef{a, 0}, PortRef{sw, 5}};
+    refused(netsim::RestoreDevice{pc, 0, {{foreign, 0}}}, Problem::NoSuchLink);
+    const netsim::LinkConfig nowhere{LinkId{5}, PortRef{DeviceId{7}, 0}, PortRef{DeviceId{9}, 0}};
+    refused(netsim::RestoreDevice{pc, 0, {{nowhere, 0}}}, Problem::NoSuchDevice);
+    refused(netsim::RestoreLink{{LinkId{1}, PortRef{a, 0}, PortRef{sw, 4}}, 0}, Problem::PortInUse);
+    refused(netsim::RestoreLink{{LinkId{1}, PortRef{sw, 4}, PortRef{sw, 5}}, 0}, Problem::SameDevice);
+    refused(netsim::RestoreLink{{LinkId{2}, PortRef{DeviceId{2}, 0}, PortRef{sw, 1}}, 0}, Problem::PortInUse);
+    refused(netsim::RestoreLink{{LinkId{0}, PortRef{sw, 4}, PortRef{DeviceId{9}, 0}}, 0}, Problem::NoSuchDevice);
+    auto other = scenario;
+    CHECK(edit::apply(other, netsim::Disconnect{LinkId{2}}) == Problem::None);
+    const auto after_unplug = other;
+    CHECK(edit::apply(other, netsim::RestoreLink{{LinkId{1}, PortRef{DeviceId{2}, 0}, PortRef{sw, 1}}, 0}) == Problem::DuplicateLinkId);
+    CHECK(edit::apply(other, netsim::RestoreLink{{LinkId{0}, PortRef{DeviceId{2}, 0}, PortRef{sw, 1}}, 0}) == Problem::InvalidLinkId);
+    CHECK(edit::apply(other, netsim::RestoreLink{{LinkId{2}, PortRef{DeviceId{2}, 0}, PortRef{sw, 1}, 0ns}, 0}) == Problem::InvalidDelay);
+    CHECK(other == after_unplug);
+    // An index past the end puts it last.
+    CHECK(edit::apply(other, netsim::RestoreLink{{LinkId{8}, PortRef{DeviceId{2}, 0}, PortRef{sw, 1}}, 99}) == Problem::None);
+    CHECK(other.links.back().id == LinkId{8});
+    CHECK(edit::apply(other, netsim::RestoreDevice{pc, 99}) == Problem::None && other.devices.back().id == DeviceId{7});
+    CHECK(netsim::validate(other).empty());
+    CHECK(netsim::affects_network(netsim::RestoreLink{}) && netsim::affects_network(netsim::RestoreDevice{}));
+}
+
+void inverse_edits() {
+    // Every accepted edit has an inverse that gives back the same scenario,
+    // and undoing a whole series in reverse gives back the first one.
+    namespace edit = netsim::edit;
+    int accepted = 0, refused = 0;
+    for (std::uint64_t seed = 1; seed <= 200; ++seed) {
+        netsim::Rng rng(seed);
+        auto scenario = simtest::star(static_cast<int>(rng.between(0, 5)));
+        const auto first = scenario;
+        std::vector<netsim::Edit> undo;
+        std::vector<Scenario> states{scenario};
+        for (int count = 0; count < 50; ++count) {
+            const auto change = with_ids(scenario, simtest::random_edit(rng, scenario));
+            const auto before = scenario;
+            const auto back = edit::inverse(before, change);
+            if (!netsim::ok(edit::apply(scenario, change))) {
+                ++refused;
+                CHECK(!back && scenario == before);
+                continue;
+            }
+            ++accepted;
+            CHECK(back.has_value());
+            if (!back) continue;
+            CHECK(netsim::validate(scenario).empty());
+            // Undo, then redo with the inverse of the inverse.
+            const auto again = edit::inverse(scenario, *back);
+            auto undone = scenario;
+            CHECK(edit::apply(undone, *back) == netsim::Problem::None);
+            CHECK(undone == before);
+            CHECK(again.has_value());
+            if (again) {
+                CHECK(edit::apply(undone, *again) == netsim::Problem::None);
+                CHECK(undone == scenario);
+            }
+            undo.push_back(*back);
+            states.push_back(scenario);
+        }
+        while (!undo.empty()) {
+            CHECK(scenario == states.back());
+            CHECK(edit::apply(scenario, undo.back()) == netsim::Problem::None);
+            undo.pop_back();
+            states.pop_back();
+        }
+        CHECK(scenario == first);
+    }
+    CHECK(accepted > 2000 && refused > 1000);
+    std::cout << "  inverse edits: " << accepted << " accepted, " << refused << " refused\n";
+}
+
 void scenario_files() {
     // Every example reads, passes validation and writes back byte for byte.
     const std::filesystem::path examples = RESEND_EXAMPLES_DIR;
@@ -457,6 +584,8 @@ int main() {
     validation_rules();
     edits();
     edit_values();
+    restores();
+    inverse_edits();
     scenario_files();
     documented_examples();
     scenario_file_errors();

@@ -5,7 +5,23 @@
 
 namespace resend {
 
-PlaybackController::PlaybackController(netsim::Simulation& simulation) : simulation_(simulation), view_(simulation.now()) {}
+namespace {
+class SimulationTimeline final : public Timeline {
+public:
+    explicit SimulationTimeline(netsim::Simulation& simulation) : simulation_(simulation) {}
+    const netsim::Simulation& simulation() const override { return simulation_; }
+    std::optional<netsim::SimTime> next_event_time() const override { return simulation_.next_event_time(); }
+    void run_until(netsim::SimTime time) override { simulation_.run_until(time); }
+
+private:
+    netsim::Simulation& simulation_;
+};
+} // namespace
+
+PlaybackController::PlaybackController(Timeline& timeline) : timeline_(timeline), view_(timeline.simulation().now()) {}
+
+PlaybackController::PlaybackController(netsim::Simulation& simulation)
+    : own_(std::make_unique<SimulationTimeline>(simulation)), timeline_(*own_), view_(simulation.now()) {}
 
 void PlaybackController::play() {
     dwell_ = {};
@@ -15,7 +31,7 @@ void PlaybackController::play() {
 void PlaybackController::pause() { mode_ = Mode::Paused; }
 
 void PlaybackController::step() {
-    const auto next = simulation_.next_event_time();
+    const auto next = timeline_.next_event_time();
     mode_ = Mode::Paused;
     if (!next) return;
     if (*next <= view_ || reduced_motion_) {
@@ -27,7 +43,7 @@ void PlaybackController::step() {
 
 void PlaybackController::reset() {
     mode_ = Mode::Paused;
-    view_ = simulation_.now();
+    view_ = timeline_.simulation().now();
     carry_ = 0;
     gap_end_.reset();
     dwell_ = {};
@@ -52,7 +68,7 @@ void PlaybackController::set_reduced_motion(bool reduced) {
 void PlaybackController::show(netsim::SimTime time) {
     view_ = time;
     carry_ = 0;
-    simulation_.run_until(view_);
+    timeline_.run_until(view_);
 }
 
 void PlaybackController::end_of_step() {
@@ -77,7 +93,7 @@ bool PlaybackController::tick(RealTime elapsed) {
     bool changed = false;
     double budget = static_cast<double>(elapsed.count());
     while (mode_ != Mode::Paused) {
-        const auto next = simulation_.next_event_time();
+        const auto next = timeline_.next_event_time();
         if (!next) {
             mode_ = Mode::Paused;
             break;
@@ -115,7 +131,7 @@ bool PlaybackController::tick(RealTime elapsed) {
         carry_ = move - static_cast<double>(whole);
         if (whole > 0) {
             view_ += netsim::SimTime{whole};
-            simulation_.run_until(view_);  // nothing is due before `next`: moves the clock only
+            timeline_.run_until(view_);  // nothing is due before `next`: moves the clock only
             changed = true;
         }
         break;
@@ -124,7 +140,7 @@ bool PlaybackController::tick(RealTime elapsed) {
 }
 
 std::vector<PlaybackController::InFlight> PlaybackController::in_flight() const {
-    const auto& all = simulation_.trace().transmissions();
+    const auto& all = timeline_.simulation().trace().transmissions();
     if (first_active_ > all.size()) first_active_ = 0;  // the trace was cleared
     while (first_active_ < all.size() && all[first_active_].arrival <= view_) ++first_active_;
     std::vector<InFlight> result;

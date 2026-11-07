@@ -396,22 +396,9 @@ void scene_of_a_long_ping() {
     CHECK(std::any_of(scene.markers.begin(), scene.markers.end(), [](const auto& marker) { return marker.text == "× reply too late"; }));
 }
 
-void frame_layers() {
-    auto engine = sample_ping();
-    finish(engine);
-    const auto& pdus = engine.trace().pdus();
-    CHECK(resend::describe_layers(pdus[0]) ==
-          "Ethernet II · dst ff:ff:ff:ff:ff:ff · src 02:00:00:00:00:01 · type 0x0806 (ARP)\n"
-          "ARP · request · sender 02:00:00:00:00:01 192.168.1.10 · target 192.168.1.20");
-    CHECK(resend::describe_layers(pdus[1]) ==
-          "Ethernet II · dst 02:00:00:00:00:01 · src 02:00:00:00:00:02 · type 0x0806 (ARP)\n"
-          "ARP · reply · sender 02:00:00:00:00:02 192.168.1.20 · target 02:00:00:00:00:01 192.168.1.10");
-    CHECK(resend::describe_layers(pdus[2]) ==
-          "Ethernet II · dst 02:00:00:00:00:02 · src 02:00:00:00:00:01 · type 0x0800 (IPv4)\n"
-          "IPv4 · 192.168.1.10 → 192.168.1.20 · TTL 64 · id 1 · protocol 1 (ICMP)\n"
-          "ICMP · type 8 Echo Request · code 0 · identifier 1 · sequence 1 · 56 data bytes");
-    CHECK(resend::describe_layers(pdus[3]).ends_with("ICMP · type 0 Echo Reply · code 0 · identifier 1 · sequence 1 · 56 data bytes"));
+void frame_names() {
     CHECK(resend::packet_label(netsim::PduKind::EchoReply) == "Echo rep");
+    CHECK(resend::frame_name(netsim::PduKind::ArpRequest) == "ARP Request");
 }
 } // namespace
 
@@ -429,6 +416,6 @@ int main() {
     scene_with_live_changes();
     scene_of_a_storm();
     scene_of_a_long_ping();
-    frame_layers();
+    frame_names();
     std::cout << "App tests passed: " << test::checks << " checks.\n";
 }

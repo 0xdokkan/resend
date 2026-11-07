@@ -1,10 +1,10 @@
 #include "app_controller.hpp"
-#include "scenario/scenario_json.hpp"
+#include "core/text.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include <iterator>
 #include <optional>
 #include <string>
 
@@ -27,41 +27,32 @@ bool snapshot(const slint::Window& window, const std::string& path) {
 constexpr const char* usage =
     "resend - network sandbox (Slint / C++20)\n"
     "  --scenario FILE   Open a scenario file instead of the sample LAN\n"
+    "  --lang CODE       Use this language, e.g. en or it, instead of the one chosen\n"
     "  --snapshot PATH   Save a rendered PPM preview, then exit\n"
     "  --ping IPV4       Start a ping from the selected host (the first one) at startup\n"
     "  --at TIME         Show this simulated instant, e.g. 15ms or 1.5s (with --ping)\n";
-
-std::optional<netsim::Scenario> read_scenario(const std::string& path) {
-    std::ifstream file(path, std::ios::binary);
-    if (!file) {
-        std::cerr << path << ": cannot open the file\n";
-        return std::nullopt;
-    }
-    const std::string text{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-    std::string error;
-    auto scenario = netsim::scenario_from_json(text, error);
-    if (!scenario) {
-        std::cerr << path << ": " << error << '\n';
-        return std::nullopt;
-    }
-    const auto issues = netsim::validate(*scenario);
-    for (const auto& issue : issues) std::cerr << path << ": " << issue.subject << ": " << netsim::explain::describe(issue.problem) << '\n';
-    if (!issues.empty()) return std::nullopt;
-    return scenario;
-}
 }
 
 int main(int argc, char** argv) {
-    std::string snapshot_path, ping;
+    std::string snapshot_path, ping, scenario;
+    std::optional<std::string> language;
     std::optional<netsim::SimTime> at;
-    std::optional<netsim::Scenario> scenario;
     for (int index = 1; index < argc; ++index) {
         const std::string arg = argv[index];
         const bool has_value = index + 1 < argc;
-        if (arg == "--snapshot" && has_value) snapshot_path = argv[++index];
-        else if (arg == "--scenario" && has_value) {
-            scenario = read_scenario(argv[++index]);
-            if (!scenario) return 2;
+        if (arg == "--snapshot" && has_value) {
+            snapshot_path = argv[++index];
+        } else if (arg == "--scenario" && has_value) {
+            scenario = argv[++index];
+        } else if (arg == "--lang" && has_value) {
+            language = argv[++index];
+            const auto known = netsim::text::languages();
+            if (std::find(known.begin(), known.end(), *language) == known.end()) {
+                std::cerr << "Unknown language: " << *language << " (available:";
+                for (const auto& code : known) std::cerr << ' ' << code;
+                std::cerr << ")\n";
+                return 2;
+            }
         } else if (arg == "--ping" && has_value) {
             ping = argv[++index];
         } else if (arg == "--at" && has_value) {
@@ -80,13 +71,20 @@ int main(int argc, char** argv) {
     }
 
     auto ui = AppWindow::create();
-    resend::AppController controller(ui);
-    if (scenario) controller.open(std::move(*scenario));
+    resend::AppController controller(ui, {resend::state_directory(), language});
+    if (!scenario.empty()) {
+        std::string error;
+        if (!resend::read_scenario_file(resend::path_from_text(scenario), error)) {
+            std::cerr << scenario << ": " << error << '\n';
+            return 2;
+        }
+        controller.open_file(resend::path_from_text(scenario));
+    }
     if (!ping.empty()) {
-        ui->set_target_ip(ping.c_str());
-        ui->invoke_ping();
+        ui->global<UiRun>().set_target(ping.c_str());
+        ui->global<UiRun>().invoke_ping();
         if (controller.simulation().pings().empty()) {
-            std::cerr << "The ping could not start: " << std::string(ui->get_status_text().data()) << '\n';
+            std::cerr << "The ping could not start: " << std::string(ui->global<UiApp>().get_status()) << '\n';
             return 2;
         }
         if (at) controller.seek(*at);
@@ -100,6 +98,9 @@ int main(int argc, char** argv) {
             }
             slint::quit_event_loop();
         });
+    } else {
+        // A network an earlier session could not save is offered back.
+        controller.offer_recovery();
     }
     ui->run();
     return exit_code;

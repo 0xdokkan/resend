@@ -1,8 +1,10 @@
 #include "check.hpp"
 #include "core/address.hpp"
 #include "core/ids.hpp"
+#include "core/text.hpp"
 #include "sim/scheduler.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -150,6 +152,75 @@ void sim_time_resolution() {
 }
 } // namespace
 
+void texts() {
+    namespace text = netsim::text;
+    // Placeholders, in any order, braces doubled to stay braces.
+    CHECK(text::format("{0} sent {1} to {0}", {"PC-A", "a frame"}) == "PC-A sent a frame to PC-A");
+    CHECK(text::format("{1} {0}", {"a", "b"}) == "b a");
+    CHECK(text::format("{{0}} {2} {x} {", {"a"}) == "{0} {2} {x} {");
+
+    // .po files as gettext writes them: continued strings, escapes,
+    // contexts; the header, fuzzy and untranslated entries are skipped.
+    const auto catalog = text::parse_po(R"(# A comment
+msgid ""
+msgstr ""
+"Language: it\n"
+
+#: ui/app.slint:10
+msgid "Open…"
+msgstr "Apri…"
+
+msgctxt "Menu"
+msgid "Quit"
+msgstr ""
+"Esci"
+
+msgid ""
+"Two "
+"lines\n"
+msgstr "Due \"righe\"\n"
+
+#, fuzzy
+msgid "Guess"
+msgstr "Forse"
+
+msgid "Untranslated"
+msgstr ""
+
+msgid "{0} powered off"
+msgstr "{0} spento"
+
+msgid "{n} device"
+msgid_plural "{n} devices"
+msgstr[0] "{n} dispositivo"
+msgstr[1] "{n} dispositivi"
+)");
+    CHECK(catalog.has_value());
+    if (catalog) {
+        CHECK(catalog->size() == 4);
+        CHECK(catalog->at("Open…") == "Apri…" && catalog->at("Quit") == "Esci");
+        CHECK(catalog->at("Two lines\n") == "Due \"righe\"\n");
+        CHECK(!catalog->contains("Guess") && !catalog->contains("Untranslated") && !catalog->contains(""));
+        // Plural entries belong to the interface and are left out.
+        CHECK(!catalog->contains("{n} device") && !catalog->contains("{n} devices"));
+    }
+    CHECK(!text::parse_po("msgid \"unterminated\n"));
+    CHECK(!text::parse_po("msgstr \"no id\"\n"));
+    CHECK(!text::parse_po("msgid \"bad escape \\q\"\nmsgstr \"x\"\n"));
+    CHECK(!text::parse_po("nonsense\n"));
+
+    // The built-in languages; English is the code's own.
+    const auto languages = text::languages();
+    CHECK(languages.front() == "en" && std::find(languages.begin(), languages.end(), "it") != languages.end());
+    CHECK(text::language() == "en" && text::tr("Ping started.") == "Ping started.");
+    CHECK(text::set_language("it") && text::language() == "it");
+    CHECK(text::tr("Ping started.") == "Ping avviato.");
+    CHECK(text::tr("{0} powered off", {"PC-B"}) == "PC-B spento");
+    CHECK(text::tr("Not in any catalog: {0}", {"x"}) == "Not in any catalog: x");
+    CHECK(!text::set_language("xx") && text::language() == "en" && text::tr("Ping started.") == "Ping started.");
+    CHECK(text::set_language("en") && text::language() == "en");
+}
+
 int main() {
     ipv4_parsing();
     prefix_masks();
@@ -160,5 +231,6 @@ int main() {
     scheduler_peek_and_advance();
     durations();
     sim_time_resolution();
+    texts();
     std::cout << "Core tests passed: " << test::checks << " checks.\n";
 }

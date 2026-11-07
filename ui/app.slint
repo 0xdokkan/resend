@@ -1,155 +1,34 @@
-import { AboutSlint, LineEdit, ListView, ScrollView, Palette } from "std-widgets.slint";
+import { LineEdit, ScrollView, Palette } from "std-widgets.slint";
+import { Theme, Geometry } from "theme.slint";
+import { Action, Caption, DeviceIcon, Divider, PanelHeader } from "widgets.slint";
+import { UiCanvas, Canvas, NodeView, LinkView, PacketView, MarkerView } from "canvas.slint";
+import { UiInspector, Inspector, PortView } from "inspector.slint";
+import { UiTimeline, TimelinePanel, EventView } from "timeline.slint";
+import { UiFrame, FieldRow, HexByte, HexRow } from "frame.slint";
+import { UiApp, UiRun, ExampleView, LanguageView, FileView } from "state.slint";
+import { FileDialog, ConfirmDialog, AboutDialog } from "dialogs.slint";
 
-// Device card size in canvas units. C++ owns the values (src/app/scene.hpp)
-// and sets them at startup; the defaults only serve the live preview.
-export global Geometry {
-    in-out property <float> card-width: 160;
-    in-out property <float> card-height: 94;
-}
-
-// Port bit masks: bit i is port i + 1.
-export struct NodeView {
-    id: int, title: string, kind: string, address: string, mac: string,
-    x: float, y: float, selected: bool, enabled: bool,
-    port-count: int, connected-ports: int, down-ports: int, active-ports: int,
-}
-// Cable ends on the card borders; a-port and b-port label switch ports.
-export struct LinkView {
-    id: int, ax: float, ay: float, bx: float, by: float,
-    enabled: bool, highlight: bool, label: string, a-port: string, b-port: string,
-}
-// A frame on a cable at the displayed instant, in canvas units.
-export struct PacketView {
-    pdu: int, x: float, y: float, tail-x: float, tail-y: float,
-    protocol: string, label: string, broadcast: bool, selected: bool, description: string,
-}
-// A device decision; x, y is the top centre of its card, stack counts upwards.
-export struct MarkerView {
-    x: float, y: float, stack: int, text: string, tone: string, opacity: float,
-}
-export struct TraceView {
-    index: int, time: string, protocol: string, summary: string, detail: string,
-    from_id: int, to_id: int, link_id: int,
-}
-
-global Theme {
-    out property <color> base: #0c111b;
-    out property <color> panel: #111925;
-    out property <color> raised: #182333;
-    out property <color> line: #253244;
-    out property <color> ink: #e6edf6;
-    out property <color> muted: #91a2b8;
-    out property <color> mint: #7ce3c0;
-    out property <color> blue: #82b8fb;
-    out property <color> amber: #f1c47b;
-    out property <color> red: #f58f8f;
-    // The simulator's own interventions, never network behaviour.
-    out property <color> violet: #c6a8f8;
-}
-
-component Action inherits Rectangle {
-    in property <string> text;
-    // Read by screen readers instead of `text` when the text is only a value.
-    in property <string> accessible-text;
-    in property <bool> primary: false;
-    in property <bool> quiet: false;
-    in property <bool> danger: false;
-    in property <bool> enabled: true;
-    // A switch: `checked` shows as the primary style and is announced.
-    in property <bool> toggle: false;
-    in property <bool> checked: false;
-    callback clicked();
-    preferred-height: 34px;
-    min-height: 30px;
-    min-width: label.preferred-width + 24px;
-    border-radius: 7px;
-    property <bool> filled: root.primary || (root.toggle && root.checked);
-    background: !root.enabled ? #18212e : root.filled ? (touch.has-hover ? #a0f1d7 : Theme.mint)
-        : touch.has-hover ? #253347 : root.quiet ? transparent : Theme.raised;
-    border-width: 1px;
-    border-color: focus.has-focus ? Theme.mint : root.filled ? transparent : root.quiet ? transparent : Theme.line;
-    opacity: root.enabled ? 1 : 0.45;
-    accessible-role: button;
-    accessible-label: root.accessible-text != "" ? root.accessible-text : root.text;
-    accessible-enabled: root.enabled;
-    accessible-checkable: root.toggle;
-    accessible-checked: root.checked;
-    accessible-action-default => { if root.enabled { root.clicked(); } }
-    forward-focus: focus;
-    label := Text {
-        text: root.text;
-        color: !root.enabled ? Theme.muted : root.filled ? #10231e : root.danger ? #f5a5a5 : Theme.ink;
-        font-size: 12px;
-        font-weight: 600;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-    }
-    focus := FocusScope {
-        enabled: root.enabled;
-        focus-on-tab-navigation: true;
-        key-pressed(e) => {
-            if e.text == " " || e.text == "\n" {
-                root.clicked();
-                return accept;
-            }
-            return reject;
-        }
-    }
-    touch := TouchArea {
-        enabled: root.enabled;
-        mouse-cursor: pointer;
-        clicked => { focus.focus(); root.clicked(); }
-    }
-}
-
-component Caption inherits Text {
-    color: Theme.muted;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1px;
-}
-
-component DeviceIcon inherits Rectangle {
-    in property <bool> switch-kind: false;
-    in property <color> tint: Theme.mint;
-    property <float> scale: root.width / 29px;
-    background: transparent;
-    if !root.switch-kind: Rectangle {
-        x: 2px * root.scale; y: 2px * root.scale;
-        width: parent.width - 4px * root.scale; height: parent.height - 9px * root.scale;
-        border-width: 1.5px * root.scale; border-color: root.tint; border-radius: 3px * root.scale;
-        Rectangle { width: 1.5px * root.scale; height: 5px * root.scale; x: (parent.width - self.width) / 2; y: parent.height; background: root.tint; }
-        Rectangle { width: 12px * root.scale; height: 1.5px * root.scale; x: (parent.width - self.width) / 2; y: parent.height + 4px * root.scale; background: root.tint; }
-    }
-    if root.switch-kind: Rectangle {
-        x: 1px * root.scale; y: 6px * root.scale; width: parent.width - 2px * root.scale; height: 15px * root.scale;
-        border-width: 1.5px * root.scale; border-color: root.tint; border-radius: 3px * root.scale;
-        for i in 4: Rectangle {
-            x: (4px + i * 5px) * root.scale; y: 6px * root.scale;
-            width: 3px * root.scale; height: 4px * root.scale;
-            background: root.tint;
-        }
-    }
-}
+export { Geometry, UiCanvas, UiInspector, UiTimeline, UiFrame, UiApp, UiRun }
+export { NodeView, LinkView, PacketView, MarkerView, PortView, EventView, FieldRow, HexByte, HexRow, ExampleView, LanguageView, FileView }
 
 component DeviceChoice inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
     in property <bool> switch-kind;
     callback clicked();
-    height: 76px;
+    height: 64px;
     border-radius: 9px;
     background: touch.has-hover ? #1e2e3d : #172331;
     border-width: 1px;
     border-color: focus.has-focus ? Theme.mint : touch.has-hover ? #42655e : Theme.line;
     accessible-role: button;
-    accessible-label: "Add " + root.title;
+    accessible-label: @tr("Add {0}", root.title);
     accessible-action-default => { root.clicked(); }
     forward-focus: focus;
-    DeviceIcon { x: 13px; y: 14px; width: 29px; height: 28px; switch-kind: root.switch-kind; tint: root.switch-kind ? Theme.blue : Theme.mint; }
-    Text { x: 53px; y: 16px; text: root.title; color: Theme.ink; font-size: 14px; font-weight: 600; }
-    Text { x: 13px; y: 52px; text: root.subtitle; color: Theme.muted; font-size: 10px; }
-    Text { x: parent.width - 24px; y: 19px; text: "+"; color: Theme.muted; font-size: 19px; }
+    DeviceIcon { x: 12px; y: 12px; width: 27px; height: 26px; switch-kind: root.switch-kind; tint: root.switch-kind ? Theme.blue : Theme.mint; }
+    Text { x: 50px; y: 13px; text: root.title; color: Theme.ink; font-size: 14px; font-weight: 600; }
+    Text { x: 50px; y: 34px; width: parent.width - 60px; text: root.subtitle; color: Theme.muted; font-size: 10px; overflow: elide; }
+    Text { x: parent.width - 22px; y: 12px; text: "+"; color: Theme.muted; font-size: 18px; }
     focus := FocusScope {
         focus-on-tab-navigation: true;
         key-pressed(e) => { if e.text == " " || e.text == "\n" { root.clicked(); return accept; } return reject; }
@@ -157,637 +36,280 @@ component DeviceChoice inherits Rectangle {
     touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
 }
 
+// Devices to add and the lesson that comes with the network.
+component PaletteView inherits Rectangle {
+    callback fold();
+    background: Theme.panel;
+    VerticalLayout {
+        PanelHeader {
+            title: @tr("Build");
+            fold-text: @tr("Hide the palette");
+            fold => { root.fold(); }
+        }
+        VerticalLayout {
+            padding-left: 14px; padding-right: 14px; padding-bottom: 14px;
+            spacing: 8px;
+            DeviceChoice { title: @tr("Host"); subtitle: @tr("IPv4 · 1 Ethernet port"); switch-kind: false; clicked => { UiApp.add-device("host"); } }
+            DeviceChoice { title: @tr("Switch"); subtitle: @tr("Layer 2 · 8 ports"); switch-kind: true; clicked => { UiApp.add-device("switch"); } }
+            Text {
+                text: @tr("Drag a card to move it. Drag from a port light or from + to another card to plug a cable.");
+                color: Theme.muted; font-size: 10px; wrap: word-wrap;
+            }
+            Divider { }
+            Caption { text: @tr("LESSON"); }
+            Text { text: UiApp.title == "" ? @tr("Your own network") : UiApp.title; color: Theme.ink; font-size: 13px; font-weight: 600; wrap: word-wrap; }
+            ScrollView {
+                vertical-stretch: 1;
+                content-width: self.visible-width;
+                horizontal-scrollbar-policy: always-off;
+                VerticalLayout {
+                    alignment: start;
+                    Text {
+                        text: UiApp.notes == "" ? @tr("Build a network, send a ping and follow every frame. Examples in the File menu come with a lesson.") : UiApp.notes;
+                        color: Theme.muted; font-size: 11px; wrap: word-wrap;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// A folded side panel: a strip with the button that opens it again.
+component FoldedPanel inherits Rectangle {
+    in property <string> text;
+    in property <string> symbol;
+    callback unfold();
+    width: 32px;
+    background: Theme.panel;
+    VerticalLayout {
+        padding-top: 8px;
+        alignment: start;
+        HorizontalLayout {
+            alignment: center;
+            Action { text: root.symbol; accessible-text: root.text; quiet: true; small: true; width: 26px; clicked => { root.unfold(); } }
+        }
+    }
+}
+
 export component AppWindow inherits Window {
-    title: "resend — Network sandbox";
+    title: UiApp.document + (UiApp.modified ? " •" : "") + " — resend";
     preferred-width: 1360px;
     preferred-height: 900px;
-    min-width: 1100px;
-    min-height: 760px;
+    // No minimum of its own: the panels' set it, and folding them lets the
+    // window shrink, down to 960 × 540 for a 1080p screen at 2× scale.
     background: Theme.base;
     default-font-family: "Inter";
     default-font-size: 13px;
 
-    in property <[NodeView]> nodes;
-    in property <[LinkView]> links;
-    in property <[PacketView]> packets;
-    in property <[MarkerView]> markers;
-    in property <[TraceView]> traces;
-    in property <int> selected-id: -1;
-    in property <string> selected-kind;
-    in property <string> selected-mac;
-    in property <string> selected-details;
-    in property <bool> selected-enabled: true;
-    in property <int> link-source-id: -1;
-    in-out property <string> edit-name;
-    in-out property <string> edit-ip;
-    in-out property <string> edit-prefix;
-    in-out property <string> target-ip: "192.168.1.20";
-    // Echo Requests per ping.
-    in-out property <string> ping-count: "1";
-    // True while the animation plays, including a step in progress.
-    in property <bool> running;
-    in property <bool> has-pending;
-    in property <string> sim-clock: "0.000 ms";
-    in property <string> speed-label: "1×";
-    in property <bool> reduced-motion;
-    // Layer by layer description of the selected frame, if any.
-    in property <string> frame-layers;
-    in property <string> status-text: "Select a host to send a ping.";
-    // Set from CMake's project version.
-    in property <string> version: "dev";
-    in property <int> event-count;
-    in property <string> event-title;
-    in property <string> event-detail;
-    in property <string> event-protocol;
-    in property <int> selected-event: -1;
-    // True while the selection follows the newest event.
-    in property <bool> follow-events: true;
-    // Bounding box of all cards, in canvas units.
-    in property <float> bounds-left;
-    in property <float> bounds-top;
-    in property <float> bounds-right;
-    in property <float> bounds-bottom;
+    // Gives the keyboard to the canvas.
+    public function focus-canvas() { canvas.take-focus(); }
 
-    // Kind, then the canvas position (top-left corner of the card).
-    callback add-node(string, float, float);
-    callback select-node(int);
-    callback move-node(int, float, float);
-    callback link-node(int);
-    callback delete-selected();
-    callback apply-node(string, string, string);
-    callback ping();
-    callback step();
-    callback run-toggle();
-    callback reset();
-    callback load-demo();
-    callback clear-workspace();
-    callback toggle-link(int);
-    callback remove-link(int);
-    callback select-event(int);
-    callback select-frame(int);
-    callback cycle-speed();
-    callback toggle-motion();
-    callback toggle-power();
+    // The canvas has the keyboard at start and again when a dialog closes,
+    // so the shortcuts, which come from it, keep working.
+    property <string> dialog: UiApp.dialog;
+    changed dialog => { if self.dialog == "" { canvas.take-focus(); } }
+    init => {
+        Palette.color-scheme = ColorScheme.dark;
+        canvas.take-focus();
+    }
 
-    property <float> zoom: 1.0;
-    property <length> pan-x: 40px;
-    property <length> pan-y: 60px;
-    property <length> pan-origin-x;
-    property <length> pan-origin-y;
-    property <length> drag-offset-x;
-    property <length> drag-offset-y;
-    property <float> next-zoom;
-    // While true, resizing the window keeps the whole network in view.
-    property <bool> auto-fit: true;
-    property <bool> show-about;
-    property <length> trace-row-height: 35px;
-
-    public function fit-view() {
-        root.auto-fit = true;
-        if root.bounds-right <= root.bounds-left || root.bounds-bottom <= root.bounds-top {
-            root.zoom = 1.0;
-            root.pan-x = 40px;
-            root.pan-y = 60px;
-        } else {
-            root.zoom = max(0.35, min(1.0, min(
-                (canvas.width - 96px) / ((root.bounds-right - root.bounds-left) * 1px),
-                (canvas.height - 96px) / ((root.bounds-bottom - root.bounds-top) * 1px))));
-            root.pan-x = (canvas.width - (root.bounds-right - root.bounds-left) * root.zoom * 1px) / 2 - root.bounds-left * root.zoom * 1px;
-            root.pan-y = (canvas.height - (root.bounds-bottom - root.bounds-top) * root.zoom * 1px) / 2 - root.bounds-top * root.zoom * 1px;
+    MenuBar {
+        Menu {
+            title: @tr("File");
+            MenuItem { title: @tr("New"); activated => { UiApp.new-document(); } }
+            MenuItem { title: @tr("Open…"); activated => { UiApp.open-document(); } }
+            Menu {
+                title: @tr("Open example");
+                for example[i] in UiApp.examples: MenuItem { title: example.title; activated => { UiApp.open-example(i); } }
+            }
+            MenuSeparator { }
+            MenuItem { title: @tr("Save"); activated => { UiApp.save(); } }
+            MenuItem { title: @tr("Save as…"); activated => { UiApp.save-as(); } }
+            MenuSeparator { }
+            MenuItem { title: @tr("Quit"); activated => { UiApp.quit(); } }
         }
-    }
-
-    // Canvas position that centers a new card in the visible area.
-    function view-center-x() -> float {
-        return (canvas.width / 2 - root.pan-x) / (root.zoom * 1px) - Geometry.card-width / 2;
-    }
-    function view-center-y() -> float {
-        return (canvas.height / 2 - root.pan-y) / (root.zoom * 1px) - Geometry.card-height / 2;
-    }
-
-    // Scrolls the event list just enough to show the row.
-    public function reveal-event(index: int) {
-        if index >= 0 {
-            if index * root.trace-row-height < -event-list.content-y {
-                event-list.content-y = -index * root.trace-row-height;
-            } else if (index + 1) * root.trace-row-height > -event-list.content-y + event-list.visible-height {
-                event-list.content-y = event-list.visible-height - (index + 1) * root.trace-row-height;
+        Menu {
+            title: @tr("Edit");
+            MenuItem { title: UiApp.undo-text; enabled: UiApp.can-undo; activated => { UiApp.undo(); } }
+            MenuItem { title: UiApp.redo-text; enabled: UiApp.can-redo; activated => { UiApp.redo(); } }
+            MenuSeparator { }
+            MenuItem { title: @tr("Add host"); activated => { UiApp.add-device("host"); } }
+            MenuItem { title: @tr("Add switch"); activated => { UiApp.add-device("switch"); } }
+            MenuItem { title: @tr("Delete selection"); activated => { UiApp.delete-selection(); } }
+        }
+        Menu {
+            title: @tr("View");
+            MenuItem { title: @tr("Fit the network in view"); activated => { UiCanvas.fit(); } }
+            MenuItem { title: @tr("Zoom in"); activated => { UiCanvas.zoom-by(1.15); } }
+            MenuItem { title: @tr("Zoom out"); activated => { UiCanvas.zoom-by(1 / 1.15); } }
+            MenuItem { title: @tr("Actual size"); activated => { UiCanvas.reset-zoom(); } }
+            MenuSeparator { }
+            MenuItem { title: @tr("Palette"); checkable: true; checked: UiApp.palette-open; activated => { UiApp.palette-open = !UiApp.palette-open; } }
+            MenuItem { title: @tr("Inspector"); checkable: true; checked: UiApp.inspector-open; activated => { UiApp.inspector-open = !UiApp.inspector-open; } }
+            MenuItem { title: @tr("Timeline"); checkable: true; checked: UiApp.timeline-open; activated => { UiApp.timeline-open = !UiApp.timeline-open; } }
+            MenuItem { title: @tr("Reduce motion"); checkable: true; checked: UiApp.reduced-motion; activated => { UiApp.toggle-motion(); } }
+            MenuSeparator { }
+            Menu {
+                title: @tr("Language");
+                MenuItem { title: @tr("As the system"); checkable: true; checked: UiApp.language == ""; activated => { UiApp.set-language(""); } }
+                for language in UiApp.languages: MenuItem {
+                    title: language.name;
+                    checkable: true;
+                    checked: UiApp.language == language.code;
+                    activated => { UiApp.set-language(language.code); }
+                }
             }
         }
-    }
-
-    init => { Palette.color-scheme = ColorScheme.dark; }
-
-    VerticalLayout {
-        padding: 0px;
-        spacing: 0px;
-
-        Rectangle {
-            height: 68px;
-            background: Theme.panel;
-            HorizontalLayout {
-                padding-left: 24px; padding-right: 22px;
-                padding-top: 16px; padding-bottom: 16px; spacing: 14px;
-                Rectangle {
-                    width: 34px; height: 34px; border-radius: 10px; background: Theme.mint;
-                    Rectangle { x: 8px; y: 9px; width: 6px; height: 6px; background: #15352a; border-radius: 2px; }
-                    Rectangle { x: 20px; y: 19px; width: 6px; height: 6px; background: #15352a; border-radius: 2px; }
-                    Path { width: 34px; height: 34px; stroke: #15352a; stroke-width: 2px; MoveTo { x: 11; y: 14; } LineTo { x: 11; y: 22; } LineTo { x: 20; y: 22; } }
-                }
-                Text { text: "resend"; color: Theme.ink; font-size: 23px; font-weight: 700; vertical-alignment: center; }
-                Rectangle { width: 1px; height: 25px; y: 5px; background: Theme.line; }
-                Text { text: "Your networking lab"; color: Theme.muted; font-size: 12px; vertical-alignment: center; }
-                Rectangle { horizontal-stretch: 1; }
-                Rectangle {
-                    width: 118px; border-radius: 17px; background: #17312c;
-                    Text { text: "●  LOCAL SANDBOX"; color: Theme.mint; font-size: 9px; font-weight: 600; vertical-alignment: center; horizontal-alignment: center; }
-                }
-                Action { text: "Sample network"; clicked => { root.load-demo(); root.fit-view(); } }
-                Action { text: "Clear"; quiet: true; clicked => { root.clear-workspace(); } }
-                Action { text: "About"; quiet: true; clicked => { root.show-about = true; } }
+        Menu {
+            title: @tr("Simulation");
+            MenuItem { title: UiRun.running ? @tr("Pause") : @tr("Run"); enabled: UiRun.pending; activated => { UiRun.run-toggle(); } }
+            MenuItem { title: @tr("Step"); enabled: UiRun.pending && !UiRun.running; activated => { UiRun.step(); } }
+            MenuItem { title: @tr("Go to the latest instant"); activated => { UiRun.latest(); } }
+            MenuItem { title: @tr("Reset"); activated => { UiRun.reset(); } }
+            Menu {
+                title: @tr("Speed");
+                MenuItem { title: "0.25×"; checkable: true; checked: UiRun.speed == 0.25; activated => { UiRun.set-speed(0.25); } }
+                MenuItem { title: "0.5×"; checkable: true; checked: UiRun.speed == 0.5; activated => { UiRun.set-speed(0.5); } }
+                MenuItem { title: "1×"; checkable: true; checked: UiRun.speed == 1; activated => { UiRun.set-speed(1); } }
+                MenuItem { title: "2×"; checkable: true; checked: UiRun.speed == 2; activated => { UiRun.set-speed(2); } }
+                MenuItem { title: "4×"; checkable: true; checked: UiRun.speed == 4; activated => { UiRun.set-speed(4); } }
             }
         }
-        Rectangle { height: 1px; background: Theme.line; }
+        Menu {
+            title: @tr("Help");
+            MenuItem { title: @tr("About resend"); activated => { UiApp.about(); } }
+        }
+    }
 
-        HorizontalLayout {
-            spacing: 0px;
+    // Shortcuts: keys the focused control does not use come here.
+    shortcuts := FocusScope {
+        key-pressed(e) => {
+            if !(e.modifiers.control || e.modifiers.meta) || UiApp.dialog != "" { return reject; }
+            if e.text == "z" || e.text == "Z" {
+                if e.modifiers.shift { UiApp.redo(); } else { UiApp.undo(); }
+                return accept;
+            }
+            if e.text == "y" || e.text == "Y" { UiApp.redo(); return accept; }
+            if e.text == "s" || e.text == "S" {
+                if e.modifiers.shift { UiApp.save-as(); } else { UiApp.save(); }
+                return accept;
+            }
+            if e.text == "o" || e.text == "O" { UiApp.open-document(); return accept; }
+            if e.text == "n" || e.text == "N" { UiApp.new-document(); return accept; }
+            if e.text == "q" || e.text == "Q" { UiApp.quit(); return accept; }
+            return reject;
+        }
+
+        VerticalLayout {
+            // The document and undo.
             Rectangle {
-                width: 190px; background: Theme.panel;
-                VerticalLayout {
-                    padding: 16px; spacing: 10px;
-                    Caption { text: "DEVICES"; height: 22px; }
-                    DeviceChoice { title: "Host"; subtitle: "IPv4 · 1 Ethernet port"; switch-kind: false; clicked => { root.add-node("host", root.view-center-x(), root.view-center-y()); } }
-                    DeviceChoice { title: "Switch"; subtitle: "Layer 2 · 8 ports"; switch-kind: true; clicked => { root.add-node("switch", root.view-center-x(), root.view-center-y()); } }
-                    Text { text: "Click to add.\nDrag to arrange."; color: Theme.muted; font-size: 11px; wrap: word-wrap; height: 48px; }
-                    Rectangle { height: 1px; background: Theme.line; }
-                    Rectangle { vertical-stretch: 1; }
-                    Rectangle {
-                        height: 91px; border-radius: 8px; background: #172331;
-                        VerticalLayout {
-                            padding: 11px; spacing: 5px;
-                            Text { text: "FIRST STEPS"; color: Theme.blue; font-size: 9px; font-weight: 600; }
-                            Text { text: "Ethernet, ARP, IPv4, ICMP.\nTCP and routing will come\nin later modules."; color: Theme.muted; font-size: 10px; wrap: word-wrap; }
-                        }
-                    }
-                }
-            }
-            Rectangle { width: 1px; background: Theme.line; }
-
-            VerticalLayout {
-                horizontal-stretch: 1; spacing: 0px;
-                Rectangle {
-                    height: 54px; background: #101824;
-                    HorizontalLayout {
-                        padding-left: 20px; padding-right: 16px; padding-top: 10px; padding-bottom: 10px; spacing: 8px;
-                        Text { text: "Topology"; color: Theme.ink; font-weight: 600; vertical-alignment: center; }
-                        Text { text: root.nodes.length + " devices · " + root.links.length + " links"; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
-                        Rectangle { horizontal-stretch: 1; }
-                        Action { text: "Reduce motion"; toggle: true; checked: root.reduced-motion; clicked => { root.toggle-motion(); } }
-                        Action { text: "Fit"; clicked => { root.fit-view(); } }
-                        Action { text: "−"; width: 30px; clicked => { root.auto-fit = false; root.zoom = max(0.35, root.zoom / 1.15); } }
-                        Action { text: Math.round(root.zoom * 100) + "%"; width: 56px; clicked => { root.auto-fit = false; root.zoom = 1; root.pan-x = 40px; root.pan-y = 60px; } }
-                        Action { text: "+"; width: 30px; clicked => { root.auto-fit = false; root.zoom = min(2.2, root.zoom * 1.15); } }
-                    }
-                }
-                canvas := Rectangle {
-                    background: #0d1520; clip: true;
-                    accessible-role: groupbox;
-                    accessible-label: "Network topology";
-                    changed width => { if root.auto-fit { root.fit-view(); } }
-                    changed height => { if root.auto-fit { root.fit-view(); } }
-                    for gx in 54: Rectangle {
-                        x: Math.mod(gx * 28px * root.zoom + root.pan-x, canvas.width + 28px * root.zoom) - 28px * root.zoom;
-                        width: 1px; height: parent.height; background: #192535; opacity: 0.55;
-                    }
-                    for gy in 40: Rectangle {
-                        y: Math.mod(gy * 28px * root.zoom + root.pan-y, canvas.height + 28px * root.zoom) - 28px * root.zoom;
-                        width: parent.width; height: 1px; background: #192535; opacity: 0.55;
-                    }
-                    background-touch := TouchArea {
-                        mouse-cursor: grab;
-                        pointer-event(e) => {
-                            if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
-                                root.pan-origin-x = root.pan-x;
-                                root.pan-origin-y = root.pan-y;
-                                root.select-node(-1);
-                            }
-                        }
-                        moved => {
-                            if self.pressed {
-                                root.auto-fit = false;
-                                root.pan-x = root.pan-origin-x + self.mouse-x - self.pressed-x;
-                                root.pan-y = root.pan-origin-y + self.mouse-y - self.pressed-y;
-                            }
-                        }
-                        scroll-event(e) => {
-                            root.auto-fit = false;
-                            root.next-zoom = min(2.2, max(0.35, root.zoom * (e.delta-y > 0px ? 1.1 : 0.90909)));
-                            root.pan-x = self.mouse-x - (self.mouse-x - root.pan-x) * root.next-zoom / root.zoom;
-                            root.pan-y = self.mouse-y - (self.mouse-y - root.pan-y) * root.next-zoom / root.zoom;
-                            root.zoom = root.next-zoom;
-                            return accept;
-                        }
-                    }
-
-                    for link in root.links: Path {
-                        width: canvas.width; height: canvas.height;
-                        viewbox-width: canvas.width / 1px; viewbox-height: canvas.height / 1px;
-                        stroke: !link.enabled ? #586473 : link.highlight ? Theme.mint : #4f7493;
-                        stroke-width: link.highlight ? 3px : 2px;
-                        MoveTo { x: link.ax * root.zoom + root.pan-x / 1px; y: link.ay * root.zoom + root.pan-y / 1px; }
-                        LineTo { x: link.bx * root.zoom + root.pan-x / 1px; y: link.by * root.zoom + root.pan-y / 1px; }
-                    }
-                    for link in root.links: Rectangle {
-                        x: (link.ax + link.bx) / 2 * root.zoom * 1px + root.pan-x - 12px;
-                        y: (link.ay + link.by) / 2 * root.zoom * 1px + root.pan-y - 12px;
-                        width: 24px; height: 24px; border-radius: 12px;
-                        background: link-touch.has-hover ? #365249 : #152434;
-                        border-color: link.enabled ? #5a7c91 : #be8e70; border-width: 1px;
-                        Text { text: link.enabled ? "•" : "×"; color: link.enabled ? Theme.mint : Theme.amber; font-size: 15px; horizontal-alignment: center; vertical-alignment: center; }
-                        accessible-role: button;
-                        accessible-label: (link.enabled ? "Disable " : "Enable ") + link.label;
-                        accessible-action-default => { root.toggle-link(link.id); }
-                        link-touch := TouchArea { mouse-cursor: pointer; clicked => { root.toggle-link(link.id); } }
-                    }
-
-                    for node in root.nodes: Rectangle {
-                        x: node.x * root.zoom * 1px + root.pan-x;
-                        y: node.y * root.zoom * 1px + root.pan-y;
-                        width: Geometry.card-width * 1px * root.zoom; height: Geometry.card-height * 1px * root.zoom;
-                        border-radius: 10px * root.zoom;
-                        background: node.selected ? #1d3440 : #172534;
-                        border-width: node.selected ? 2px : 1px;
-                        border-color: node.selected ? Theme.mint : #365068;
-                        drop-shadow-blur: 12px; drop-shadow-offset-y: 4px; drop-shadow-color: #00000055;
-                        opacity: node.enabled ? 1 : 0.55;
-                        accessible-role: button;
-                        accessible-label: node.title + ", " + node.address;
-                        accessible-description: "Arrows to move, Enter to connect, Delete to remove.";
-                        accessible-action-default => { root.select-node(node.id); }
-                        forward-focus: node-focus;
-                        DeviceIcon { x: 12px * root.zoom; y: 13px * root.zoom; width: 27px * root.zoom; height: 25px * root.zoom; switch-kind: node.kind == "switch"; tint: node.kind == "switch" ? Theme.blue : Theme.mint; }
-                        Text { x: 47px * root.zoom; y: 14px * root.zoom; width: 101px * root.zoom; text: node.title; overflow: elide; font-size: 13px * root.zoom; font-weight: 600; color: Theme.ink; }
-                        Text { x: 47px * root.zoom; y: 33px * root.zoom; text: node.kind == "switch" ? "SWITCH L2" : "HOST"; font-size: 8px * root.zoom; font-weight: 600; color: Theme.muted; letter-spacing: 1px * root.zoom; }
-                        Rectangle { x: 12px * root.zoom; y: 53px * root.zoom; width: 136px * root.zoom; height: 1px; background: #2b4153; }
-                        if node.kind != "switch": Text { x: 12px * root.zoom; y: 66px * root.zoom; width: 94px * root.zoom; text: node.address; overflow: elide; color: Theme.muted; font-size: 10px * root.zoom; }
-                        // Front panel: one light per port, lit while a frame passes.
-                        for i in node.port-count: Rectangle {
-                            property <bool> connected: Math.mod(Math.floor(node.connected-ports / Math.pow(2, i)), 2) == 1;
-                            property <bool> down: Math.mod(Math.floor(node.down-ports / Math.pow(2, i)), 2) == 1;
-                            property <bool> active: Math.mod(Math.floor(node.active-ports / Math.pow(2, i)), 2) == 1;
-                            x: (node.kind == "switch" ? 12 + 14 * i : 112) * 1px * root.zoom;
-                            y: 69px * root.zoom;
-                            width: 11px * root.zoom; height: 8px * root.zoom;
-                            border-radius: 2px * root.zoom;
-                            background: self.active ? Theme.mint : !self.connected ? #0d1520 : self.down ? #4a3b2a : #2f5f7f;
-                            border-width: 1px;
-                            border-color: self.active ? #d8fff1 : !self.connected ? #3a4d60 : self.down ? Theme.amber : #5d9cc4;
-                        }
-                        node-focus := FocusScope {
-                            focus-on-tab-navigation: true;
-                            focus-gained(reason) => { root.select-node(node.id); }
-                            key-pressed(e) => {
-                                if e.text == Key.LeftArrow { root.move-node(node.id, node.x - 10, node.y); return accept; }
-                                if e.text == Key.RightArrow { root.move-node(node.id, node.x + 10, node.y); return accept; }
-                                if e.text == Key.UpArrow { root.move-node(node.id, node.x, node.y - 10); return accept; }
-                                if e.text == Key.DownArrow { root.move-node(node.id, node.x, node.y + 10); return accept; }
-                                if e.text == Key.Delete { root.delete-selected(); return accept; }
-                                if e.text == "\n" { root.link-node(node.id); return accept; }
-                                return reject;
-                            }
-                        }
-                        node-drag := TouchArea {
-                            mouse-cursor: move;
-                            pointer-event(e) => {
-                                if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
-                                    root.select-node(node.id);
-                                    node-focus.focus();
-                                    root.drag-offset-x = self.mouse-x;
-                                    root.drag-offset-y = self.mouse-y;
-                                }
-                            }
-                            moved => {
-                                if self.pressed {
-                                    root.move-node(node.id,
-                                        (self.absolute-position.x + self.mouse-x - canvas.absolute-position.x - root.pan-x - root.drag-offset-x) / (root.zoom * 1px),
-                                        (self.absolute-position.y + self.mouse-y - canvas.absolute-position.y - root.pan-y - root.drag-offset-y) / (root.zoom * 1px));
-                                }
-                            }
-                        }
-                        Rectangle {
-                            x: 128px * root.zoom; y: 62px * root.zoom;
-                            width: 23px * root.zoom; height: 23px * root.zoom;
-                            border-radius: 6px * root.zoom;
-                            background: root.link-source-id == node.id ? Theme.mint : port.has-hover ? #305747 : #253f40;
-                            border-color: Theme.mint; border-width: 1px;
-                            Text { text: "+"; color: root.link-source-id == node.id ? #16382a : Theme.mint; font-size: 17px * root.zoom; horizontal-alignment: center; vertical-alignment: center; }
-                            accessible-role: button;
-                            accessible-label: "Connect " + node.title;
-                            accessible-action-default => { root.link-node(node.id); }
-                            port := TouchArea { mouse-cursor: pointer; clicked => { root.link-node(node.id); } }
-                        }
-                    }
-                    // Switch port numbers where cables meet the cards.
-                    for link in root.links: Rectangle {
-                        visible: link.a-port != "";
-                        x: link.ax * root.zoom * 1px + root.pan-x - 8px;
-                        y: link.ay * root.zoom * 1px + root.pan-y - 8px;
-                        width: 16px; height: 16px; border-radius: 8px;
-                        background: #101a26; border-width: 1px; border-color: link.highlight ? Theme.mint : #5d9cc4;
-                        Text { text: link.a-port; color: Theme.ink; font-size: 9px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
-                    }
-                    for link in root.links: Rectangle {
-                        visible: link.b-port != "";
-                        x: link.bx * root.zoom * 1px + root.pan-x - 8px;
-                        y: link.by * root.zoom * 1px + root.pan-y - 8px;
-                        width: 16px; height: 16px; border-radius: 8px;
-                        background: #101a26; border-width: 1px; border-color: link.highlight ? Theme.mint : #5d9cc4;
-                        Text { text: link.b-port; color: Theme.ink; font-size: 9px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
-                    }
-
-                    // Frames on the cables: a trail shows where they come from.
-                    for packet in root.packets: Path {
-                        width: canvas.width; height: canvas.height;
-                        viewbox-width: canvas.width / 1px; viewbox-height: canvas.height / 1px;
-                        stroke: packet.protocol == "ARP" ? #f1c47b99 : #7ce3c099;
-                        stroke-width: 4px;
-                        MoveTo { x: packet.tail-x * root.zoom + root.pan-x / 1px; y: packet.tail-y * root.zoom + root.pan-y / 1px; }
-                        LineTo { x: packet.x * root.zoom + root.pan-x / 1px; y: packet.y * root.zoom + root.pan-y / 1px; }
-                    }
-                    for packet in root.packets: Rectangle {
-                        property <color> tint: packet.protocol == "ARP" ? Theme.amber : Theme.mint;
-                        x: packet.x * root.zoom * 1px + root.pan-x - self.width / 2;
-                        y: packet.y * root.zoom * 1px + root.pan-y - self.height / 2;
-                        width: packet-label.preferred-width + 14px; height: 18px;
-                        border-radius: 9px;
-                        background: self.tint;
-                        border-width: packet.selected ? 2px : 0px;
-                        border-color: #ffffff;
-                        drop-shadow-blur: 6px; drop-shadow-color: #00000088;
-                        // Broadcast frames carry a ring.
-                        if packet.broadcast: Rectangle {
-                            x: -4px; y: -4px; width: parent.width + 8px; height: parent.height + 8px;
-                            border-radius: 13px; border-width: 1.5px; border-color: parent.tint; background: transparent;
-                        }
-                        packet-label := Text { text: packet.label; color: #10231e; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
-                        accessible-role: button;
-                        accessible-label: "Packet: " + packet.description;
-                        accessible-action-default => { root.select-frame(packet.pdu); }
-                        TouchArea { mouse-cursor: pointer; clicked => { root.select-frame(packet.pdu); } }
-                    }
-                    for marker in root.markers: Rectangle {
-                        property <color> tint: marker.tone == "learn" ? Theme.blue : marker.tone == "forward" ? Theme.mint
-                            : marker.tone == "wait" ? Theme.amber : marker.tone == "drop" ? Theme.red
-                            : marker.tone == "success" ? Theme.mint : marker.tone == "edit" ? Theme.blue
-                            : marker.tone == "guard" ? Theme.violet : Theme.muted;
-                        x: marker.x * root.zoom * 1px + root.pan-x - self.width / 2;
-                        y: marker.y * root.zoom * 1px + root.pan-y - 24px - marker.stack * 22px;
-                        width: marker-text.preferred-width + 14px; height: 19px;
-                        border-radius: 5px;
-                        opacity: marker.opacity;
-                        background: marker.tone == "success" ? #1d4a3c : marker.tone == "drop" ? #4a2228
-                            : marker.tone == "guard" ? #2f2346 : #142131;
-                        border-width: 1px; border-color: self.tint;
-                        marker-text := Text { text: marker.text; color: marker.tone == "muted" ? Theme.muted : Theme.ink; font-size: 10px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
-                    }
-
-                    if root.nodes.length == 0: VerticalLayout {
-                        padding: 60px; alignment: center; spacing: 12px;
-                        Text { text: "A network starts\nwith a connection."; color: Theme.ink; font-size: 28px; font-weight: 600; horizontal-alignment: center; }
-                        Text { text: "Add a host or a switch from the panel on the left."; color: Theme.muted; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; }
-                    }
-                    Rectangle {
-                        x: 16px; y: 14px; width: note.preferred-width + 24px; height: 28px;
-                        background: root.link-source-id >= 0 ? #234438 : #121e2b;
-                        border-radius: 6px;
-                        note := Text {
-                            text: root.link-source-id >= 0 ? "Connecting: press + on the second device" : "Drag the background · Wheel to zoom · + to connect";
-                            color: root.link-source-id >= 0 ? Theme.mint : Theme.muted;
-                            font-size: 10px; horizontal-alignment: center; vertical-alignment: center;
-                        }
-                    }
-                    // Simulated clock: the instant the canvas shows.
-                    Rectangle {
-                        x: parent.width - self.width - 16px; y: 14px;
-                        width: clock.preferred-width + 24px; height: 28px;
-                        background: #121e2b; border-radius: 6px;
-                        border-width: 1px; border-color: root.running ? #42655e : transparent;
-                        clock := Text {
-                            text: "t = " + root.sim-clock + (root.running ? "  ▷ " + root.speed-label : "");
-                            color: root.running ? Theme.mint : Theme.muted;
-                            font-size: 11px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center;
-                        }
-                        accessible-role: text;
-                        accessible-label: "Simulated time " + root.sim-clock;
-                    }
-                }
-                Rectangle {
-                    height: 59px; background: #111c29;
-                    HorizontalLayout {
-                        padding: 12px; spacing: 8px;
-                        Text { text: "PING"; color: Theme.mint; font-weight: 600; font-size: 10px; vertical-alignment: center; }
-                        LineEdit { width: 144px; text <=> root.target-ip; placeholder-text: "Destination IPv4"; accessible-label: "Destination IPv4"; }
-                        Text { text: "×"; color: Theme.muted; font-size: 11px; vertical-alignment: center; }
-                        LineEdit { width: 52px; text <=> root.ping-count; placeholder-text: "1"; accessible-label: "Echo Requests per ping"; }
-                        Action { text: "Send"; primary: true; enabled: root.selected-kind == "host"; clicked => { root.ping(); } }
-                        Rectangle { horizontal-stretch: 1; }
-                        Action { text: root.speed-label; accessible-text: "Playback speed"; width: 48px; clicked => { root.cycle-speed(); } }
-                        Action { text: "Step →"; enabled: root.has-pending && !root.running; clicked => { root.step(); } }
-                        Action { text: root.running ? "Ⅱ Pause" : "▷ Run"; enabled: root.has-pending; clicked => { root.run-toggle(); } }
-                        Action { text: "Reset"; quiet: true; clicked => { root.reset(); } }
-                    }
-                }
-            }
-            Rectangle { width: 1px; background: Theme.line; }
-
-            Rectangle {
-                width: 272px; background: Theme.panel;
-                VerticalLayout {
-                    padding: 0px; spacing: 0px;
-                    Rectangle {
-                        height: 54px;
-                        HorizontalLayout {
-                            padding: 18px;
-                            Text { text: "Inspector"; color: Theme.ink; font-size: 13px; font-weight: 600; }
-                            Rectangle { horizontal-stretch: 1; }
-                            Text { text: root.selected-id < 0 ? "—" : "#" + root.selected-id; color: Theme.muted; font-size: 11px; }
-                        }
-                    }
-                    ScrollView {
-                        content-width: self.visible-width;
-                        horizontal-scrollbar-policy: always-off;
-                        VerticalLayout {
-                            padding-left: 18px; padding-right: 18px; padding-bottom: 18px; spacing: 10px; alignment: start;
-                            if root.selected-id < 0: Text { text: "Select a device\nto explore its configuration\nand the network state."; color: Theme.muted; font-size: 12px; wrap: word-wrap; height: 75px; }
-                            if root.selected-id >= 0: VerticalLayout {
-                                spacing: 9px;
-                                Caption { text: root.selected-kind == "switch" ? "ETHERNET SWITCH" : "IPv4 HOST"; height: 22px; }
-                                Text { text: "Name"; color: Theme.muted; font-size: 11px; }
-                                LineEdit { text <=> root.edit-name; placeholder-text: "Device name"; accessible-label: "Name"; }
-                                if root.selected-kind == "host": VerticalLayout {
-                                    spacing: 9px;
-                                    Text { text: "IPv4 address"; color: Theme.muted; font-size: 11px; }
-                                    LineEdit { text <=> root.edit-ip; placeholder-text: "192.168.1.10"; accessible-label: "IPv4 address"; }
-                                    Text { text: "Prefix length (CIDR)"; color: Theme.muted; font-size: 11px; }
-                                    LineEdit { text <=> root.edit-prefix; placeholder-text: "24"; accessible-label: "Prefix length"; }
-                                }
-                                Action { text: "Apply configuration"; clicked => { root.apply-node(root.edit-name, root.edit-ip, root.edit-prefix); } }
-                                Text { text: "MAC  " + root.selected-mac; color: Theme.muted; font-size: 10px; overflow: elide; height: 23px; }
-                                Rectangle { height: 1px; background: Theme.line; }
-                                Caption { text: "DEVICE STATE"; height: 20px; }
-                                Text { text: root.selected-details; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
-                                HorizontalLayout {
-                                    spacing: 6px;
-                                    Action { text: root.selected-enabled ? "Power off" : "Power on"; clicked => { root.toggle-power(); } }
-                                    Action { text: "Delete device"; danger: true; quiet: true; clicked => { root.delete-selected(); } }
-                                }
-                            }
-                            Rectangle { height: 1px; background: Theme.line; }
-                            Caption { text: "LINKS  /  " + root.links.length; height: 24px; }
-                            if root.links.length == 0: Text { text: "Press + on two devices\nto connect their free ports."; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
-                            for link in root.links: VerticalLayout {
-                                spacing: 5px;
-                                Text { text: link.label; color: Theme.ink; font-size: 10px; overflow: elide; }
-                                HorizontalLayout {
-                                    spacing: 5px;
-                                    Action { text: link.enabled ? "● Up" : "○ Down"; clicked => { root.toggle-link(link.id); } }
-                                    Action { text: "×"; width: 33px; danger: true; clicked => { root.remove-link(link.id); } }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Rectangle { height: 1px; background: Theme.line; }
-        Rectangle {
-            height: 220px; background: Theme.panel;
-            HorizontalLayout {
-                spacing: 0px;
-                VerticalLayout {
-                    horizontal-stretch: 58; min-width: 300px; preferred-width: 440px; spacing: 0px;
-                    Rectangle {
-                        height: 43px; background: #15202d;
-                        HorizontalLayout {
-                            padding-left: 22px; padding-right: 20px; spacing: 12px;
-                            Text { text: "Event sequence"; color: Theme.ink; font-weight: 600; font-size: 12px; vertical-alignment: center; }
-                            Text { text: root.event-count + " events"; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
-                            Rectangle { horizontal-stretch: 1; }
-                            Text { text: "SIMULATED TIME"; color: Theme.muted; font-size: 9px; vertical-alignment: center; }
-                        }
-                    }
-                    Rectangle {
-                        accessible-role: list;
-                        accessible-label: "Event list";
-                        // ListView only instantiates the visible rows.
-                        event-list := ListView {
-                            horizontal-scrollbar-policy: always-off;
-                            // The virtualized content height settles only after layout,
-                            // so a new last row can be revealed only once it has grown.
-                            changed content-height => { if root.follow-events { root.reveal-event(root.selected-event); } }
-                            for trace in root.traces: Rectangle {
-                                height: root.trace-row-height;
-                                Rectangle {
-                                    x: 7px; y: 1px; width: parent.width - 14px; height: parent.height - 2px;
-                                    border-radius: 5px;
-                                    background: root.selected-event == trace.index ? #243b43 : trace-touch.has-hover ? #1c2a3b : transparent;
-                                    HorizontalLayout {
-                                        padding-left: 12px; padding-right: 12px; spacing: 12px;
-                                        Text { text: trace.time; color: Theme.muted; font-size: 10px; width: 73px; vertical-alignment: center; }
-                                        Text { text: trace.protocol; color: trace.protocol == "ARP" ? Theme.amber : trace.protocol == "ICMP" ? Theme.mint : trace.protocol == "SIMULATOR" ? Theme.violet : Theme.blue; font-size: 10px; font-weight: 600; width: 68px; vertical-alignment: center; }
-                                        Text { text: trace.summary; color: Theme.ink; font-size: 11px; overflow: elide; vertical-alignment: center; }
-                                    }
-                                }
-                                accessible-role: button;
-                                accessible-label: trace.protocol + ": " + trace.summary;
-                                accessible-action-default => { root.select-event(trace.index); }
-                                forward-focus: trace-focus;
-                                trace-focus := FocusScope {
-                                    focus-on-tab-navigation: true;
-                                    focus-gained(reason) => { root.select-event(trace.index); }
-                                    key-pressed(e) => { if e.text == " " || e.text == "\n" { root.select-event(trace.index); return accept; } return reject; }
-                                }
-                                trace-touch := TouchArea { mouse-cursor: pointer; clicked => { trace-focus.focus(); root.select-event(trace.index); } }
-                            }
-                        }
-                        if root.traces.length == 0: Text { text: "The next experiment starts with a ping. Events will appear here."; color: Theme.muted; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; wrap: word-wrap; }
-                    }
-                }
-                Rectangle { width: 1px; background: Theme.line; }
-                Rectangle {
-                    // Explicit sizes on both sides: the split must not move as events arrive.
-                    horizontal-stretch: 42; min-width: 320px; preferred-width: 320px;
-                    VerticalLayout {
-                        padding: 20px; spacing: 10px;
-                        Caption {
-                            text: root.event-protocol == "" ? "SEE WHY" : root.event-protocol == "EDIT" ? "A CHANGE TO THE NETWORK"
-                                : root.event-protocol == "SIMULATOR" ? "THE SIMULATOR STEPPED IN" : "INSIDE THE PACKET  /  " + root.event-protocol;
-                        }
-                        Text { text: root.event-title == "" ? "Every step has an explanation." : root.event-title; color: Theme.ink; font-size: 16px; font-weight: 600; wrap: word-wrap; }
-                        ScrollView {
-                            vertical-stretch: 1;
-                            content-width: self.visible-width;
-                            horizontal-scrollbar-policy: always-off;
-                            VerticalLayout {
-                                alignment: start;
-                                spacing: 8px;
-                                Text {
-                                    text: root.event-detail == "" ? "Select an event to follow the addresses, the switch decisions and the exchanges between hosts. Change a configuration and see what happens." : root.event-detail;
-                                    color: Theme.muted; font-size: 12px; wrap: word-wrap;
-                                }
-                                if root.frame-layers != "": Caption { text: "FRAME, LAYER BY LAYER"; }
-                                if root.frame-layers != "": Text {
-                                    text: root.frame-layers;
-                                    color: Theme.ink; font-size: 11px; wrap: word-wrap;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Rectangle { height: 1px; background: Theme.line; }
-        Rectangle {
-            height: 32px; background: #0e1722;
-            HorizontalLayout {
-                padding-left: 20px; padding-right: 20px; spacing: 12px;
-                Text { text: root.running ? "● RUNNING" : root.has-pending ? "● PAUSED" : "● READY"; color: Theme.mint; font-size: 9px; font-weight: 600; vertical-alignment: center; }
-                Text { text: root.status-text; color: Theme.muted; font-size: 10px; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
-                Text { text: "resend  /  " + root.version; color: Theme.muted; font-size: 9px; vertical-alignment: center; }
-            }
-        }
-    }
-
-    // Slint's Royalty-free license asks for the AboutSlint widget in an
-    // "About" screen reachable from the main window.
-    if root.show-about: Rectangle {
-        background: #000000b0;
-        TouchArea { clicked => { root.show-about = false; } }
-        Rectangle {
-            width: 380px;
-            height: about-layout.preferred-height;
-            border-radius: 12px;
-            border-width: 1px;
-            border-color: Theme.line;
-            background: Theme.panel;
-            accessible-role: groupbox;
-            accessible-label: "About resend";
-            // Clicks on the card must not reach the backdrop, which closes it.
-            TouchArea { }
-            about-layout := VerticalLayout {
-                padding: 24px;
-                spacing: 10px;
-                Text { text: "resend"; color: Theme.ink; font-size: 22px; font-weight: 700; }
-                Text { text: "Version " + root.version + " · a local network sandbox with Ethernet, ARP, IPv4 and ICMP."; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
-                Text { text: "© 2026 Zayd Soulmani · MIT License"; color: Theme.ink; font-size: 12px; }
-                Text { text: "The interface uses Slint under the Royalty-free License 2.0."; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
-                AboutSlint { }
+                height: 48px;
+                background: Theme.panel;
                 HorizontalLayout {
-                    alignment: end;
-                    Action { text: "Close"; clicked => { root.show-about = false; } }
+                    padding-left: 18px; padding-right: 14px; spacing: 12px;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: 28px; height: 28px; border-radius: 8px; background: Theme.mint;
+                            Rectangle { x: 6px; y: 7px; width: 5px; height: 5px; background: #15352a; border-radius: 2px; }
+                            Rectangle { x: 17px; y: 16px; width: 5px; height: 5px; background: #15352a; border-radius: 2px; }
+                            Path { width: 28px; height: 28px; stroke: #15352a; stroke-width: 2px; MoveTo { x: 9; y: 11; } LineTo { x: 9; y: 18; } LineTo { x: 17; y: 18; } }
+                        }
+                    }
+                    Text { text: "resend"; color: Theme.ink; font-size: 19px; font-weight: 700; vertical-alignment: center; }
+                    VerticalLayout { alignment: center; Rectangle { width: 1px; height: 22px; background: Theme.line; } }
+                    Text {
+                        text: UiApp.document + (UiApp.modified ? "  •" : "");
+                        color: Theme.ink; font-size: 13px; vertical-alignment: center; overflow: elide;
+                        accessible-role: text;
+                        accessible-label: UiApp.modified ? @tr("{0}, not saved", UiApp.document) : UiApp.document;
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                    VerticalLayout {
+                        alignment: center;
+                        Action { text: "↶"; accessible-text: UiApp.undo-text; small: true; width: 34px; enabled: UiApp.can-undo; clicked => { UiApp.undo(); } }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        Action { text: "↷"; accessible-text: UiApp.redo-text; small: true; width: 34px; enabled: UiApp.can-redo; clicked => { UiApp.redo(); } }
+                    }
+                }
+            }
+            Divider { }
+
+            HorizontalLayout {
+                vertical-stretch: 1;
+                if UiApp.palette-open: PaletteView { width: 200px; fold => { UiApp.palette-open = false; } }
+                if !UiApp.palette-open: FoldedPanel { text: @tr("Show the palette"); symbol: "›"; unfold => { UiApp.palette-open = true; } }
+                Rectangle { width: 1px; background: Theme.line; }
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    canvas := Canvas { vertical-stretch: 1; }
+                    // Ping and playback.
+                    Rectangle {
+                        height: 50px;
+                        background: #111c29;
+                        HorizontalLayout {
+                            padding: 9px; padding-left: 14px; spacing: 7px;
+                            Text { text: "PING"; color: Theme.mint; font-weight: 600; font-size: 10px; vertical-alignment: center; }
+                            // Narrower before the bar overflows, as in a longer language.
+                            LineEdit { min-width: 116px; max-width: 136px; horizontal-stretch: 1; text <=> UiRun.target; placeholder-text: @tr("Destination IPv4"); accessible-label: @tr("Destination IPv4"); accepted => { UiRun.ping(); } }
+                            Text { text: "×"; color: Theme.muted; font-size: 11px; vertical-alignment: center; }
+                            LineEdit { min-width: 40px; max-width: 50px; horizontal-stretch: 1; text <=> UiRun.count; placeholder-text: "1"; accessible-label: @tr("Echo Requests per ping"); accepted => { UiRun.ping(); } }
+                            Action { text: @tr("Send"); accessible-text: @tr("Send the ping"); primary: true; enabled: UiRun.can-ping; clicked => { UiRun.ping(); } }
+                            Rectangle { horizontal-stretch: 1; }
+                            Action { text: UiRun.speed-label; accessible-text: @tr("Playback speed"); width: 46px; clicked => { UiRun.cycle-speed(); } }
+                            Action { text: @tr("Step"); enabled: UiRun.pending && !UiRun.running; clicked => { UiRun.step(); } }
+                            Action {
+                                text: UiRun.running ? "Ⅱ " + @tr("Pause") : "▷ " + @tr("Run");
+                                accessible-text: UiRun.running ? @tr("Pause") : @tr("Run");
+                                enabled: UiRun.pending;
+                                clicked => { UiRun.run-toggle(); }
+                            }
+                            Action { text: @tr("Reset"); accessible-text: @tr("Reset the simulation"); quiet: true; clicked => { UiRun.reset(); } }
+                        }
+                    }
+                }
+
+                Rectangle { width: 1px; background: Theme.line; }
+                if UiApp.inspector-open: Inspector { width: 290px; fold => { UiApp.inspector-open = false; } }
+                if !UiApp.inspector-open: FoldedPanel { text: @tr("Show the inspector"); symbol: "‹"; unfold => { UiApp.inspector-open = true; } }
+            }
+
+            Divider { }
+            if UiApp.timeline-open: TimelinePanel { height: 250px; fold => { UiApp.timeline-open = false; } }
+            if !UiApp.timeline-open: Rectangle {
+                height: 30px;
+                background: Theme.panel;
+                HorizontalLayout {
+                    padding-left: 16px; padding-right: 8px; spacing: 10px;
+                    Text { text: @tr("Timeline"); color: Theme.ink; font-weight: 600; font-size: 12px; vertical-alignment: center; }
+                    Text { text: UiTimeline.title; color: Theme.muted; font-size: 11px; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
+                    VerticalLayout {
+                        alignment: center;
+                        Action { text: "⌃"; accessible-text: @tr("Show the timeline"); quiet: true; small: true; width: 28px; clicked => { UiApp.timeline-open = true; } }
+                    }
+                }
+            }
+            Divider { }
+            Rectangle {
+                height: 28px;
+                background: #0e1722;
+                HorizontalLayout {
+                    padding-left: 16px; padding-right: 16px; spacing: 12px;
+                    Text {
+                        text: UiRun.running ? @tr("● RUNNING") : UiRun.pending ? @tr("● PAUSED") : @tr("● READY");
+                        color: Theme.mint; font-size: 9px; font-weight: 600; vertical-alignment: center;
+                    }
+                    Text { text: UiApp.status; color: Theme.muted; font-size: 10px; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
+                    Text { text: "resend  /  " + UiApp.version; color: Theme.muted; font-size: 9px; vertical-alignment: center; }
                 }
             }
         }
     }
+
+    if UiApp.dialog == "open" || UiApp.dialog == "save": FileDialog { saving: UiApp.dialog == "save"; }
+    if UiApp.dialog == "confirm": ConfirmDialog { }
+    if UiApp.dialog == "about": AboutDialog { }
 }

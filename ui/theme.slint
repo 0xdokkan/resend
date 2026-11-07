@@ -1,0 +1,32 @@
+// Colours and sizes shared by every part of the window.
+
+export global Theme {
+    out property <color> base: #0c111b;
+    out property <color> panel: #111925;
+    out property <color> raised: #182333;
+    out property <color> sunken: #0e1722;
+    out property <color> line: #253244;
+    out property <color> ink: #e6edf6;
+    out property <color> muted: #91a2b8;
+    out property <color> mint: #7ce3c0;
+    out property <color> blue: #82b8fb;
+    out property <color> amber: #f1c47b;
+    out property <color> red: #f58f8f;
+    // The simulator's own interventions, never network behaviour.
+    out property <color> violet: #c6a8f8;
+    out property <color> canvas: #0d1520;
+    out property <color> hover: #253347;
+    out property <color> selection: #243b43;
+
+    // The colour of an event's or a packet's protocol.
+    public pure function protocol-color(protocol: string) -> color {
+        return protocol == "ARP" ? Theme.amber : protocol == "ICMP" ? Theme.mint : protocol == "SIMULATOR" ? Theme.violet : Theme.blue;
+    }
+}
+
+// Device card size in canvas units. C++ owns the values (src/app/scene.hpp)
+// and sets them at startup; the defaults only serve the live preview.
+export global Geometry {
+    in-out property <float> card-width: 160;
+    in-out property <float> card-height: 94;
+}

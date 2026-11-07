@@ -4,10 +4,22 @@
 
 #include <chrono>
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <vector>
 
 namespace resend {
+
+// What the playback drives: a simulation, or a workspace that also makes the
+// commands recorded for later instants when their time comes.
+class Timeline {
+public:
+    virtual ~Timeline() = default;
+    virtual const netsim::Simulation& simulation() const = 0;
+    virtual std::optional<netsim::SimTime> next_event_time() const = 0;
+    // Runs every event and command due at or before `time`, then moves the clock there.
+    virtual void run_until(netsim::SimTime time) = 0;
+};
 
 // Turns real time into simulated time for the animation. The simulation
 // never runs ahead of the instant on screen: it is advanced to the displayed
@@ -31,6 +43,7 @@ public:
         double progress;           // 0 at the sending port, towards 1 on arrival
     };
 
+    explicit PlaybackController(Timeline& timeline);
     explicit PlaybackController(netsim::Simulation& simulation);
 
     void play();
@@ -48,7 +61,7 @@ public:
     bool tick(RealTime elapsed);
 
     bool playing() const { return mode_ != Mode::Paused; }
-    bool finished() const { return !simulation_.next_event_time(); }
+    bool finished() const { return !timeline_.next_event_time(); }
     netsim::SimTime now() const { return view_; }
     double speed() const { return speed_; }
     void set_speed(double speed);
@@ -63,7 +76,9 @@ private:
     double rate_until(netsim::SimTime next);
     void end_of_step();
 
-    netsim::Simulation& simulation_;
+    // A simulation given on its own is wrapped here.
+    std::unique_ptr<Timeline> own_;
+    Timeline& timeline_;
     Mode mode_ = Mode::Paused;
     netsim::SimTime view_{};
     double speed_ = 1;

@@ -109,7 +109,8 @@ using Scheduled = std::variant<Delivery, Timer>;
 using TimerHandle = Scheduler<Scheduled>::Handle;
 
 // An edit made while the simulation ran. The device and cables it changed
-// are kept as they were before it, so that removed ones can still be named.
+// are kept as they were before it, so that removed ones can still be named;
+// for a restore, as they came back.
 struct EditEntry {
     SimTime time{};
     Edit edit;
@@ -146,6 +147,9 @@ public:
     // end, a device that is powered off or removed forgets everything it
     // learned and its pings end.
     Problem apply(const Edit& edit);
+    // The edit as apply() would make it: a new device or cable without an
+    // id gets the next one never used in this simulation.
+    Edit resolve(Edit edit) const;
     const std::vector<EditEntry>& edits() const { return edits_; }
     // A device of the scenario, or one an edit removed, as it was then.
     const DeviceConfig* known_device(DeviceId id) const;

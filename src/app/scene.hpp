@@ -27,9 +27,14 @@ constexpr float card_width = 160;
 constexpr float card_height = 94;
 constexpr int max_ports = 8;
 
+// Space above the cards for the decision chips, in canvas units.
+constexpr float marker_room = 40;
+
 Box card_box(const netsim::DeviceConfig& device);
 // The port light of `port` on the card's front panel, in canvas units.
 Box port_light(const netsim::DeviceConfig& device, int port);
+// The connector at the card's bottom right corner, which starts a cable.
+Box connector_box(const netsim::DeviceConfig& device);
 
 // A straight cable between two cards, from border to border, `gap` units
 // outside each card. Equal centres give a zero-length cable.
@@ -82,7 +87,5 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
 // Short packet label and full name of a frame kind.
 std::string packet_label(netsim::PduKind kind);
 std::string frame_name(netsim::PduKind kind);
-// The frame by layer, one line per header: Ethernet, then ARP or IPv4 and ICMP.
-std::string describe_layers(const netsim::EthernetFrame& frame);
 
 } // namespace resend

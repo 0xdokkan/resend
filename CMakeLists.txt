@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(resend VERSION 0.1.3 LANGUAGES CXX)
+project(resend VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,8 +18,20 @@ else()
     set(resend_warnings -Wall -Wextra -Wpedantic)
 endif()
 
+# Translations, built into the programs.
+set(resend_languages it)
+set(resend_catalogs ${resend_languages})
+list(TRANSFORM resend_catalogs REPLACE "(.+)" "${PROJECT_SOURCE_DIR}/translations/\\1/LC_MESSAGES/resend.po")
+string(REPLACE ";" "," resend_language_list "${resend_languages}")
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/catalogs_data.cpp
+    COMMAND ${CMAKE_COMMAND} -DTRANSLATIONS=${PROJECT_SOURCE_DIR}/translations -DLANGUAGES=${resend_language_list}
+        -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/catalogs_data.cpp -P ${PROJECT_SOURCE_DIR}/cmake/embed_catalogs.cmake
+    DEPENDS ${resend_catalogs} ${PROJECT_SOURCE_DIR}/cmake/embed_catalogs.cmake
+    COMMENT "Embedding the translations")
+
 add_library(resend_core
-    src/core/address.cpp src/core/json.cpp src/core/sim_time.cpp
+    src/core/address.cpp src/core/json.cpp src/core/sim_time.cpp src/core/text.cpp ${CMAKE_CURRENT_BINARY_DIR}/catalogs_data.cpp
     src/scenario/scenario.cpp src/scenario/edit.cpp src/scenario/scenario_json.cpp
     src/sim/simulation.cpp src/sim/medium.cpp src/sim/arp.cpp src/sim/ping_app.cpp
     src/sim/host.cpp src/sim/bridge.cpp
@@ -28,8 +40,20 @@ add_library(resend_core
 target_include_directories(resend_core PUBLIC src)
 target_compile_options(resend_core PRIVATE ${resend_warnings})
 
-# App logic without Slint: playback and what the canvas shows.
-add_library(resend_app src/app/playback.cpp src/app/scene.cpp)
+# The examples, built into the app in the order of its menu.
+set(resend_examples sample-lan.json two-switches.json office-floor.json unplugged.json mismatched-masks.json switch-loop.json)
+list(TRANSFORM resend_examples PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_VARIABLE resend_example_files)
+string(REPLACE ";" "," resend_example_list "${resend_examples}")
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/examples_data.cpp
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}/examples -DEXAMPLES=${resend_example_list}
+        -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/examples_data.cpp -P ${PROJECT_SOURCE_DIR}/cmake/embed_examples.cmake
+    DEPENDS ${resend_example_files} ${PROJECT_SOURCE_DIR}/cmake/embed_examples.cmake
+    COMMENT "Embedding the example scenarios")
+
+# App logic without Slint: the workspace, the canvas, playback and files.
+add_library(resend_app src/app/playback.cpp src/app/scene.cpp src/app/history.cpp src/app/workspace.cpp
+    src/app/canvas.cpp src/app/files.cpp src/app/timeline.cpp ${CMAKE_CURRENT_BINARY_DIR}/examples_data.cpp)
 target_link_libraries(resend_app PUBLIC resend_core)
 target_compile_options(resend_app PRIVATE ${resend_warnings})
 
@@ -70,6 +94,24 @@ if(BUILD_TESTING)
     target_link_libraries(resend-app-tests PRIVATE resend_app)
     target_compile_options(resend-app-tests PRIVATE ${resend_warnings})
     add_test(NAME app-logic COMMAND resend-app-tests)
+    add_executable(resend-workspace-tests tests/workspace_tests.cpp)
+    target_link_libraries(resend-workspace-tests PRIVATE resend_app)
+    target_compile_options(resend-workspace-tests PRIVATE ${resend_warnings})
+    add_test(NAME workspace COMMAND resend-workspace-tests)
+    add_executable(resend-canvas-tests tests/canvas_tests.cpp)
+    target_link_libraries(resend-canvas-tests PRIVATE resend_app)
+    target_compile_options(resend-canvas-tests PRIVATE ${resend_warnings})
+    add_test(NAME canvas COMMAND resend-canvas-tests)
+    add_executable(resend-files-tests tests/files_tests.cpp)
+    target_link_libraries(resend-files-tests PRIVATE resend_app)
+    target_compile_options(resend-files-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-files-tests PRIVATE RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples")
+    add_test(NAME files COMMAND resend-files-tests)
+    add_executable(resend-translation-tests tests/translation_tests.cpp)
+    target_link_libraries(resend-translation-tests PRIVATE resend_core)
+    target_compile_options(resend-translation-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-translation-tests PRIVATE RESEND_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME translations COMMAND resend-translation-tests)
     # The documented exit codes: 0 reachable, 1 unreachable, 2 invalid input.
     add_test(NAME cli-ping-reachable COMMAND resend-cli 192.168.1.20)
     add_test(NAME cli-ping-disconnected COMMAND resend-cli 192.168.1.20 --disconnect)
@@ -100,8 +142,16 @@ if(BUILD_TESTING)
     set_tests_properties(cli-power-off-destination PROPERTIES PASS_REGULAR_EXPRESSION "2 packets transmitted, 1 received")
     set_tests_properties(cli-stale-address PROPERTIES PASS_REGULAR_EXPRESSION "icmp_seq=1 ttl=64.*icmp_seq=2 lost: no Echo Reply")
     set_tests_properties(cli-switch-loop PROPERTIES PASS_REGULAR_EXPRESSION "Storm protection: the simulator stopped 3 frames")
-    # Wireshark's expert system checks the captures; skipped without tshark.
+    # Wireshark's expert system checks the captures, and its dissection the
+    # inspector's; skipped without tshark.
     find_program(TSHARK tshark)
+    add_executable(resend-dissect-tests tests/dissect_tshark.cpp)
+    target_link_libraries(resend-dissect-tests PRIVATE resend_core)
+    target_compile_options(resend-dissect-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-dissect-tests PRIVATE RESEND_EXAMPLES_DIR="${examples}"
+        RESEND_TSHARK="$<IF:$<BOOL:${TSHARK}>,${TSHARK},>")
+    add_test(NAME dissection-tshark COMMAND resend-dissect-tests)
+    set_tests_properties(dissection-tshark PROPERTIES SKIP_REGULAR_EXPRESSION "SKIPPED")
     add_test(NAME pcap-wireshark-expert COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:resend-cli> -DTSHARK=${TSHARK}
         -DEXAMPLES=${examples} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/captures -P ${PROJECT_SOURCE_DIR}/tests/pcap_expert.cmake)
     set_tests_properties(pcap-wireshark-expert PROPERTIES SKIP_REGULAR_EXPRESSION "SKIPPED")
@@ -139,9 +189,15 @@ if(RESEND_BUILD_GUI)
     endif()
 
     # Window, generated UI code and controller, shared by the app and its tests.
-    add_library(resend_ui STATIC src/app_controller.cpp)
+    add_library(resend_ui STATIC src/app_controller.cpp src/app_inspector.cpp src/app_documents.cpp)
     target_link_libraries(resend_ui PUBLIC resend_app Slint::Slint)
     target_compile_options(resend_ui PRIVATE ${resend_warnings})
+    # The interface's @tr() strings come from the same .po files as the C++
+    # texts (src/core/text.hpp), without a context per component.
+    set_target_properties(resend_ui PROPERTIES
+        SLINT_BUNDLE_TRANSLATIONS "${PROJECT_SOURCE_DIR}/translations"
+        SLINT_TRANSLATION_DOMAIN resend
+        SLINT_NO_DEFAULT_TRANSLATION_CONTEXT ON)
     slint_target_sources(resend_ui ui/app.slint COMPILATION_UNITS ${RESEND_SLINT_COMPILATION_UNITS})
     target_compile_definitions(resend_ui PRIVATE RESEND_VERSION="${PROJECT_VERSION}")
 

@@ -1,0 +1,418 @@
+import { Theme, Geometry } from "theme.slint";
+import { Action, DeviceIcon } from "widgets.slint";
+
+// A device card. Positions are canvas units; port bit masks have bit i for
+// port i + 1.
+export struct NodeView {
+    id: int, title: string, kind: string, address: string,
+    x: float, y: float, selected: bool, powered: bool,
+    port-count: int, connected-ports: int, down-ports: int, active-ports: int,
+}
+// A cable, for its port numbers and for screen readers; the window draws
+// cables from the paths of UiCanvas. Ends are on the card borders.
+export struct LinkView {
+    id: int, label: string, ax: float, ay: float, bx: float, by: float,
+    up: bool, a-port: string, b-port: string,
+}
+// A frame on a cable at the displayed instant, in canvas units.
+export struct PacketView {
+    pdu: int, x: float, y: float, tail-x: float, tail-y: float,
+    protocol: string, label: string, broadcast: bool, selected: bool, description: string,
+}
+// A device decision; x, y is the top centre of its card, stack counts upwards.
+export struct MarkerView {
+    x: float, y: float, stack: int, text: string, tone: string, opacity: float,
+}
+
+// The canvas, drawn from what C++ computes (src/app/canvas.hpp). Pointer and
+// key input go to C++ in logical pixels of the canvas.
+export global UiCanvas {
+    in property <[NodeView]> nodes;
+    in property <[LinkView]> links;
+    in property <[PacketView]> packets;
+    in property <[MarkerView]> markers;
+    // screen = canvas × zoom + pan
+    in property <float> zoom: 1;
+    in property <float> pan-x: 40;
+    in property <float> pan-y: 60;
+    // Cards show only their icon and name.
+    in property <bool> compact;
+    // SVG path commands in pixels of the canvas.
+    in property <string> cables-up;
+    in property <string> cables-down;
+    in property <string> cables-highlight;
+    in property <string> cable-selected;
+    in property <string> rubber-band;
+    // What lies under the pointer: a device, and its port (-1 for the
+    // connector, -2 for the card itself).
+    in property <int> hover-device: -1;
+    in property <int> hover-port: -2;
+    // The device a cable is being drawn from.
+    in property <int> source-device: -1;
+    in property <string> hint;
+    in property <string> clock;
+    in property <bool> running;
+    in property <string> speed-label;
+    in property <bool> panning;
+
+    callback resized(float, float);
+    // Buttons: 0 left, 1 middle, 2 right.
+    callback press(float, float, int);
+    callback moved(float, float);
+    callback release(float, float);
+    callback wheel(float, float, float);
+    // Keys by name: "left", "right", "up", "down", "delete", "escape",
+    // "enter", "zoom-in", "zoom-out", "fit". True if it was used.
+    callback key(string, bool) -> bool;
+    callback select-device(int);
+    callback select-cable(int);
+    callback connector(int);
+    callback select-frame(int);
+    callback zoom-by(float);
+    callback reset-zoom();
+    callback fit();
+}
+
+// One port light on a card's front panel.
+component PortLight inherits Rectangle {
+    in property <bool> connected;
+    in property <bool> down;
+    in property <bool> active;
+    in property <bool> hovered;
+    border-radius: 2px * UiCanvas.zoom;
+    background: self.active ? Theme.mint : !self.connected ? #0d1520 : self.down ? #4a3b2a : #2f5f7f;
+    border-width: self.hovered ? 2px : 1px;
+    border-color: self.hovered ? Theme.ink : self.active ? #d8fff1 : !self.connected ? #3a4d60 : self.down ? Theme.amber : #5d9cc4;
+}
+
+component Card inherits Rectangle {
+    in property <NodeView> node;
+    property <float> zoom: UiCanvas.zoom;
+    property <bool> switch-kind: root.node.kind == "switch";
+    x: (root.node.x * root.zoom + UiCanvas.pan-x) * 1px;
+    y: (root.node.y * root.zoom + UiCanvas.pan-y) * 1px;
+    width: Geometry.card-width * 1px * root.zoom;
+    height: Geometry.card-height * 1px * root.zoom;
+    border-radius: 10px * root.zoom;
+    background: root.node.selected ? #1d3440 : UiCanvas.hover-device == root.node.id && UiCanvas.hover-port == -2 ? #1b2c3c : #172534;
+    border-width: root.node.selected || UiCanvas.source-device == root.node.id ? 2px : 1px;
+    border-color: root.node.selected ? Theme.mint : UiCanvas.source-device == root.node.id ? Theme.amber : #365068;
+    drop-shadow-blur: 12px;
+    drop-shadow-offset-y: 4px;
+    drop-shadow-color: #00000055;
+    opacity: root.node.powered ? 1 : 0.55;
+    accessible-role: button;
+    accessible-label: root.node.title + ", " + root.node.address;
+    accessible-description: @tr("Arrows to move, Enter to connect, Delete to remove.");
+    accessible-action-default => { UiCanvas.select-device(root.node.id); }
+    forward-focus: card-focus;
+
+    DeviceIcon {
+        x: 12px * root.zoom; y: (UiCanvas.compact ? 16px : 13px) * root.zoom;
+        width: 27px * root.zoom; height: 25px * root.zoom;
+        switch-kind: root.switch-kind;
+        tint: root.switch-kind ? Theme.blue : Theme.mint;
+    }
+    // Small cards keep a readable name, under the icon across the card.
+    Text {
+        x: (UiCanvas.compact ? 12px : 47px) * root.zoom; y: (UiCanvas.compact ? 50px : 14px) * root.zoom;
+        width: (UiCanvas.compact ? 136px : 105px) * root.zoom;
+        text: root.node.title;
+        overflow: elide;
+        font-size: (UiCanvas.compact ? 18px : 13px) * root.zoom;
+        font-weight: 600;
+        color: Theme.ink;
+    }
+    if !UiCanvas.compact: Text {
+        x: 47px * root.zoom; y: 33px * root.zoom;
+        text: root.switch-kind ? @tr("SWITCH L2") : @tr("HOST");
+        font-size: 8px * root.zoom; font-weight: 600; color: Theme.muted; letter-spacing: 1px * root.zoom;
+    }
+    if !UiCanvas.compact: Rectangle { x: 12px * root.zoom; y: 53px * root.zoom; width: 136px * root.zoom; height: 1px; background: #2b4153; }
+    if !UiCanvas.compact && !root.switch-kind: Text {
+        x: 12px * root.zoom; y: 66px * root.zoom; width: 94px * root.zoom;
+        text: root.node.address; overflow: elide; color: Theme.muted; font-size: 10px * root.zoom;
+    }
+    // Front panel: one light per port, lit while a frame passes. A cable
+    // starts from a light; C++ hit-tests the same boxes (scene.cpp).
+    if !UiCanvas.compact: Rectangle {
+        for i in root.node.port-count: PortLight {
+            x: (root.switch-kind ? 12 + 14 * i : 112) * 1px * root.zoom;
+            y: 69px * root.zoom;
+            width: 11px * root.zoom; height: 8px * root.zoom;
+            connected: Math.mod(Math.floor(root.node.connected-ports / Math.pow(2, i)), 2) == 1;
+            down: Math.mod(Math.floor(root.node.down-ports / Math.pow(2, i)), 2) == 1;
+            active: Math.mod(Math.floor(root.node.active-ports / Math.pow(2, i)), 2) == 1;
+            hovered: UiCanvas.hover-device == root.node.id && UiCanvas.hover-port == i;
+        }
+    }
+    // The connector takes the first free port.
+    Rectangle {
+        x: 128px * root.zoom; y: 62px * root.zoom;
+        width: 23px * root.zoom; height: 23px * root.zoom;
+        border-radius: 6px * root.zoom;
+        opacity: UiCanvas.compact ? 0 : 1;
+        background: UiCanvas.source-device == root.node.id ? Theme.mint
+            : UiCanvas.hover-device == root.node.id && UiCanvas.hover-port == -1 ? #305747 : #253f40;
+        border-color: Theme.mint;
+        border-width: 1px;
+        Text {
+            text: "+";
+            color: UiCanvas.source-device == root.node.id ? #16382a : Theme.mint;
+            font-size: 17px * root.zoom;
+            horizontal-alignment: center; vertical-alignment: center;
+        }
+        accessible-role: button;
+        accessible-label: @tr("Connect {0}", root.node.title);
+        accessible-action-default => { UiCanvas.connector(root.node.id); }
+    }
+    card-focus := FocusScope {
+        focus-on-tab-navigation: true;
+        focus-gained(reason) => {
+            if reason == FocusReason.tab-navigation { UiCanvas.select-device(root.node.id); }
+        }
+        key-pressed(e) => {
+            if e.modifiers.control || e.modifiers.meta || e.modifiers.alt { return reject; }
+            if e.text == Key.LeftArrow { return UiCanvas.key("left", e.modifiers.shift) ? accept : reject; }
+            if e.text == Key.RightArrow { return UiCanvas.key("right", e.modifiers.shift) ? accept : reject; }
+            if e.text == Key.UpArrow { return UiCanvas.key("up", e.modifiers.shift) ? accept : reject; }
+            if e.text == Key.DownArrow { return UiCanvas.key("down", e.modifiers.shift) ? accept : reject; }
+            if e.text == Key.Delete || e.text == Key.Backspace { return UiCanvas.key("delete", false) ? accept : reject; }
+            if e.text == Key.Escape { return UiCanvas.key("escape", false) ? accept : reject; }
+            if e.text == "\n" || e.text == Key.Return { return UiCanvas.key("enter", false) ? accept : reject; }
+            return reject;
+        }
+    }
+}
+
+export component Canvas inherits Rectangle {
+    // Gives the keyboard to the canvas, e.g. after a click on it.
+    public function take-focus() { canvas-focus.focus(); }
+
+    background: Theme.canvas;
+    clip: true;
+    accessible-role: groupbox;
+    accessible-label: @tr("Network topology");
+    changed width => { UiCanvas.resized(self.width / 1px, self.height / 1px); }
+    changed height => { UiCanvas.resized(self.width / 1px, self.height / 1px); }
+    init => { UiCanvas.resized(self.width / 1px, self.height / 1px); }
+
+    property <length> grid: 28px * UiCanvas.zoom;
+    for gx in Math.ceil(root.width / root.grid) + 1: Rectangle {
+        x: Math.mod(gx * root.grid + UiCanvas.pan-x * 1px, root.width + root.grid) - root.grid;
+        width: 1px; height: root.height; background: #192535; opacity: 0.55;
+    }
+    for gy in Math.ceil(root.height / root.grid) + 1: Rectangle {
+        y: Math.mod(gy * root.grid + UiCanvas.pan-y * 1px, root.height + root.grid) - root.grid;
+        width: root.width; height: 1px; background: #192535; opacity: 0.55;
+    }
+
+    // Cables, in one path per kind.
+    Path {
+        width: root.width; height: root.height;
+        viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
+        commands: UiCanvas.cables-up;
+        stroke: #4f7493; stroke-width: 2px;
+    }
+    Path {
+        width: root.width; height: root.height;
+        viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
+        commands: UiCanvas.cables-down;
+        stroke: #586473; stroke-width: 2px;
+    }
+    Path {
+        width: root.width; height: root.height;
+        viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
+        commands: UiCanvas.cables-highlight;
+        stroke: Theme.mint; stroke-width: 3px;
+    }
+    Path {
+        width: root.width; height: root.height;
+        viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
+        commands: UiCanvas.cable-selected;
+        stroke: #ffffff; stroke-width: 4px; opacity: 0.85;
+    }
+    // A disabled cable carries a cross in its middle; every cable has an
+    // element there for screen readers.
+    for link in UiCanvas.links: Rectangle {
+        x: ((link.ax + link.bx) / 2 * UiCanvas.zoom + UiCanvas.pan-x) * 1px - 9px;
+        y: ((link.ay + link.by) / 2 * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 9px;
+        width: 18px; height: 18px; border-radius: 9px;
+        background: link.up ? transparent : #2a2320;
+        border-width: link.up ? 0px : 1px;
+        border-color: Theme.amber;
+        if !link.up: Text { text: "×"; color: Theme.amber; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+        accessible-role: button;
+        accessible-label: @tr("Cable {0}", link.label);
+        accessible-action-default => { UiCanvas.select-cable(link.id); }
+    }
+
+    for node in UiCanvas.nodes: Card { node: node; }
+
+    // Switch port numbers where cables meet the cards.
+    if !UiCanvas.compact: Rectangle {
+        for link in UiCanvas.links: Rectangle {
+            visible: link.a-port != "";
+            x: (link.ax * UiCanvas.zoom + UiCanvas.pan-x) * 1px - 8px;
+            y: (link.ay * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 8px;
+            width: 16px; height: 16px; border-radius: 8px;
+            background: #101a26; border-width: 1px; border-color: #5d9cc4;
+            Text { text: link.a-port; color: Theme.ink; font-size: 9px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+        }
+        for link in UiCanvas.links: Rectangle {
+            visible: link.b-port != "";
+            x: (link.bx * UiCanvas.zoom + UiCanvas.pan-x) * 1px - 8px;
+            y: (link.by * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 8px;
+            width: 16px; height: 16px; border-radius: 8px;
+            background: #101a26; border-width: 1px; border-color: #5d9cc4;
+            Text { text: link.b-port; color: Theme.ink; font-size: 9px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+        }
+    }
+
+    // Frames on the cables: a trail shows where they come from.
+    for packet in UiCanvas.packets: Path {
+        width: root.width; height: root.height;
+        viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
+        stroke: packet.protocol == "ARP" ? #f1c47b99 : #7ce3c099;
+        stroke-width: 4px;
+        MoveTo { x: packet.tail-x * UiCanvas.zoom + UiCanvas.pan-x; y: packet.tail-y * UiCanvas.zoom + UiCanvas.pan-y; }
+        LineTo { x: packet.x * UiCanvas.zoom + UiCanvas.pan-x; y: packet.y * UiCanvas.zoom + UiCanvas.pan-y; }
+    }
+    for packet in UiCanvas.packets: Rectangle {
+        property <color> tint: packet.protocol == "ARP" ? Theme.amber : Theme.mint;
+        x: (packet.x * UiCanvas.zoom + UiCanvas.pan-x) * 1px - self.width / 2;
+        y: (packet.y * UiCanvas.zoom + UiCanvas.pan-y) * 1px - self.height / 2;
+        width: packet-label.preferred-width + 14px; height: 18px;
+        border-radius: 9px;
+        background: self.tint;
+        border-width: packet.selected ? 2px : 0px;
+        border-color: #ffffff;
+        drop-shadow-blur: 6px;
+        drop-shadow-color: #00000088;
+        // Broadcast frames carry a ring.
+        if packet.broadcast: Rectangle {
+            x: -4px; y: -4px; width: parent.width + 8px; height: parent.height + 8px;
+            border-radius: 13px; border-width: 1.5px; border-color: parent.tint; background: transparent;
+        }
+        packet-label := Text { text: packet.label; color: #10231e; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+        accessible-role: button;
+        accessible-label: @tr("Packet: {0}", packet.description);
+        accessible-action-default => { UiCanvas.select-frame(packet.pdu); }
+    }
+    for marker in UiCanvas.markers: Rectangle {
+        property <color> tint: marker.tone == "learn" ? Theme.blue : marker.tone == "forward" ? Theme.mint
+            : marker.tone == "wait" ? Theme.amber : marker.tone == "drop" ? Theme.red
+            : marker.tone == "success" ? Theme.mint : marker.tone == "edit" ? Theme.blue
+            : marker.tone == "guard" ? Theme.violet : Theme.muted;
+        x: (marker.x * UiCanvas.zoom + UiCanvas.pan-x) * 1px - self.width / 2;
+        y: (marker.y * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 24px - marker.stack * 22px;
+        width: marker-text.preferred-width + 14px; height: 19px;
+        border-radius: 5px;
+        opacity: marker.opacity;
+        background: marker.tone == "success" ? #1d4a3c : marker.tone == "drop" ? #4a2228 : marker.tone == "guard" ? #2f2346 : #142131;
+        border-width: 1px;
+        border-color: self.tint;
+        marker-text := Text {
+            text: marker.text;
+            color: marker.tone == "muted" ? Theme.muted : Theme.ink;
+            font-size: 10px; font-weight: 600;
+            horizontal-alignment: center; vertical-alignment: center;
+        }
+    }
+    // The cable being drawn.
+    Path {
+        width: root.width; height: root.height;
+        viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
+        commands: UiCanvas.rubber-band;
+        stroke: Theme.amber; stroke-width: 2px;
+    }
+
+    if UiCanvas.nodes.length == 0: VerticalLayout {
+        padding: 60px; alignment: center; spacing: 12px;
+        Text { text: @tr("A network starts\nwith a connection."); color: Theme.ink; font-size: 28px; font-weight: 600; horizontal-alignment: center; }
+        Text { text: @tr("Add a host or a switch from the panel on the left."); color: Theme.muted; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; }
+    }
+
+    // Keys, once a press on the canvas gave it the focus. Under the touch
+    // area: a focus scope on top would take the first press for itself.
+    canvas-focus := FocusScope {
+        key-pressed(e) => {
+            if e.modifiers.control || e.modifiers.meta || e.modifiers.alt { return reject; }
+            if e.text == Key.LeftArrow { return UiCanvas.key("left", e.modifiers.shift) ? accept : reject; }
+            if e.text == Key.RightArrow { return UiCanvas.key("right", e.modifiers.shift) ? accept : reject; }
+            if e.text == Key.UpArrow { return UiCanvas.key("up", e.modifiers.shift) ? accept : reject; }
+            if e.text == Key.DownArrow { return UiCanvas.key("down", e.modifiers.shift) ? accept : reject; }
+            if e.text == Key.Delete || e.text == Key.Backspace { return UiCanvas.key("delete", false) ? accept : reject; }
+            if e.text == Key.Escape { return UiCanvas.key("escape", false) ? accept : reject; }
+            if e.text == "\n" || e.text == Key.Return { return UiCanvas.key("enter", false) ? accept : reject; }
+            if e.text == "+" || e.text == "=" { return UiCanvas.key("zoom-in", false) ? accept : reject; }
+            if e.text == "-" { return UiCanvas.key("zoom-out", false) ? accept : reject; }
+            if e.text == "0" { return UiCanvas.key("fit", false) ? accept : reject; }
+            return reject;
+        }
+    }
+
+    // All pointer input, over everything drawn: C++ decides what lies under it.
+    TouchArea {
+        mouse-cursor: UiCanvas.panning ? MouseCursor.grabbing
+            : UiCanvas.hover-device >= 0 && UiCanvas.hover-port >= -1 ? MouseCursor.crosshair
+            : UiCanvas.hover-device >= 0 ? MouseCursor.move : MouseCursor.default;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                canvas-focus.focus();
+                UiCanvas.press(self.mouse-x / 1px, self.mouse-y / 1px,
+                    e.button == PointerEventButton.right ? 2 : e.button == PointerEventButton.middle ? 1 : 0);
+            } else if e.kind == PointerEventKind.up {
+                UiCanvas.release(self.mouse-x / 1px, self.mouse-y / 1px);
+            }
+        }
+        moved => { UiCanvas.moved(self.mouse-x / 1px, self.mouse-y / 1px); }
+        scroll-event(e) => {
+            UiCanvas.wheel(self.mouse-x / 1px, self.mouse-y / 1px, e.delta-y / 1px);
+            return accept;
+        }
+    }
+    // What the pointer can do, or what it is doing.
+    Rectangle {
+        x: 14px; y: 12px;
+        width: min(hint.preferred-width + 24px, root.width - clock-box.width - 44px);
+        height: 26px;
+        background: UiCanvas.source-device >= 0 ? #234438 : #121e2bdd;
+        border-radius: 6px;
+        hint := Text {
+            width: parent.width - 24px;
+            text: UiCanvas.hint;
+            color: UiCanvas.source-device >= 0 ? Theme.mint : Theme.muted;
+            font-size: 10px; overflow: elide;
+            horizontal-alignment: center; vertical-alignment: center;
+        }
+    }
+    // Simulated clock: the instant the canvas shows.
+    clock-box := Rectangle {
+        x: parent.width - self.width - 14px; y: 12px;
+        width: clock.preferred-width + 24px; height: 26px;
+        background: #121e2bdd; border-radius: 6px;
+        border-width: 1px; border-color: UiCanvas.running ? #42655e : transparent;
+        clock := Text {
+            text: "t = " + UiCanvas.clock + (UiCanvas.running ? "  ▷ " + UiCanvas.speed-label : "");
+            color: UiCanvas.running ? Theme.mint : Theme.muted;
+            font-size: 11px; font-weight: 600;
+            horizontal-alignment: center; vertical-alignment: center;
+        }
+        accessible-role: text;
+        accessible-label: @tr("Simulated time {0}", UiCanvas.clock);
+    }
+    // Zoom controls.
+    Rectangle {
+        x: parent.width - self.width - 14px; y: parent.height - self.height - 12px;
+        width: zoom-row.preferred-width; height: 30px;
+        background: #121e2bdd; border-radius: 7px;
+        zoom-row := HorizontalLayout {
+            padding: 2px; spacing: 2px;
+            Action { text: "−"; accessible-text: @tr("Zoom out"); quiet: true; small: true; width: 28px; clicked => { UiCanvas.zoom-by(1 / 1.15); } }
+            Action { text: Math.round(UiCanvas.zoom * 100) + "%"; accessible-text: @tr("Actual size"); quiet: true; small: true; width: 52px; clicked => { UiCanvas.reset-zoom(); } }
+            Action { text: "+"; accessible-text: @tr("Zoom in"); quiet: true; small: true; width: 28px; clicked => { UiCanvas.zoom-by(1.15); } }
+            Action { text: @tr("Fit"); accessible-text: @tr("Fit the network in view"); quiet: true; small: true; clicked => { UiCanvas.fit(); } }
+        }
+    }
+}

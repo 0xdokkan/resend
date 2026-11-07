@@ -81,11 +81,15 @@ void Simulation::deliver(const Delivery& delivery) {
     node(delivery.to.device)->receive(context, arrival);
 }
 
-Problem Simulation::apply(const Edit& requested) {
+Edit Simulation::resolve(Edit edit) const {
     // New devices and cables get ids never used before.
-    Edit edit = requested;
     if (auto* item = std::get_if<AddDevice>(&edit); item && !item->id) item->id = DeviceId{last_device_ + 1};
     if (auto* item = std::get_if<Connect>(&edit); item && !item->id) item->id = LinkId{last_link_ + 1};
+    return edit;
+}
+
+Problem Simulation::apply(const Edit& requested) {
+    const Edit edit = resolve(requested);
     Scenario next = scenario_;
     if (const auto problem = edit::apply(next, edit); !ok(problem)) return problem;
     last_device_ = std::max(last_device_, next.next_device_id().value - 1);
@@ -131,6 +135,15 @@ Problem Simulation::apply(const Edit& requested) {
                        device(item.device);
                        for (const auto& link : scenario_.links)
                            if (link.a.device == item.device || link.b.device == item.device) entry.links.push_back(link);
+                   },
+                   [&](const RestoreLink& item) {
+                       note.link = item.link.id;
+                       entry.links.push_back(item.link);
+                   },
+                   [&](const RestoreDevice& item) {
+                       note.device = item.device.id;
+                       entry.device = item.device;
+                       for (const auto& link : item.links) entry.links.push_back(link.link);
                    },
                },
                edit);

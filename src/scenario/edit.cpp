@@ -1,6 +1,7 @@
 #include "scenario/edit.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 
 namespace netsim {
@@ -13,6 +14,10 @@ bool affects_network(const Edit& edit) {
 
 namespace netsim::edit {
 namespace {
+template<class... Visitors>
+struct Overloaded : Visitors... {
+    using Visitors::operator()...;
+};
 
 bool valid_port(const Scenario& scenario, PortRef port) {
     const auto* device = scenario.device(port.device);
@@ -144,10 +149,98 @@ Problem apply_one(Scenario& scenario, const RemoveDevice& edit) {
     return Problem::None;
 }
 
+Problem apply_one(Scenario& scenario, const RestoreLink& edit) {
+    const auto& cable = edit.link;
+    if (!scenario.device(cable.a.device) || !scenario.device(cable.b.device)) return Problem::NoSuchDevice;
+    if (cable.a.device == cable.b.device) return Problem::SameDevice;
+    if (!valid_port(scenario, cable.a) || !valid_port(scenario, cable.b)) return Problem::NoSuchPort;
+    if (scenario.link_at(cable.a) || scenario.link_at(cable.b)) return Problem::PortInUse;
+    if (const auto problem = check_delay(cable.delay); !ok(problem)) return problem;
+    if (cable.id.value == 0) return Problem::InvalidLinkId;
+    if (scenario.link(cable.id)) return Problem::DuplicateLinkId;
+    const auto index = std::min(edit.index, scenario.links.size());
+    scenario.links.insert(scenario.links.begin() + static_cast<std::ptrdiff_t>(index), cable);
+    return Problem::None;
+}
+
+Problem apply_one(Scenario& scenario, const RestoreDevice& edit) {
+    if (scenario.devices.size() >= max_devices) return Problem::TooManyDevices;
+    if (edit.device.id.value == 0) return Problem::InvalidDeviceId;
+    if (scenario.device(edit.device.id)) return Problem::DuplicateDeviceId;
+    // The device and its cables come back together or not at all.
+    Scenario next = scenario;
+    auto device = edit.device;
+    device.x = std::clamp(device.x, -max_coordinate, max_coordinate);
+    device.y = std::clamp(device.y, -max_coordinate, max_coordinate);
+    const auto index = std::min(edit.index, next.devices.size());
+    next.devices.insert(next.devices.begin() + static_cast<std::ptrdiff_t>(index), std::move(device));
+    if (const auto issues = validate(next); !issues.empty()) return issues.front().problem;
+    for (const auto& cable : edit.links) {
+        if (cable.link.a.device != edit.device.id && cable.link.b.device != edit.device.id) return Problem::NoSuchLink;
+        if (const auto problem = apply_one(next, cable); !ok(problem)) return problem;
+    }
+    scenario = std::move(next);
+    return Problem::None;
+}
+
+template<class T>
+std::size_t index_of(const std::vector<T>& items, const T* item) {
+    return static_cast<std::size_t>(item - items.data());
+}
+
 } // namespace
 
 Problem apply(Scenario& scenario, const Edit& edit) {
     return std::visit([&](const auto& item) { return apply_one(scenario, item); }, edit);
+}
+
+std::optional<Edit> inverse(const Scenario& before, const Edit& edit) {
+    Scenario trial = before;
+    if (!ok(apply(trial, edit))) return std::nullopt;
+    const auto device = [&](DeviceId id) { return before.device(id); };
+    return std::visit(Overloaded{
+        [&](const SetLinkUp& item) -> std::optional<Edit> { return SetLinkUp{item.link, before.link(item.link)->up}; },
+        [&](const SetDelay& item) -> std::optional<Edit> { return SetDelay{item.link, before.link(item.link)->delay}; },
+        [&](const SetPortUp& item) -> std::optional<Edit> {
+            return SetPortUp{item.port, device(item.port.device)->ports[item.port.port].admin_up};
+        },
+        [&](const SetPowered& item) -> std::optional<Edit> { return SetPowered{item.device, device(item.device)->powered}; },
+        [&](const SetAddress& item) -> std::optional<Edit> {
+            const auto& old = device(item.port.device)->ports[item.port.port].ipv4;
+            if (!old) return std::nullopt;
+            return SetAddress{item.port, *old};
+        },
+        [&](const SetAgeing& item) -> std::optional<Edit> { return SetAgeing{item.device, device(item.device)->mac_ageing}; },
+        [&](const Rename& item) -> std::optional<Edit> { return Rename{item.device, device(item.device)->name}; },
+        [&](const MoveDevice& item) -> std::optional<Edit> {
+            const auto* old = device(item.device);
+            return MoveDevice{item.device, old->x, old->y};
+        },
+        [&](const Connect& item) -> std::optional<Edit> {
+            if (!item.id) return std::nullopt;
+            return Disconnect{*item.id};
+        },
+        [&](const Disconnect& item) -> std::optional<Edit> {
+            const auto* cable = before.link(item.link);
+            return RestoreLink{*cable, index_of(before.links, cable)};
+        },
+        [&](const Replug& item) -> std::optional<Edit> { return Replug{item.link, item.to, item.from}; },
+        [&](const AddDevice& item) -> std::optional<Edit> {
+            if (!item.id) return std::nullopt;
+            return RemoveDevice{*item.id};
+        },
+        [&](const RemoveDevice& item) -> std::optional<Edit> {
+            const auto* old = device(item.device);
+            RestoreDevice restore{*old, index_of(before.devices, old)};
+            for (std::size_t index = 0; index < before.links.size(); ++index) {
+                const auto& cable = before.links[index];
+                if (cable.a.device == item.device || cable.b.device == item.device) restore.links.push_back({cable, index});
+            }
+            return restore;
+        },
+        [&](const RestoreLink& item) -> std::optional<Edit> { return Disconnect{item.link.id}; },
+        [&](const RestoreDevice& item) -> std::optional<Edit> { return RemoveDevice{item.device.id}; },
+    }, edit);
 }
 
 std::optional<std::uint8_t> free_port(const Scenario& scenario, DeviceId device) {

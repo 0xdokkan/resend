@@ -1,0 +1,230 @@
+import { ListView, ScrollView, Slider, TabWidget } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Caption, Chip, PanelHeader } from "widgets.slint";
+import { FrameView } from "frame.slint";
+
+// An event the filters let through; `index` is its place among all events.
+export struct EventView {
+    index: int, time: string, protocol: string, summary: string, problem: bool,
+}
+
+// The events, the filters, the time scrubber and the explanation of the
+// selected event (src/app_controller.cpp).
+export global UiTimeline {
+    in property <[EventView]> events;
+    in property <int> total;
+    in property <int> selected: -1;
+    // The selection follows the newest event.
+    in property <bool> follow: true;
+    // A row of `events` to scroll into view, when `reveal-serial` changes.
+    in property <int> reveal-row: -1;
+    in property <int> reveal-serial;
+    in property <string> protocol;
+    in property <string> title;
+    in property <string> detail;
+    // Why tab or Frame tab.
+    in-out property <int> tab;
+
+    in property <bool> arp: true;
+    in property <bool> icmp: true;
+    in property <bool> ipv4: true;
+    in property <bool> edits: true;
+    in property <bool> simulator: true;
+    in property <bool> problems;
+    in property <bool> device-only;
+    in property <string> device-name;
+    in property <bool> filtered;
+
+    // The instant shown and the latest one, in milliseconds.
+    in-out property <float> now-ms;
+    in property <float> end-ms;
+    // Later changes lie ahead: the network cannot be changed.
+    in property <bool> locked;
+
+    callback select(int);
+    // "arp", "icmp", "ipv4", "edits", "simulator", "problems", "device"
+    callback toggle-filter(string);
+    callback clear-filters();
+    callback scrub(float);
+    callback latest();
+}
+
+export component TimelinePanel inherits Rectangle {
+    callback fold();
+    property <length> row-height: 30px;
+    property <int> reveal-serial: UiTimeline.reveal-serial;
+    changed reveal-serial => { root.reveal(UiTimeline.reveal-row); }
+
+    // Scrolls the event list just enough to show a row of the filtered list.
+    public function reveal(row: int) {
+        if row >= 0 {
+            if row * root.row-height < -event-list.content-y {
+                event-list.content-y = -row * root.row-height;
+            } else if (row + 1) * root.row-height > -event-list.content-y + event-list.visible-height {
+                event-list.content-y = event-list.visible-height - (row + 1) * root.row-height;
+            }
+        }
+    }
+
+    background: Theme.panel;
+    VerticalLayout {
+        // The scrubber: drag it back to replay the run up to that instant.
+        Rectangle {
+            height: 44px;
+            background: #15202d;
+            HorizontalLayout {
+                padding-left: 16px; padding-right: 8px; spacing: 10px;
+                Text { text: @tr("Timeline"); color: Theme.ink; font-weight: 600; font-size: 12px; vertical-alignment: center; }
+                Slider {
+                    horizontal-stretch: 1;
+                    minimum: 0;
+                    maximum: max(UiTimeline.end-ms, 0.001);
+                    value <=> UiTimeline.now-ms;
+                    enabled: UiTimeline.end-ms > 0;
+                    accessible-label: @tr("Instant shown");
+                    changed(value) => { UiTimeline.scrub(value); }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Action {
+                        text: @tr("Latest");
+                        accessible-text: @tr("Go to the latest instant");
+                        small: true;
+                        enabled: UiTimeline.now-ms < UiTimeline.end-ms;
+                        clicked => { UiTimeline.latest(); }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Action { text: "⌄"; accessible-text: @tr("Hide the timeline"); quiet: true; small: true; width: 28px; clicked => { root.fold(); } }
+                }
+            }
+        }
+        if UiTimeline.locked: Rectangle {
+            height: 26px;
+            background: #2a2416;
+            Text {
+                x: 16px;
+                width: parent.width - 32px;
+                text: @tr("You are looking at the past: later changes lie ahead. Go to the latest instant to change the network.");
+                color: Theme.amber; font-size: 10px; vertical-alignment: center; overflow: elide;
+            }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            VerticalLayout {
+                horizontal-stretch: 50;
+                min-width: 340px;
+                preferred-width: 340px;
+                // Filters.
+                Rectangle {
+                    height: 36px;
+                    clip: true;
+                    HorizontalLayout {
+                        padding-left: 12px; padding-right: 12px; spacing: 5px;
+                        alignment: start;
+                        VerticalLayout { alignment: center; Chip { text: "ARP"; tint: Theme.amber; checked: UiTimeline.arp; clicked => { UiTimeline.toggle-filter("arp"); } } }
+                        VerticalLayout { alignment: center; Chip { text: "ICMP"; tint: Theme.mint; checked: UiTimeline.icmp; clicked => { UiTimeline.toggle-filter("icmp"); } } }
+                        VerticalLayout { alignment: center; Chip { text: "IPv4"; checked: UiTimeline.ipv4; clicked => { UiTimeline.toggle-filter("ipv4"); } } }
+                        VerticalLayout { alignment: center; Chip { text: @tr("Changes"); checked: UiTimeline.edits; clicked => { UiTimeline.toggle-filter("edits"); } } }
+                        VerticalLayout { alignment: center; Chip { text: @tr("Simulator"); tint: Theme.violet; checked: UiTimeline.simulator; clicked => { UiTimeline.toggle-filter("simulator"); } } }
+                        VerticalLayout { alignment: center; Chip { text: @tr("Problems"); tint: Theme.red; checked: UiTimeline.problems; clicked => { UiTimeline.toggle-filter("problems"); } } }
+                        VerticalLayout {
+                            alignment: center;
+                            Chip {
+                                text: UiTimeline.device-name == "" ? @tr("Selected device") : UiTimeline.device-name;
+                                checked: UiTimeline.device-only;
+                                clicked => { UiTimeline.toggle-filter("device"); }
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    vertical-stretch: 1;
+                    accessible-role: list;
+                    accessible-label: @tr("Event list");
+                    // ListView only instantiates the visible rows.
+                    event-list := ListView {
+                        // The virtualized content height settles only after layout,
+                        // so a new last row can be revealed only once it has grown.
+                        changed content-height => { if UiTimeline.follow { root.reveal(UiTimeline.reveal-row); } }
+                        for event[row] in UiTimeline.events: Rectangle {
+                            height: root.row-height;
+                            Rectangle {
+                                x: 6px; y: 1px; width: parent.width - 12px; height: parent.height - 2px;
+                                border-radius: 5px;
+                                background: UiTimeline.selected == event.index ? Theme.selection : event-touch.has-hover ? #1c2a3b : transparent;
+                                HorizontalLayout {
+                                    padding-left: 10px; padding-right: 10px; spacing: 10px;
+                                    Text { text: event.time; color: Theme.muted; font-size: 10px; width: 70px; vertical-alignment: center; }
+                                    Text {
+                                        text: event.protocol == "EDIT" ? @tr("CHANGE") : event.protocol;
+                                        color: Theme.protocol-color(event.protocol);
+                                        font-size: 10px; font-weight: 600; width: 64px; vertical-alignment: center;
+                                    }
+                                    Text { text: event.summary; color: event.problem ? Theme.red : Theme.ink; font-size: 11px; overflow: elide; vertical-alignment: center; }
+                                }
+                            }
+                            accessible-role: button;
+                            accessible-label: event.protocol + ": " + event.summary;
+                            accessible-action-default => { UiTimeline.select(event.index); }
+                            forward-focus: event-focus;
+                            event-focus := FocusScope {
+                                focus-on-tab-navigation: true;
+                                key-pressed(e) => {
+                                    if e.text == " " || e.text == "\n" { UiTimeline.select(event.index); return accept; }
+                                    return reject;
+                                }
+                            }
+                            event-touch := TouchArea { mouse-cursor: pointer; clicked => { event-focus.focus(); UiTimeline.select(event.index); } }
+                        }
+                    }
+                    if UiTimeline.events.length == 0: Text {
+                        width: parent.width - 32px;
+                        text: UiTimeline.total == 0 ? @tr("The next experiment starts with a ping. Events will appear here.")
+                            : @tr("No event matches the filters.");
+                        color: Theme.muted; font-size: 12px; wrap: word-wrap;
+                        horizontal-alignment: center; vertical-alignment: center;
+                    }
+                }
+            }
+            Rectangle { width: 1px; background: Theme.line; }
+            // Explicit sizes on both sides: the split must not move as events arrive.
+            Rectangle {
+                horizontal-stretch: 50;
+                min-width: 420px;
+                preferred-width: 420px;
+                TabWidget {
+                    current-index <=> UiTimeline.tab;
+                    Tab {
+                        title: @tr("Why");
+                        VerticalLayout {
+                            padding: 14px; spacing: 8px;
+                            Caption {
+                                text: UiTimeline.protocol == "" ? @tr("SEE WHY") : UiTimeline.protocol == "EDIT" ? @tr("A CHANGE TO THE NETWORK")
+                                    : UiTimeline.protocol == "SIMULATOR" ? @tr("THE SIMULATOR STEPPED IN") : @tr("INSIDE THE PACKET  /  {0}", UiTimeline.protocol);
+                            }
+                            Text { text: UiTimeline.title; color: Theme.ink; font-size: 15px; font-weight: 600; wrap: word-wrap; }
+                            ScrollView {
+                                vertical-stretch: 1;
+                                content-width: self.visible-width;
+                                horizontal-scrollbar-policy: always-off;
+                                VerticalLayout {
+                                    alignment: start;
+                                    Text { text: UiTimeline.detail; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+                                }
+                            }
+                        }
+                    }
+                    Tab {
+                        title: @tr("Frame");
+                        VerticalLayout {
+                            padding: 12px;
+                            FrameView { }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

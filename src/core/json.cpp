@@ -1,9 +1,12 @@
 #include "core/json.hpp"
 
+#include "core/text.hpp"
+
 #include <algorithm>
 #include <limits>
 
 namespace netsim::json {
+using text::tr;
 
 const Value* Value::find(std::string_view key) const {
     const auto* object = members();
@@ -56,7 +59,7 @@ public:
         auto value = parse_value(0);
         if (!value) return std::nullopt;
         skip_space();
-        if (pos_ != text_.size()) return fail("unexpected text after the end of the document");
+        if (pos_ != text_.size()) return fail(tr("unexpected text after the end of the document"));
         return value;
     }
 
@@ -89,7 +92,7 @@ private:
     }
 
     std::optional<Value> parse_value(int depth) {
-        if (depth >= max_depth) return fail("nesting is too deep");
+        if (depth >= max_depth) return fail(tr("nesting is too deep"));
         switch (peek()) {
         case '{': return parse_object(depth);
         case '[': return parse_array(depth);
@@ -105,7 +108,7 @@ private:
             if (peek() == '-' || (peek() >= '0' && peek() <= '9')) return parse_number();
             break;
         }
-        return fail(at_end() ? "unexpected end of the document" : "expected a value");
+        return fail(at_end() ? tr("unexpected end of the document") : tr("expected a value"));
     }
 
     std::optional<Value> parse_object(int depth) {
@@ -118,12 +121,12 @@ private:
         }
         while (true) {
             skip_space();
-            if (peek() != '"') return fail("expected a member name in double quotes");
+            if (peek() != '"') return fail(tr("expected a member name in double quotes"));
             auto key = parse_string();
             if (!key) return std::nullopt;
-            if (result.find(*key)) return fail("duplicate member \"" + *key + "\"");
+            if (result.find(*key)) return fail(tr("duplicate member \"{0}\"", {*key}));
             skip_space();
-            if (peek() != ':') return fail("expected ':' after the member name");
+            if (peek() != ':') return fail(tr("expected ':' after the member name"));
             ++pos_;
             skip_space();
             auto value = parse_value(depth + 1);
@@ -132,7 +135,7 @@ private:
             skip_space();
             if (peek() == ',') { ++pos_; continue; }
             if (peek() == '}') { ++pos_; return result; }
-            return fail("expected ',' or '}'");
+            return fail(tr("expected ',' or '}'"));
         }
     }
 
@@ -152,7 +155,7 @@ private:
             skip_space();
             if (peek() == ',') { ++pos_; continue; }
             if (peek() == ']') { ++pos_; return result; }
-            return fail("expected ',' or ']'");
+            return fail(tr("expected ',' or ']'"));
         }
     }
 
@@ -161,8 +164,8 @@ private:
         const bool negative = peek() == '-';
         if (negative) ++pos_;
         if (peek() == '0' && pos_ + 1 < text_.size() && text_[pos_ + 1] >= '0' && text_[pos_ + 1] <= '9')
-            return fail("numbers cannot have leading zeros");
-        if (!(peek() >= '0' && peek() <= '9')) return fail("expected a digit");
+            return fail(tr("numbers cannot have leading zeros"));
+        if (!(peek() >= '0' && peek() <= '9')) return fail(tr("expected a digit"));
         // Accumulate as a negative number, which has the larger range.
         std::int64_t value = 0;
         constexpr auto lowest = std::numeric_limits<std::int64_t>::min();
@@ -170,16 +173,16 @@ private:
             const int digit = peek() - '0';
             if (value < (lowest + digit) / 10) {
                 pos_ = start;
-                return fail("number out of range");
+                return fail(tr("number out of range"));
             }
             value = value * 10 - digit;
             ++pos_;
         }
-        if (peek() == '.' || peek() == 'e' || peek() == 'E') return fail("only whole numbers are allowed");
+        if (peek() == '.' || peek() == 'e' || peek() == 'E') return fail(tr("only whole numbers are allowed"));
         if (!negative) {
             if (value == lowest) {
                 pos_ = start;
-                return fail("number out of range");
+                return fail(tr("number out of range"));
             }
             value = -value;
         }
@@ -225,15 +228,15 @@ private:
         ++pos_;  // "
         std::string out;
         while (true) {
-            if (at_end()) return fail("unterminated string");
+            if (at_end()) return fail(tr("unterminated string"));
             const auto c = static_cast<unsigned char>(peek());
             if (c == '"') {
                 ++pos_;
                 return out;
             }
-            if (c < 0x20) return fail("control characters must be escaped in strings");
+            if (c < 0x20) return fail(tr("control characters must be escaped in strings"));
             if (c >= 0x80) {
-                if (!copy_utf8(out)) return fail("invalid UTF-8 in string");
+                if (!copy_utf8(out)) return fail(tr("invalid UTF-8 in string"));
                 continue;
             }
             if (c != '\\') {
@@ -255,12 +258,12 @@ private:
             case 't': out += '\t'; break;
             case 'u': {
                 auto code = hex4();
-                if (!code) return fail("invalid \\u escape");
-                if (*code >= 0xdc00 && *code <= 0xdfff) return fail("unpaired surrogate in \\u escape");
+                if (!code) return fail(tr("invalid \\u escape"));
+                if (*code >= 0xdc00 && *code <= 0xdfff) return fail(tr("unpaired surrogate in \\u escape"));
                 if (*code >= 0xd800 && *code <= 0xdbff) {
-                    if (!literal("\\u")) return fail("unpaired surrogate in \\u escape");
+                    if (!literal("\\u")) return fail(tr("unpaired surrogate in \\u escape"));
                     const auto low = hex4();
-                    if (!low || *low < 0xdc00 || *low > 0xdfff) return fail("unpaired surrogate in \\u escape");
+                    if (!low || *low < 0xdc00 || *low > 0xdfff) return fail(tr("unpaired surrogate in \\u escape"));
                     code = 0x10000 + ((*code - 0xd800) << 10) + (*low - 0xdc00);
                 }
                 append_utf8(out, *code);
@@ -268,7 +271,7 @@ private:
             }
             default:
                 --pos_;
-                return fail("invalid escape in string");
+                return fail(tr("invalid escape in string"));
             }
         }
     }

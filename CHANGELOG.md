@@ -2,6 +2,21 @@
 
 Versions follow [Semantic Versioning](https://semver.org); before 1.0, minor versions may change the file formats and the interface.
 
+## 0.2.0 — usable sandbox (unreleased)
+
+- A new interface around the canvas: a menu bar (File, Edit, View, Simulation, Help), the palette with the lesson of the network on the left, the inspector on the right, the timeline at the bottom. The three panels fold away, and the window has no fixed minimum size, so a 1080p screen at 2× scale holds it.
+- The canvas: drag cards, pan the background, zoom with the wheel or the controls at the bottom right; when zoomed out, cards show only their icon and name. Plug a cable by dragging from a port light or from **+** to another device or one of its ports, or by pressing **+** on two devices; click a cable to select it. With the keyboard, Tab goes from card to card, the arrows move the selected one (Shift for small steps), Enter on one device and then on another plugs a cable between them, Delete removes the selection, Escape cancels, and +, − and 0 zoom and fit. New devices go to the free place nearest the middle of the view.
+- The inspector edits a host's name, address and prefix, a switch's name and ageing time, power and the state of each port, and a cable's delay and state; a cable can be unplugged and a device deleted. It shows the ARP cache or the MAC table as tables, at the instant on the canvas.
+- Undo and redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, and buttons that say what they undo), up to 500 steps; a drag is one step. While the network runs, undoing makes the inverse change at the current instant.
+- The timeline filters events by protocol, by the selected device, to problems only, and hides or shows changes and simulator events. Its slider goes back in time: the run is replayed up to the chosen instant, exactly, since the simulation is deterministic. Changes made later lie ahead, so the network cannot be changed until you return to the latest instant.
+- The frame of the selected event or packet, field by field, as Wireshark names and prints them, next to its bytes: choosing a field highlights its bytes, choosing a byte the field that holds it.
+- Files: **Open**, **Save** and **Save as** with the app's own file dialog, an unsaved-changes marker, a question before changes are lost (new network, open, quit, closing the window) and before a file is replaced. Unsaved changes are saved aside every few seconds, and after a crash the next start offers them back.
+- The example scenarios are in File ▸ Open example.
+- The interface and the explanations are translated: Italian is the first translation, chosen from the system's language or in View ▸ Language, and kept with the reduced-motion setting in `settings.json` in the state folder. `--lang CODE` chooses a language for one session.
+- `resend` gains `--lang`; the CLI's output stays in English.
+- Fixed: the first click on the canvas after the app started only gave it the keyboard; after a dialog closed, the keyboard shortcuts stopped working until something was clicked.
+- Engine: `edit::inverse()` gives the exact inverse of an edit, with the new `RestoreLink` and `RestoreDevice` edits; `Simulation::resolve()` gives a new device or cable the id it will have; `wire::dissect()` lists the layers and fields of a frame with tshark's names, offsets and values. Every text for people goes through `text::tr()`, which reads the catalogs in `translations/`. New tests for the canvas controller, the workspace (undo, replay, filters, 50 random commands and 50 undos), files and recovery, the translations and the dissection compared with tshark's for every frame of the examples.
+
 ## 0.1.3 — live faults (unreleased)
 
 - The network can be changed while traffic flows. Every edit happens at the instant on screen and appears in the events: cables up, down, unplugged or moved, ports, power, addresses, devices added or removed. A frame on a cable that stops carrying, even for an instant, is lost when it reaches the end; a device powered off or removed forgets everything it learned and its pings end. Before the first ping an edit simply gives a new network.

@@ -4,6 +4,7 @@
 #include "sim_support.hpp"
 #include "wire/wire.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <initializer_list>
@@ -163,11 +164,57 @@ void pcap_files() {
 }
 } // namespace
 
+void dissection() {
+    // Every byte of a frame belongs to exactly one field, in order, and
+    // the values are read from the bytes.
+    const auto run = sample_run();
+    int frames = 0;
+    for (const auto& frame : run.trace().pdus()) {
+        const auto bytes = wire::encode(frame);
+        const auto layers = wire::dissect(bytes);
+        CHECK(!layers.empty());
+        std::vector<int> owners(bytes.size(), 0);
+        for (const auto& layer : layers)
+            for (const auto& field : layer.fields)
+                // Version and header length share a byte; the flags share
+                // one with the fragment offset, which spans two.
+                if (field.name != "ip.hdr_len" && field.name != "ip.flags")
+                    for (std::size_t at = field.offset; at < field.offset + field.length; ++at) ++owners.at(at);
+        CHECK(std::all_of(owners.begin(), owners.end(), [](int count) { return count == 1; }));
+        ++frames;
+    }
+    CHECK(frames == 4);
+
+    const auto request = wire::dissect(wire::encode(run.trace().pdu(netsim::PduId{0})));
+    CHECK(request.size() == 2 && request[0].label == "Ethernet II" && request[1].name == "arp");
+    CHECK((request[0].fields[0] == wire::Field{"Destination", "eth.dst", 0, 6, "ff:ff:ff:ff:ff:ff", "Broadcast"}));
+    CHECK((request[0].fields[2] == wire::Field{"Type", "eth.type", 12, 2, "0x0806", "ARP"}));
+    CHECK(request[0].fields.back().name == "eth.padding" && request[0].fields.back().length == 18);
+    CHECK((request[1].fields[4] == wire::Field{"Opcode", "arp.opcode", 20, 2, "1", "request"}));
+    CHECK(request[1].fields[6].value == "192.168.1.10" && request[1].fields[8].value == "192.168.1.20");
+
+    const auto echo = wire::dissect(wire::encode(run.trace().pdu(netsim::PduId{2})));
+    CHECK(echo.size() == 4 && echo[2].name == "icmp" && echo[3].name == "data");
+    CHECK(echo[1].offset == 14 && echo[1].length == 20 && echo[2].offset == 34 && echo[2].length == 64);
+    CHECK(echo[1].fields[7].value == "64" && echo[1].fields[9].meaning == "correct");
+    CHECK((echo[2].fields[0] == wire::Field{"Type", "icmp.type", 34, 1, "8", "Echo (ping) request"}));
+    CHECK(echo[2].fields[2].meaning == "correct" && echo[3].fields[0].length == 56);
+    CHECK(echo[3].fields[0].value.starts_with("00:01:02:03") && echo[3].fields[0].meaning == "56 bytes");
+    CHECK(echo[0].fields.size() == 3);  // no padding
+
+    // A damaged checksum is not dissected, like anything decode() refuses.
+    auto bytes = wire::encode(run.trace().pdu(netsim::PduId{2}));
+    bytes[30] ^= 1;
+    CHECK(wire::dissect(bytes).empty());
+    CHECK(wire::dissect(Bytes(10, 0)).empty());
+}
+
 int main() {
     checksums();
     known_frames();
     round_trips();
     refused_bytes();
     pcap_files();
+    dissection();
     std::cout << "Wire tests passed: " << test::checks << " checks.\n";
 }

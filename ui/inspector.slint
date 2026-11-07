@@ -1,0 +1,187 @@
+import { ScrollView, StandardTableView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Caption, Divider, Field, PanelHeader } from "widgets.slint";
+
+// A port of the selected device: its admin state and where its cable goes.
+export struct PortView {
+    index: int, label: string, mac: string, up: bool, cable: string, link-id: int,
+}
+
+// The properties of the selected device or cable (src/app_inspector.cpp).
+export global UiInspector {
+    // "host", "switch", "cable", or "" for the network as a whole.
+    in property <string> kind;
+    in property <string> heading;
+    in-out property <string> name;
+    in-out property <string> address;
+    in-out property <string> prefix;
+    in-out property <string> ageing;
+    in-out property <string> delay;
+    in property <bool> powered: true;
+    in property <bool> cable-up: true;
+    in property <string> cable-a;
+    in property <string> cable-b;
+    in property <[PortView]> ports;
+    // The ARP cache of a host, the MAC table of a switch.
+    in property <[[StandardListViewItem]]> table-rows;
+    in property <string> table-note;
+    // The network as a whole, when nothing is selected.
+    in property <string> summary;
+
+    callback apply();
+    callback toggle-power();
+    callback remove-device();
+    callback set-port-up(int, bool);
+    callback select-cable(int);
+    callback apply-cable();
+    callback toggle-cable();
+    callback unplug();
+}
+
+component PortRow inherits Rectangle {
+    in property <PortView> port;
+    height: row.preferred-height;
+    row := HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 1px;
+            Text { text: root.port.label; color: Theme.ink; font-size: 11px; font-weight: 600; }
+            Text {
+                text: root.port.cable == "" ? @tr("No cable") : "→ " + root.port.cable;
+                color: Theme.muted; font-size: 10px; overflow: elide;
+            }
+        }
+        if root.port.link-id >= 0: Action {
+            text: "⇢";
+            accessible-text: @tr("Select the cable of {0}", root.port.label);
+            small: true; quiet: true; width: 28px;
+            clicked => { UiInspector.select-cable(root.port.link-id); }
+        }
+        Action {
+            text: root.port.up ? @tr("On") : @tr("Off");
+            accessible-text: root.port.label;
+            toggle: true; checked: root.port.up; small: true; width: 44px;
+            clicked => { UiInspector.set-port-up(root.port.index, !root.port.up); }
+        }
+    }
+}
+
+export component Inspector inherits Rectangle {
+    callback fold();
+    background: Theme.panel;
+    VerticalLayout {
+        PanelHeader {
+            title: @tr("Inspector");
+            detail: UiInspector.heading;
+            fold-text: @tr("Hide the inspector");
+            fold-symbol: "›";
+            fold => { root.fold(); }
+        }
+        ScrollView {
+            content-width: self.visible-width;
+            horizontal-scrollbar-policy: always-off;
+            VerticalLayout {
+                padding-left: 16px; padding-right: 16px; padding-bottom: 16px;
+                spacing: 10px;
+                alignment: start;
+
+                if UiInspector.kind == "": VerticalLayout {
+                    spacing: 10px;
+                    Caption { text: @tr("NETWORK"); }
+                    Text { text: UiInspector.summary; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
+                    Text {
+                        text: @tr("Select a device or a cable to see and change its properties.");
+                        color: Theme.muted; font-size: 11px; wrap: word-wrap;
+                    }
+                }
+
+                if UiInspector.kind == "host" || UiInspector.kind == "switch": VerticalLayout {
+                    spacing: 10px;
+                    Caption { text: UiInspector.kind == "switch" ? @tr("ETHERNET SWITCH") : @tr("IPv4 HOST"); }
+                    Field { label: @tr("Name"); text <=> UiInspector.name; accepted => { UiInspector.apply(); } }
+                    if UiInspector.kind == "host": HorizontalLayout {
+                        spacing: 8px;
+                        Field {
+                            horizontal-stretch: 3;
+                            label: @tr("IPv4 address"); placeholder: "192.168.1.10";
+                            text <=> UiInspector.address;
+                            accepted => { UiInspector.apply(); }
+                        }
+                        Field {
+                            horizontal-stretch: 1;
+                            label: @tr("Prefix length"); placeholder: "24";
+                            text <=> UiInspector.prefix;
+                            accepted => { UiInspector.apply(); }
+                        }
+                    }
+                    if UiInspector.kind == "switch": Field {
+                        label: @tr("MAC ageing time"); placeholder: "300s";
+                        text <=> UiInspector.ageing;
+                        accepted => { UiInspector.apply(); }
+                    }
+                    Action { text: @tr("Apply"); accessible-text: @tr("Apply the configuration"); clicked => { UiInspector.apply(); } }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Action { text: UiInspector.powered ? @tr("Power off") : @tr("Power on"); clicked => { UiInspector.toggle-power(); } }
+                        Action { text: @tr("Delete device"); danger: true; quiet: true; clicked => { UiInspector.remove-device(); } }
+                    }
+                    Divider { }
+                    Caption { text: @tr("PORTS"); }
+                    for port in UiInspector.ports: PortRow { port: port; }
+                    Divider { }
+                    Caption { text: UiInspector.kind == "switch" ? @tr("MAC TABLE") : @tr("ARP CACHE"); }
+                    if UiInspector.kind == "host": StandardTableView {
+                        // The style's minimum would push the panel wider.
+                        min-width: 120px;
+                        height: 150px;
+                        columns: [
+                            // Wider than the panel: the table scrolls sideways.
+                            { title: @tr("Address"), min-width: 100px },
+                            { title: "MAC", min-width: 128px },
+                            { title: @tr("State"), min-width: 84px },
+                            { title: @tr("Expires in"), min-width: 84px },
+                        ];
+                        rows: UiInspector.table-rows;
+                    }
+                    if UiInspector.kind == "switch": StandardTableView {
+                        // The style's minimum would push the panel wider.
+                        min-width: 120px;
+                        height: 180px;
+                        columns: [
+                            { title: @tr("MAC address"), min-width: 128px, horizontal-stretch: 3 },
+                            { title: @tr("Port"), min-width: 44px, horizontal-stretch: 1 },
+                            { title: @tr("Age"), min-width: 60px, horizontal-stretch: 1 },
+                        ];
+                        rows: UiInspector.table-rows;
+                    }
+                    Text { text: UiInspector.table-note; color: Theme.muted; font-size: 10px; wrap: word-wrap; }
+                }
+
+                if UiInspector.kind == "cable": VerticalLayout {
+                    spacing: 10px;
+                    Caption { text: @tr("CABLE"); }
+                    Text { text: UiInspector.cable-a; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
+                    Text { text: "↕"; color: Theme.muted; font-size: 12px; }
+                    Text { text: UiInspector.cable-b; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
+                    Field {
+                        label: @tr("Delay"); placeholder: "10ms";
+                        text <=> UiInspector.delay;
+                        accepted => { UiInspector.apply-cable(); }
+                    }
+                    Action { text: @tr("Apply"); accessible-text: @tr("Apply the delay"); clicked => { UiInspector.apply-cable(); } }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Action { text: UiInspector.cable-up ? @tr("Disable cable") : @tr("Enable cable"); clicked => { UiInspector.toggle-cable(); } }
+                        Action { text: @tr("Unplug cable"); danger: true; quiet: true; clicked => { UiInspector.unplug(); } }
+                    }
+                    Text {
+                        text: @tr("A disabled cable stays plugged in but carries nothing: frames on it are lost.");
+                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
+                    }
+                }
+            }
+        }
+    }
+}

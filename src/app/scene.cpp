@@ -1,5 +1,7 @@
 #include "app/scene.hpp"
 
+#include "core/text.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -12,6 +14,7 @@ using netsim::PduKind;
 using netsim::Reason;
 using netsim::TraceKind;
 using netsim::TraceRecord;
+using netsim::text::tr;
 
 float distance(Point a, Point b) { return std::hypot(b.x - a.x, b.y - a.y); }
 
@@ -37,27 +40,27 @@ std::string port_name(int zero_based) { return "p" + std::to_string(zero_based +
 
 std::string drop_text(Reason reason) {
     switch (reason) {
-    case Reason::LinkDown: return "× link down";
-    case Reason::DeviceDown: return "× device off";
-    case Reason::NoCarrier: return "× no cable";
-    case Reason::NotForUs: return "× not my MAC";
-    case Reason::ArpForOtherHost: return "× not my IP";
-    case Reason::Ipv4NotForUs: return "× not my IP";
-    case Reason::NoRoute: return "× no route back";
-    case Reason::ArpQueueFull: return "× ARP queue full";
-    case Reason::UnmatchedReply: return "× reply too late";
-    default: return "× dropped";
+    case Reason::LinkDown: return "× " + tr("link down");
+    case Reason::DeviceDown: return "× " + tr("device off");
+    case Reason::NoCarrier: return "× " + tr("no cable");
+    case Reason::NotForUs: return "× " + tr("not my MAC");
+    case Reason::ArpForOtherHost: return "× " + tr("not my IP");
+    case Reason::Ipv4NotForUs: return "× " + tr("not my IP");
+    case Reason::NoRoute: return "× " + tr("no route back");
+    case Reason::ArpQueueFull: return "× " + tr("ARP queue full");
+    case Reason::UnmatchedReply: return "× " + tr("reply too late");
+    default: return "× " + tr("dropped");
     }
 }
 
 std::string ping_failure_text(Reason reason) {
     switch (reason) {
-    case Reason::ArpUnresolved: return "× ping: no ARP reply";
-    case Reason::EchoTimeout: return "× ping: timed out";
-    case Reason::NoRoute: return "× ping: no route";
-    case Reason::DeviceDown: return "× ping: PC off";
-    case Reason::ArpQueueFull: return "× ping: ARP queue full";
-    default: return "× ping failed";
+    case Reason::ArpUnresolved: return "× " + tr("ping: no ARP reply");
+    case Reason::EchoTimeout: return "× " + tr("ping: timed out");
+    case Reason::NoRoute: return "× " + tr("ping: no route");
+    case Reason::DeviceDown: return "× " + tr("ping: PC off");
+    case Reason::ArpQueueFull: return "× " + tr("ping: ARP queue full");
+    default: return "× " + tr("ping failed");
     }
 }
 
@@ -67,11 +70,13 @@ bool edit_marker(const netsim::EditEntry& entry, Marker& marker) {
     return std::visit(
         [&](const auto& edit) {
             using T = std::decay_t<decltype(edit)>;
-            if constexpr (std::is_same_v<T, netsim::SetPowered>) marker.text = edit.powered ? "⏻ powered on" : "⏻ powered off";
+            if constexpr (std::is_same_v<T, netsim::SetPowered>) marker.text = "⏻ " + (edit.powered ? tr("powered on") : tr("powered off"));
             else if constexpr (std::is_same_v<T, netsim::SetAddress>) marker.text = "IP " + edit.address.to_string();
-            else if constexpr (std::is_same_v<T, netsim::SetPortUp>) marker.text = port_name(edit.port.port) + (edit.up ? " enabled" : " disabled");
-            else if constexpr (std::is_same_v<T, netsim::SetAgeing>) marker.text = "ageing " + netsim::format_duration(edit.ageing);
-            else if constexpr (std::is_same_v<T, netsim::AddDevice>) marker.text = "added";
+            else if constexpr (std::is_same_v<T, netsim::SetPortUp>)
+                marker.text = edit.up ? tr("{0} enabled", {port_name(edit.port.port)}) : tr("{0} disabled", {port_name(edit.port.port)});
+            else if constexpr (std::is_same_v<T, netsim::SetAgeing>) marker.text = tr("ageing {0}", {netsim::format_duration(edit.ageing)});
+            else if constexpr (std::is_same_v<T, netsim::AddDevice>) marker.text = tr("added");
+            else if constexpr (std::is_same_v<T, netsim::RestoreDevice>) marker.text = tr("restored");
             else return false;
             return true;
         },
@@ -96,28 +101,28 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Simulation& simula
     switch (record.kind) {
     case TraceKind::MacLearned: {
         const auto& frame = trace.pdu(*record.pdu);
-        marker.text = "learn " + owner_name(layout, frame.src) + " → " + port_name(*record.port);
+        marker.text = tr("learn {0} → {1}", {owner_name(layout, frame.src), port_name(*record.port)});
         marker.tone = Tone::Learn;
         return true;
     }
     case TraceKind::FrameFlooded: {
         int copies = 0;
         following([&](const TraceRecord& other) { copies += other.kind == TraceKind::FrameSent; });
-        marker.text = "flood ×" + std::to_string(copies);
+        marker.text = tr("flood ×{0}", {std::to_string(copies)});
         marker.tone = Tone::Forward;
         return true;
     }
     case TraceKind::FrameForwarded: {
-        marker.text = "forward";
+        marker.text = tr("forward");
         following([&](const TraceRecord& other) {
-            if (other.kind == TraceKind::FrameSent && other.port) marker.text = "forward → " + port_name(*other.port);
-            if (other.kind == TraceKind::FrameDropped && other.port) marker.text = "forward → " + port_name(*other.port) + " ×";
+            if (other.kind == TraceKind::FrameSent && other.port) marker.text = tr("forward → {0}", {port_name(*other.port)});
+            if (other.kind == TraceKind::FrameDropped && other.port) marker.text = tr("forward → {0}", {port_name(*other.port)}) + " ×";
         });
         marker.tone = Tone::Forward;
         return true;
     }
     case TraceKind::FrameFiltered:
-        marker.text = "filtered";
+        marker.text = tr("filtered");
         marker.tone = Tone::Muted;
         return true;
     case TraceKind::ArpCacheUpdated: {
@@ -131,13 +136,13 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Simulation& simula
         marker.tone = Tone::Drop;
         return true;
     case TraceKind::ArpTimeout:
-        marker.text = "ARP timeout";
+        marker.text = tr("ARP timeout");
         marker.tone = Tone::Wait;
         return true;
     case TraceKind::PingSucceeded: {
         const auto* ping = simulation.ping(netsim::PingId{record.value});
         marker.text = ping && ping->options.count > 1
-            ? "✓ ping " + std::to_string(ping->replies()) + "/" + std::to_string(ping->echoes.size()) : "✓ ping reply";
+            ? "✓ " + tr("ping {0}/{1}", {std::to_string(ping->replies()), std::to_string(ping->echoes.size())}) : "✓ " + tr("ping reply");
         marker.tone = Tone::Success;
         return true;
     }
@@ -153,26 +158,26 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Simulation& simula
         const auto echo = std::find_if(ping->echoes.begin(), ping->echoes.end(), [&](const auto& item) { return item.record == record.seq; });
         const auto number = echo == ping->echoes.end() ? std::string("?") : std::to_string(echo->sequence);
         const bool reply = record.kind == TraceKind::PingReply;
-        marker.text = reply ? "✓ reply " + number : "× request " + number + " lost";
+        marker.text = reply ? "✓ " + tr("reply {0}", {number}) : "× " + tr("request {0} lost", {number});
         marker.tone = reply ? Tone::Success : Tone::Drop;
         return true;
     }
     case TraceKind::ArpEntryExpired:
-        marker.text = "ARP entry expired";
+        marker.text = tr("ARP entry expired");
         marker.tone = Tone::Wait;
         return true;
     case TraceKind::MacEntryAged:
-        marker.text = "entry aged out";
+        marker.text = tr("entry aged out");
         marker.tone = Tone::Wait;
         return true;
     case TraceKind::DatagramDropped:
-        marker.text = "× reply discarded";
+        marker.text = "× " + tr("reply discarded");
         marker.tone = Tone::Drop;
         return true;
     case TraceKind::EditApplied:
         return record.device.value != 0 && edit_marker(simulation.edits().at(record.value), marker);
     case TraceKind::SimulatorGuard:
-        marker.text = "⚠ storm stopped";
+        marker.text = "⚠ " + tr("storm stopped");
         marker.tone = Tone::Guard;
         return true;
     case TraceKind::FrameSent:
@@ -194,6 +199,11 @@ Box port_light(const netsim::DeviceConfig& device, int port) {
     return {card.x + 12 + 14 * static_cast<float>(port), card.y + 69, 11, 8};
 }
 
+Box connector_box(const netsim::DeviceConfig& device) {
+    const auto card = card_box(device);
+    return {card.x + 128, card.y + 62, 23, 23};
+}
+
 Segment cable_between(const Box& a, const Box& b, float gap) {
     Point from = exit_point(a, b.center()), to = exit_point(b, a.center());
     const float length = distance(a.center(), b.center());
@@ -209,49 +219,24 @@ Point lerp(Point a, Point b, float t) { return {a.x + (b.x - a.x) * t, a.y + (b.
 
 std::string packet_label(PduKind kind) {
     switch (kind) {
-    case PduKind::ArpRequest: return "ARP req";
-    case PduKind::ArpReply: return "ARP rep";
-    case PduKind::EchoRequest: return "Echo req";
-    case PduKind::EchoReply: return "Echo rep";
+    case PduKind::ArpRequest: return tr("ARP req");
+    case PduKind::ArpReply: return tr("ARP rep");
+    case PduKind::EchoRequest: return tr("Echo req");
+    case PduKind::EchoReply: return tr("Echo rep");
     case PduKind::OtherIcmp: return "ICMP";
     }
-    return "Frame";
+    return tr("Frame");
 }
 
 std::string frame_name(PduKind kind) {
     switch (kind) {
-    case PduKind::ArpRequest: return "ARP Request";
-    case PduKind::ArpReply: return "ARP Reply";
-    case PduKind::EchoRequest: return "Echo Request";
-    case PduKind::EchoReply: return "Echo Reply";
-    case PduKind::OtherIcmp: return "ICMP message";
+    case PduKind::ArpRequest: return tr("ARP Request");
+    case PduKind::ArpReply: return tr("ARP Reply");
+    case PduKind::EchoRequest: return tr("Echo Request");
+    case PduKind::EchoReply: return tr("Echo Reply");
+    case PduKind::OtherIcmp: return tr("ICMP message");
     }
-    return "Frame";
-}
-
-std::string describe_layers(const netsim::EthernetFrame& frame) {
-    std::string text = "Ethernet II · dst " + frame.dst.to_string() + " · src " + frame.src.to_string() +
-        (frame.arp() ? " · type 0x0806 (ARP)" : " · type 0x0800 (IPv4)");
-    if (const auto* arp = frame.arp()) {
-        const bool request = arp->op == netsim::ArpPacket::Op::Request;
-        text += std::string("\nARP · ") + (request ? "request" : "reply") + " · sender " + arp->sender_mac.to_string() +
-            " " + arp->sender_ip.to_string() + " · target " +
-            (request ? "" : arp->target_mac.to_string() + " ") + arp->target_ip.to_string();
-        return text;
-    }
-    const auto& packet = *frame.ipv4();
-    text += "\nIPv4 · " + packet.src.to_string() + " → " + packet.dst.to_string() + " · TTL " +
-        std::to_string(packet.ttl) + " · id " + std::to_string(packet.identification) + " · protocol 1 (ICMP)";
-    const auto& message = packet.icmp;
-    const char* name = message.type == netsim::icmp::echo_request ? " Echo Request"
-        : message.type == netsim::icmp::echo_reply ? " Echo Reply"
-        : message.type == netsim::icmp::destination_unreachable ? " Destination Unreachable"
-        : message.type == netsim::icmp::time_exceeded ? " Time Exceeded" : "";
-    text += "\nICMP · type " + std::to_string(message.type) + name + " · code " + std::to_string(message.code);
-    if (message.type == netsim::icmp::echo_request || message.type == netsim::icmp::echo_reply)
-        text += " · identifier " + std::to_string(message.identifier) + " · sequence " + std::to_string(message.sequence) +
-            " · " + std::to_string(message.data_size) + " data bytes";
-    return text;
+    return tr("Frame");
 }
 
 Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simulation, const PlaybackController& playback) {
@@ -277,8 +262,8 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
         sprite.kind = netsim::kind_of(frame);
         sprite.broadcast = frame.dst.is_broadcast();
         sprite.label = packet_label(sprite.kind);
-        sprite.description = frame_name(sprite.kind) + (sprite.broadcast ? ", broadcast, " : ", ") +
-            from->name + " → " + to->name;
+        sprite.description = sprite.broadcast ? tr("{0}, broadcast, {1} → {2}", {frame_name(sprite.kind), from->name, to->name})
+                                              : tr("{0}, {1} → {2}", {frame_name(sprite.kind), from->name, to->name});
         scene.packets.push_back(std::move(sprite));
     }
 

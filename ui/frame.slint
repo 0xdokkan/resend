@@ -1,0 +1,105 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Caption } from "widgets.slint";
+
+// A row of the field list: a layer's title, or one of its fields.
+export struct FieldRow {
+    header: bool, label: string, value: string, meaning: string, offset: int, length: int,
+}
+export struct HexByte { index: int, text: string }
+export struct HexRow { offset: string, bytes: [HexByte] }
+
+// The selected frame, field by field and byte by byte (src/wire/wire.hpp).
+export global UiFrame {
+    in property <string> title;
+    in property <[FieldRow]> rows;
+    in property <[HexRow]> hex;
+    // The bytes of the selected field.
+    in property <int> selected-row: -1;
+    in property <int> selected-offset: -1;
+    in property <int> selected-length: 0;
+    // The selected field in full: its name, value, meaning and bytes.
+    in property <string> selection;
+    callback select-row(int);
+    callback select-byte(int);
+}
+
+export component FrameView inherits Rectangle {
+    if UiFrame.rows.length == 0: Text {
+        text: @tr("Select an event or a packet to see its frame, field by field.");
+        color: Theme.muted; font-size: 12px; wrap: word-wrap;
+        horizontal-alignment: center; vertical-alignment: center;
+    }
+    if UiFrame.rows.length > 0: HorizontalLayout {
+        spacing: 12px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 220px;
+            spacing: 6px;
+            Caption { text: UiFrame.title; overflow: elide; }
+            if UiFrame.selection != "": Text { text: UiFrame.selection; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
+            ScrollView {
+                content-width: self.visible-width;
+                horizontal-scrollbar-policy: always-off;
+                VerticalLayout {
+                    alignment: start;
+                    for row[i] in UiFrame.rows: Rectangle {
+                        height: 20px;
+                        border-radius: 4px;
+                        background: UiFrame.selected-row == i ? Theme.selection : row-touch.has-hover && !row.header ? #1c2a3b : transparent;
+                        HorizontalLayout {
+                            padding-left: row.header ? 4px : 14px; padding-right: 6px; spacing: 8px;
+                            Text {
+                                text: row.label;
+                                color: row.header ? Theme.blue : Theme.muted;
+                                font-size: 11px; font-weight: row.header ? 600 : 400;
+                                vertical-alignment: center;
+                                width: row.header ? self.preferred-width : 118px;
+                                overflow: elide;
+                            }
+                            if !row.header: Text {
+                                text: row.meaning == "" ? row.value : row.value + "  (" + row.meaning + ")";
+                                color: Theme.ink; font-size: 11px; vertical-alignment: center; overflow: elide;
+                                horizontal-stretch: 1;
+                            }
+                        }
+                        accessible-role: button;
+                        accessible-label: row.header ? row.label : row.label + ": " + row.value;
+                        accessible-action-default => { if !row.header { UiFrame.select-row(i); } }
+                        row-touch := TouchArea { enabled: !row.header; clicked => { UiFrame.select-row(i); } }
+                    }
+                }
+            }
+        }
+        // Bytes: 16 a row, the selected field's highlighted.
+        VerticalLayout {
+            spacing: 6px;
+            Caption { text: @tr("BYTES"); }
+            ScrollView {
+                width: 16 * 18px + 52px;
+                horizontal-scrollbar-policy: always-off;
+                VerticalLayout {
+                    alignment: start;
+                    spacing: 2px;
+                    for line in UiFrame.hex: HorizontalLayout {
+                        spacing: 1px;
+                        Text { text: line.offset; width: 34px; color: Theme.muted; font-size: 10px; font-family: "monospace"; vertical-alignment: center; }
+                        for byte in line.bytes: Rectangle {
+                            property <bool> chosen: byte.index >= UiFrame.selected-offset && byte.index < UiFrame.selected-offset + UiFrame.selected-length;
+                            width: 17px; height: 17px;
+                            border-radius: 3px;
+                            background: self.chosen ? Theme.mint : byte-touch.has-hover ? Theme.hover : transparent;
+                            Text {
+                                text: byte.text;
+                                color: parent.chosen ? #10231e : Theme.ink;
+                                font-size: 10px; font-family: "monospace";
+                                horizontal-alignment: center; vertical-alignment: center;
+                            }
+                            byte-touch := TouchArea { clicked => { UiFrame.select-byte(byte.index); } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,9 +1,13 @@
 #include "wire/wire.hpp"
 
+#include "core/text.hpp"
+
 #include <array>
+#include <utility>
 
 namespace netsim::wire {
 namespace {
+using text::tr;
 constexpr std::size_t ethernet_header = 14, ipv4_header = 20, icmp_header = 8;
 
 void put16(std::vector<std::uint8_t>& out, std::uint16_t value) {
@@ -168,6 +172,116 @@ std::optional<EthernetFrame> decode(std::span<const std::uint8_t> bytes) {
         if (read.u8() != static_cast<std::uint8_t>(i)) return std::nullopt;
     frame.payload = packet;
     return read.ok() ? std::optional(frame) : std::nullopt;
+}
+
+namespace {
+std::uint16_t read16(std::span<const std::uint8_t> bytes, std::size_t at) {
+    return static_cast<std::uint16_t>(bytes[at] << 8 | bytes[at + 1]);
+}
+std::string hex(unsigned value, int digits) {
+    static constexpr char numerals[] = "0123456789abcdef";
+    std::string text = "0x";
+    for (int shift = (digits - 1) * 4; shift >= 0; shift -= 4) text += numerals[(value >> shift) & 0xfU];
+    return text;
+}
+std::string colon_bytes(std::span<const std::uint8_t> bytes) {
+    static constexpr char numerals[] = "0123456789abcdef";
+    std::string text;
+    for (const auto byte : bytes) {
+        if (!text.empty()) text += ':';
+        text += numerals[byte >> 4];
+        text += numerals[byte & 0xfU];
+    }
+    return text;
+}
+MacAddress mac_at(std::span<const std::uint8_t> bytes, std::size_t at) {
+    MacAddress::Bytes value{};
+    for (std::size_t i = 0; i < value.size(); ++i) value[i] = bytes[at + i];
+    return MacAddress(value);
+}
+Ipv4Address ipv4_at(std::span<const std::uint8_t> bytes, std::size_t at) {
+    return Ipv4Address(static_cast<std::uint32_t>(read16(bytes, at)) << 16 | read16(bytes, at + 2));
+}
+std::string checked(std::span<const std::uint8_t> bytes) { return checksum(bytes) == 0 ? tr("correct") : tr("incorrect"); }
+} // namespace
+
+std::vector<Layer> dissect(std::span<const std::uint8_t> bytes) {
+    const auto frame = decode(bytes);
+    if (!frame) return {};
+    std::vector<Layer> layers;
+    const auto mac = [&](std::size_t at) {
+        const auto address = mac_at(bytes, at);
+        return std::pair{address.to_string(), address == MacAddress::broadcast() ? tr("Broadcast") : std::string()};
+    };
+    Layer ethernet{"Ethernet II", "eth", 0, ethernet_header, {}};
+    const auto [dst, dst_meaning] = mac(0);
+    const auto [src, src_meaning] = mac(6);
+    const auto type = read16(bytes, 12);
+    ethernet.fields = {
+        {tr("Destination"), "eth.dst", 0, 6, dst, dst_meaning},
+        {tr("Source"), "eth.src", 6, 6, src, src_meaning},
+        {tr("Type"), "eth.type", 12, 2, hex(type, 4), type == ethertype::arp ? "ARP" : "IPv4"},
+    };
+    std::size_t end = ethernet_header;
+    if (const auto* arp = frame->arp()) {
+        constexpr std::size_t at = ethernet_header;
+        layers.push_back(std::move(ethernet));
+        layers.push_back({"Address Resolution Protocol", "arp", at, 28, {
+            {tr("Hardware type"), "arp.hw.type", at, 2, std::to_string(read16(bytes, at)), "Ethernet"},
+            {tr("Protocol type"), "arp.proto.type", at + 2, 2, hex(read16(bytes, at + 2), 4), "IPv4"},
+            {tr("Hardware size"), "arp.hw.size", at + 4, 1, std::to_string(bytes[at + 4])},
+            {tr("Protocol size"), "arp.proto.size", at + 5, 1, std::to_string(bytes[at + 5])},
+            {tr("Opcode"), "arp.opcode", at + 6, 2, std::to_string(read16(bytes, at + 6)), arp->op == ArpPacket::Op::Request ? tr("request") : tr("reply")},
+            {tr("Sender MAC address"), "arp.src.hw_mac", at + 8, 6, mac_at(bytes, at + 8).to_string()},
+            {tr("Sender IP address"), "arp.src.proto_ipv4", at + 14, 4, ipv4_at(bytes, at + 14).to_string()},
+            {tr("Target MAC address"), "arp.dst.hw_mac", at + 18, 6, mac_at(bytes, at + 18).to_string()},
+            {tr("Target IP address"), "arp.dst.proto_ipv4", at + 24, 4, ipv4_at(bytes, at + 24).to_string()},
+        }});
+        end = at + 28;
+    } else {
+        const auto& packet = *frame->ipv4();
+        constexpr std::size_t at = ethernet_header, icmp_at = ethernet_header + ipv4_header;
+        const auto total = read16(bytes, at + 2);
+        layers.push_back(std::move(ethernet));
+        layers.push_back({"Internet Protocol Version 4", "ip", at, ipv4_header, {
+            {tr("Version"), "ip.version", at, 1, std::to_string(bytes[at] >> 4)},
+            {tr("Header length"), "ip.hdr_len", at, 1, std::to_string((bytes[at] & 0xfU) * 4), tr("bytes")},
+            {tr("Differentiated services"), "ip.dsfield", at + 1, 1, hex(bytes[at + 1], 2)},
+            {tr("Total length"), "ip.len", at + 2, 2, std::to_string(total), tr("bytes")},
+            {tr("Identification"), "ip.id", at + 4, 2, hex(read16(bytes, at + 4), 4)},
+            {tr("Flags"), "ip.flags", at + 6, 1, hex(static_cast<unsigned>(bytes[at + 6] >> 5) << 5, 2), tr("none")},
+            {tr("Fragment offset"), "ip.frag_offset", at + 6, 2, std::to_string(read16(bytes, at + 6) & 0x1fffU)},
+            {tr("Time to live"), "ip.ttl", at + 8, 1, std::to_string(packet.ttl), tr("hops left")},
+            {tr("Protocol"), "ip.proto", at + 9, 1, std::to_string(packet.protocol), "ICMP"},
+            {tr("Header checksum"), "ip.checksum", at + 10, 2, hex(read16(bytes, at + 10), 4), checked(bytes.subspan(at, ipv4_header))},
+            {tr("Source address"), "ip.src", at + 12, 4, packet.src.to_string()},
+            {tr("Destination address"), "ip.dst", at + 16, 4, packet.dst.to_string()},
+        }});
+        const auto& message = packet.icmp;
+        const std::size_t icmp_length = total - ipv4_header;
+        const auto kind = message.type == icmp::echo_request ? tr("Echo (ping) request")
+            : message.type == icmp::echo_reply ? tr("Echo (ping) reply") : std::string();
+        layers.push_back({"Internet Control Message Protocol", "icmp", icmp_at, icmp_header, {
+            {tr("Type"), "icmp.type", icmp_at, 1, std::to_string(message.type), kind},
+            {tr("Code"), "icmp.code", icmp_at + 1, 1, std::to_string(message.code)},
+            {tr("Checksum"), "icmp.checksum", icmp_at + 2, 2, hex(read16(bytes, icmp_at + 2), 4), checked(bytes.subspan(icmp_at, icmp_length))},
+            {tr("Identifier"), "icmp.ident", icmp_at + 4, 2, std::to_string(message.identifier)},
+            {tr("Sequence number"), "icmp.seq", icmp_at + 6, 2, std::to_string(message.sequence)},
+        }});
+        end = icmp_at + icmp_header;
+        if (message.data_size > 0) {
+            const auto data = bytes.subspan(end, message.data_size);
+            layers.back().length += message.data_size;
+            layers.push_back({"Data", "data", end, message.data_size, {
+                {tr("Data"), "data.data", end, message.data_size, colon_bytes(data), tr("{0} bytes", {std::to_string(message.data_size)})},
+            }});
+            end += message.data_size;
+        }
+    }
+    if (end < bytes.size()) {
+        layers.front().fields.push_back({tr("Padding"), "eth.padding", end, bytes.size() - end, colon_bytes(bytes.subspan(end))});
+    }
+    return layers;
 }
 
 void write_pcap(std::ostream& out, const Trace& trace, std::optional<LinkId> link) {

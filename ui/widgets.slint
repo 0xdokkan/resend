@@ -1,0 +1,168 @@
+import { LineEdit } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+
+// A button. As a toggle, `checked` shows in the primary style and is announced.
+export component Action inherits Rectangle {
+    in property <string> text;
+    // Read by screen readers instead of `text` when the text is only a symbol or a value.
+    in property <string> accessible-text;
+    in property <bool> primary: false;
+    in property <bool> quiet: false;
+    in property <bool> danger: false;
+    in property <bool> enabled: true;
+    in property <bool> toggle: false;
+    in property <bool> checked: false;
+    in property <bool> small: false;
+    callback clicked();
+    preferred-height: root.small ? 26px : 32px;
+    min-height: root.small ? 24px : 28px;
+    min-width: label.preferred-width + (root.small ? 16px : 22px);
+    border-radius: 7px;
+    property <bool> filled: root.primary || (root.toggle && root.checked);
+    background: !root.enabled ? #18212e : root.filled ? (touch.has-hover ? #a0f1d7 : Theme.mint)
+        : touch.has-hover ? Theme.hover : root.quiet ? transparent : Theme.raised;
+    border-width: 1px;
+    border-color: focus.has-focus ? Theme.mint : root.filled ? transparent : root.quiet ? transparent : Theme.line;
+    opacity: root.enabled ? 1 : 0.45;
+    accessible-role: button;
+    accessible-label: root.accessible-text != "" ? root.accessible-text : root.text;
+    accessible-enabled: root.enabled;
+    accessible-checkable: root.toggle;
+    accessible-checked: root.checked;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    forward-focus: focus;
+    label := Text {
+        text: root.text;
+        color: !root.enabled ? Theme.muted : root.filled ? #10231e : root.danger ? #f5a5a5 : Theme.ink;
+        font-size: root.small ? 11px : 12px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    focus := FocusScope {
+        enabled: root.enabled;
+        focus-on-tab-navigation: true;
+        key-pressed(e) => {
+            if e.text == " " || e.text == "\n" {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { focus.focus(); root.clicked(); }
+    }
+}
+
+export component Caption inherits Text {
+    color: Theme.muted;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+export component Divider inherits Rectangle {
+    height: 1px;
+    background: Theme.line;
+}
+
+// A labelled text field; `accepted` when Enter is pressed in it.
+export component Field inherits VerticalLayout {
+    in property <string> label;
+    in property <string> placeholder;
+    in-out property <string> text;
+    callback accepted();
+    spacing: 4px;
+    // Elided rather than widening a narrow panel in a longer language.
+    Text { text: root.label; color: Theme.muted; font-size: 11px; overflow: elide; }
+    LineEdit {
+        // Narrow panels: the style's minimum would push the panel wider.
+        min-width: 40px;
+        text <=> root.text;
+        placeholder-text: root.placeholder;
+        accessible-label: root.label;
+        accepted => { root.accepted(); }
+    }
+}
+
+// A filter that is on or off.
+export component Chip inherits Rectangle {
+    in property <string> text;
+    in property <bool> checked;
+    in property <color> tint: Theme.blue;
+    callback clicked();
+    height: 24px;
+    width: chip-text.preferred-width + 18px;
+    border-radius: 12px;
+    background: root.checked ? #1b2f3d : touch.has-hover ? Theme.hover : transparent;
+    border-width: 1px;
+    border-color: focus.has-focus ? Theme.mint : root.checked ? root.tint : Theme.line;
+    accessible-role: checkbox;
+    accessible-label: root.text;
+    accessible-checkable: true;
+    accessible-checked: root.checked;
+    accessible-action-default => { root.clicked(); }
+    forward-focus: focus;
+    chip-text := Text {
+        text: root.text;
+        color: root.checked ? Theme.ink : Theme.muted;
+        font-size: 10px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    focus := FocusScope {
+        focus-on-tab-navigation: true;
+        key-pressed(e) => {
+            if e.text == " " || e.text == "\n" { root.clicked(); return accept; }
+            return reject;
+        }
+    }
+    touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
+}
+
+export component DeviceIcon inherits Rectangle {
+    in property <bool> switch-kind: false;
+    in property <color> tint: Theme.mint;
+    property <float> scale: root.width / 29px;
+    background: transparent;
+    if !root.switch-kind: Rectangle {
+        x: 2px * root.scale; y: 2px * root.scale;
+        width: parent.width - 4px * root.scale; height: parent.height - 9px * root.scale;
+        border-width: 1.5px * root.scale; border-color: root.tint; border-radius: 3px * root.scale;
+        Rectangle { width: 1.5px * root.scale; height: 5px * root.scale; x: (parent.width - self.width) / 2; y: parent.height; background: root.tint; }
+        Rectangle { width: 12px * root.scale; height: 1.5px * root.scale; x: (parent.width - self.width) / 2; y: parent.height + 4px * root.scale; background: root.tint; }
+    }
+    if root.switch-kind: Rectangle {
+        x: 1px * root.scale; y: 6px * root.scale; width: parent.width - 2px * root.scale; height: 15px * root.scale;
+        border-width: 1.5px * root.scale; border-color: root.tint; border-radius: 3px * root.scale;
+        for i in 4: Rectangle {
+            x: (4px + i * 5px) * root.scale; y: 6px * root.scale;
+            width: 3px * root.scale; height: 4px * root.scale;
+            background: root.tint;
+        }
+    }
+}
+
+// The title row of a side panel, with the button that folds it away.
+export component PanelHeader inherits Rectangle {
+    in property <string> title;
+    in property <string> detail;
+    // The fold button's label, e.g. "Hide inspector".
+    in property <string> fold-text;
+    in property <string> fold-symbol: "‹";
+    callback fold();
+    height: 44px;
+    HorizontalLayout {
+        padding-left: 16px; padding-right: 8px; spacing: 8px;
+        Text { text: root.title; color: Theme.ink; font-size: 13px; font-weight: 600; vertical-alignment: center; }
+        Text { text: root.detail; color: Theme.muted; font-size: 11px; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+        VerticalLayout {
+            alignment: center;
+            Action { text: root.fold-symbol; accessible-text: root.fold-text; quiet: true; small: true; width: 28px; clicked => { root.fold(); } }
+        }
+    }
+}
