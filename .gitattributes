@@ -1,0 +1,4 @@
+# resend writes scenario files and the tests' golden files with LF line
+# endings, and the tests compare them byte for byte: every platform checks
+# text files out with LF.
+* text=auto eol=lf

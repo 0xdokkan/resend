@@ -78,10 +78,10 @@ void one_resolution_for_two_pings() {
     CHECK(simulation.ping(first)->state == PingState::Succeeded && simulation.ping(second)->state == PingState::Succeeded);
     CHECK(simulation.ping(first)->finished == 80ms && simulation.ping(second)->finished == 80ms);
     // Datagrams are numbered per host as they leave.
-    std::vector<std::pair<std::uint16_t, std::uint16_t>> numbers;  // identification, ICMP identifier
+    std::vector<std::pair<int, int>> numbers;  // identification, ICMP identifier
     for (const auto& frame : simulation.trace().pdus())
         if (const auto* packet = frame.ipv4()) numbers.emplace_back(packet->identification, packet->icmp.identifier);
-    CHECK((numbers == std::vector<std::pair<std::uint16_t, std::uint16_t>>{{1, 1}, {2, 2}, {1, 1}, {2, 2}}));
+    CHECK((numbers == std::vector<std::pair<int, int>>{{1, 1}, {2, 2}, {1, 1}, {2, 2}}));
 }
 
 void pings_in_both_directions() {
