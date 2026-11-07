@@ -139,6 +139,70 @@ void basic_ping_and_cache() {
     CHECK(trace.pdus().size() == 6);
     CHECK(trace.pdus()[4].ping_id != ping_id && trace.pdus()[4].ping_id == trace.pdus()[5].ping_id);
 }
+// Frames on the cables, as the animation reads them.
+void transmissions_and_run_until() {
+    netsim::Engine engine;
+    engine.seed_demo();
+    CHECK(engine.start_ping(1, "192.168.1.20"));
+    CHECK(engine.next_event_time() == 0ms);
+    // Nothing runs before its time, and every entry due at the time runs.
+    engine.run_until(0ms);
+    CHECK(engine.trace().transmissions().size() == 1);
+    CHECK(engine.next_event_time() == 10ms);
+    engine.run_until(9ms);
+    CHECK(engine.now() == 9ms);
+    CHECK(engine.trace().records().size() == 1);
+    engine.run_until(10ms);
+    CHECK(engine.trace().records().size() == 5);
+    CHECK(engine.next_event_time() == 20ms);
+    engine.run_until(1s);
+    CHECK(!engine.pending() && !engine.next_event_time());
+    CHECK(engine.now() == 1s);  // the clock moves on even with nothing to do
+    CHECK(engine.ping_succeeded());
+
+    // PC-A (1) port 0 —link 1— port 0 Switch (3) port 1 —link 2— port 0 PC-B (2).
+    struct Hop { int pdu, link, from, from_port, to, to_port; netsim::SimTime start; };
+    const Hop hops[] = {
+        {0, 1, 1, 0, 3, 0, 0ms}, {0, 2, 3, 1, 2, 0, 10ms},   // ARP Request, flooded
+        {1, 2, 2, 0, 3, 1, 20ms}, {1, 1, 3, 0, 1, 0, 30ms},  // ARP Reply
+        {2, 1, 1, 0, 3, 0, 40ms}, {2, 2, 3, 1, 2, 0, 50ms},  // Echo Request
+        {3, 2, 2, 0, 3, 1, 60ms}, {3, 1, 3, 0, 1, 0, 70ms},  // Echo Reply
+    };
+    const auto& sent = engine.trace().transmissions();
+    CHECK(sent.size() == std::size(hops));
+    for (std::size_t i = 0; i < std::min(sent.size(), std::size(hops)); ++i) {
+        const auto& t = sent[i];
+        const auto& hop = hops[i];
+        CHECK(t.pdu == netsim::PduId{static_cast<std::uint32_t>(hop.pdu)});
+        CHECK(t.link == netsim::LinkId{static_cast<std::uint32_t>(hop.link)});
+        CHECK(t.from == netsim::DeviceId{static_cast<std::uint32_t>(hop.from)} && t.from_port == hop.from_port);
+        CHECK(t.to == netsim::DeviceId{static_cast<std::uint32_t>(hop.to)} && t.to_port == hop.to_port);
+        CHECK(t.start == hop.start && t.arrival == hop.start + 10ms);
+        // Each transmission points at its FrameSent record.
+        const auto& record = engine.trace().records().at(t.record);
+        CHECK(record.kind == TraceKind::FrameSent && record.time == t.start && record.pdu == t.pdu && record.link == t.link);
+    }
+
+    // A ping started later begins at the current time, not at the last event.
+    CHECK(engine.start_ping(1, "192.168.1.20"));
+    engine.run_until(2s);
+    CHECK(engine.trace().transmissions()[8].start == 1s);
+    CHECK(engine.ping_succeeded());
+
+    // A flood puts one copy on every other active cable at the same instant.
+    engine.seed_demo();
+    const int observer = engine.add_device(netsim::DeviceKind::Host, 0, 0);
+    CHECK(engine.connect(observer, 3));
+    CHECK(engine.start_ping(1, "192.168.1.20"));
+    engine.run_until(10ms);
+    const auto& copies = engine.trace().transmissions();
+    CHECK(copies.size() == 3);
+    CHECK(copies[1].start == 10ms && copies[2].start == 10ms);
+    CHECK(copies[1].pdu == copies[0].pdu && copies[2].pdu == copies[0].pdu);
+    CHECK(copies[1].to == netsim::DeviceId{2} && copies[2].to == netsim::DeviceId{static_cast<std::uint32_t>(observer)});
+    // Events name the frame they are about.
+    CHECK(engine.events().size() == 2 && engine.events()[0].pdu == 0 && engine.events()[1].pdu == 0);
+}
 void broadcast_and_unicast() {
     netsim::Engine engine;
     engine.seed_demo();
@@ -310,6 +374,7 @@ void deterministic_reset() {
 
 int main() {
     basic_ping_and_cache();
+    transmissions_and_run_until();
     broadcast_and_unicast();
     route_failures();
     links_and_timeouts();

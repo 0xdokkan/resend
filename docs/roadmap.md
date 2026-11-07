@@ -30,23 +30,23 @@ Animation comes first because it only needs the trace, which already exists, and
 
 **Design.** The engine is never ahead of the screen: the `PlaybackController` turns real time into simulated time and asks the engine to run up to that instant, so the tables in the inspector always describe the moment shown. Animation reads the engine; it never drives the result.
 
-- [ ] **A1. Transmissions in the trace.** Every `FrameSent` also records `{pdu, link, from device/port, to device/port, start, arrival}`. The engine gains `run_until(t)` and `next_event_time()`; the scheduler gains a non-destructive `next_time()`.
+- [x] **A1. Transmissions in the trace.** Every `FrameSent` also records `{pdu, link, from device/port, to device/port, start, arrival}`. The engine gains `run_until(t)` and `next_event_time()`; the scheduler gains a non-destructive `next_time()`.
   - Tests: the sample ping produces 8 transmissions with the expected ports and times; a flood creates simultaneous transmissions; `run_until` stops exactly at `t` and processes every entry due at `t`.
-- [ ] **A2. `PlaybackController`** (plain C++, no Slint): play, pause, step, speed (0.25×–4×), reduced motion, end of simulation. At 1× a 10 ms hop takes 600 ms; an idle gap with nothing on the wires lasts at most 0.8 s of real time whatever its simulated length, so a 1 s ARP timeout does not stall the screen. Step plays up to the next event and stops there.
+- [x] **A2. `PlaybackController`** (plain C++, no Slint): play, pause, step, speed (0.25×–4×), reduced motion, end of simulation. At 1× a 10 ms hop takes 600 ms; an idle gap with nothing on the wires lasts at most 0.8 s of real time whatever its simulated length, so a 1 s ARP timeout does not stall the screen. Step plays up to the next event and stops there.
   - Tests with a fake clock: positions at given real times, speed changes, idle compression, step boundaries, no event skipped or processed twice.
-- [ ] **A3. Packets on the canvas.** A packet model computed in C++ each frame: position on the cable, protocol colour (ARP amber, ICMP mint), a short label (`ARP req`, `ARP rep`, `Echo req`, `Echo rep`) and a ring for broadcast frames. Flooded copies travel together.
-- [ ] **A4. Decisions on the devices.** Short-lived markers derived from the records: `+MAC` with the port when a switch learns, the egress port highlighted on a forward, a fan-out on a flood, `filtered`, `+ARP` on a cache update, a red ✕ with the reason where a frame stops, and the ping result on the source host.
-- [ ] **A5. Ports on the cards.** Port dots drawn from the same geometry C++ uses; cables leave from the port they really use, so the egress port of every frame is visible.
-- [ ] **A6. Follow a frame.** Selecting a packet (or an event) highlights every cable the same frame crossed, flooded copies included, and the inspector shows the frame by layer: Ethernet, then ARP or IPv4 and ICMP.
-- [ ] **A7. Controls.** Speed selector, reduced-motion switch, simulated clock in the toolbar.
-- [ ] **A8. Snapshots at a given instant.** `resend --snapshot out.ppm --ping 192.168.1.20 --at 15ms` renders the canvas at a simulated time, for documentation and visual checks.
+- [x] **A3. Packets on the canvas.** A packet model computed in C++ each frame: position on the cable, protocol colour (ARP amber, ICMP mint), a short label (`ARP req`, `ARP rep`, `Echo req`, `Echo rep`) and a ring for broadcast frames. Flooded copies travel together.
+- [x] **A4. Decisions on the devices.** Short-lived markers derived from the records: `+MAC` with the port when a switch learns, the egress port highlighted on a forward, a fan-out on a flood, `filtered`, `+ARP` on a cache update, a red ✕ with the reason where a frame stops, and the ping result on the source host.
+- [x] **A5. Ports on the cards.** Each card has a front panel with one light per port: connected, cable down, or lit while a frame passes. Cables end on the card borders with the switch port number, so the egress port of every frame is visible. Dragging cables from port to port comes with the final canvas (M4.1).
+- [x] **A6. Follow a frame.** Selecting a packet (or an event) highlights every cable the same frame crossed, flooded copies included, and the inspector shows the frame by layer: Ethernet, then ARP or IPv4 and ICMP.
+- [x] **A7. Controls.** Speed selector, reduced-motion switch, simulated clock in the toolbar.
+- [x] **A8. Snapshots at a given instant.** `resend --snapshot out.ppm --ping 192.168.1.20 --at 15ms` renders the canvas at a simulated time, for documentation and visual checks.
 
 **Exit checks**
 
-- [ ] At 15 ms into the sample ping exactly one packet is on cable 2, halfway (controller test and snapshot).
-- [ ] With a third host on the switch, at 15 ms two copies of the ARP request are in flight (controller and GUI tests).
-- [ ] A disabled destination shows a drop marker at the arrival time with the reason (GUI test).
-- [ ] Changing speed or pausing never changes the trace (test: same records at 0.25× and 4×).
+- [x] At 15 ms into the sample ping exactly one packet is on cable 2, halfway (controller test and snapshot).
+- [x] With a third host on the switch, at 15 ms two copies of the ARP request are in flight (controller and GUI tests).
+- [x] A disabled destination shows a drop marker at the arrival time with the reason (GUI test).
+- [x] Changing speed or pausing never changes the trace (test: same records at 0.25× and 4×).
 - [ ] Rendering stays at 60 fps with 20 packets in flight on the GPU renderers (measured by hand with `SLINT_DEBUG_PERFORMANCE`).
 
 After A, a public **0.1.1 preview** can collect early feedback.

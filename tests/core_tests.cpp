@@ -105,6 +105,43 @@ void scheduler_cancel() {
     CHECK(chain.now() == 0ns);  // cancelled entries never move the clock
 }
 
+void scheduler_peek_and_advance() {
+    netsim::Scheduler<int> queue;
+    CHECK(!queue.next_time());
+    auto first = queue.schedule(30ms, 1);
+    queue.schedule(50ms, 2);
+    CHECK(queue.next_time() == 30ms);
+    CHECK(queue.now() == 0ns);  // peeking does not move the clock
+    CHECK(queue.cancel(first));
+    CHECK(queue.next_time() == 50ms);  // a cancelled entry is gone at once
+    queue.advance_to(40ms);
+    CHECK(queue.now() == 40ms);
+    queue.advance_to(20ms);
+    CHECK(queue.now() == 40ms);  // never backwards
+    queue.schedule(queue.now(), 3);
+    CHECK(queue.next_time() == 40ms);
+    CHECK(queue.pop()->payload == 3);
+    CHECK(queue.pop()->payload == 2);
+    CHECK(!queue.next_time());
+}
+
+void durations() {
+    CHECK(netsim::parse_duration("15ms") == 15ms);
+    CHECK(netsim::parse_duration("1.5s") == 1500ms);
+    CHECK(netsim::parse_duration("250us") == 250us);
+    CHECK(netsim::parse_duration("250µs") == 250us);
+    CHECK(netsim::parse_duration("40ns") == 40ns);
+    CHECK(netsim::parse_duration("0s") == 0ns);
+    CHECK(netsim::parse_duration("0.000000001s") == 1ns);
+    CHECK(netsim::parse_duration("2.50ms") == 2500us);
+    for (const char* bad : {"", "ms", "15", "15 ms", "-1ms", "1.ms", ".5s", "1.2.3s", "1e3ms", "0.5ns",
+                            "0.0000000001s", "15m", "99999999999999999999s", "10000000000s"})
+        CHECK(!netsim::parse_duration(bad));
+    CHECK(netsim::format_ms(15ms) == "15.000 ms");
+    CHECK(netsim::format_ms(1015250us) == "1015.250 ms");
+    CHECK(netsim::format_ms(999ns) == "0.000 ms");
+}
+
 void sim_time_resolution() {
     // 1500 bytes at 1 Gb/s: 12 µs, exactly representable.
     const SimTime serialization{1500 * 8};
@@ -120,6 +157,8 @@ int main() {
     typed_ids();
     scheduler_order();
     scheduler_cancel();
+    scheduler_peek_and_advance();
+    durations();
     sim_time_resolution();
     std::cout << "Core tests passed: " << test::checks << " checks.\n";
 }

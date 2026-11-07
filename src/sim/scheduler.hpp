@@ -3,18 +3,18 @@
 #include "core/sim_time.hpp"
 
 #include <cassert>
+#include <compare>
 #include <cstdint>
+#include <map>
 #include <optional>
-#include <queue>
-#include <unordered_set>
+#include <unordered_map>
 #include <utility>
-#include <vector>
 
 namespace netsim {
 
 // Deterministic discrete-event queue: entries run in time order, and entries
-// due at the same time run in the order they were scheduled. Cancelled
-// entries are skipped when they reach the front.
+// due at the same time run in the order they were scheduled. Cancelling
+// removes the entry at once, so every pending entry is a live one.
 template<class Payload>
 class Scheduler {
 public:
@@ -28,50 +28,61 @@ public:
     };
 
     SimTime now() const { return now_; }
-    bool empty() const { return pending_.empty(); }
-    std::size_t size() const { return pending_.size(); }
+    bool empty() const { return queue_.empty(); }
+    std::size_t size() const { return queue_.size(); }
+    // Time of the next pending entry, without removing it.
+    std::optional<SimTime> next_time() const {
+        if (queue_.empty()) return std::nullopt;
+        return queue_.begin()->first.time;
+    }
 
     Handle schedule(SimTime at, Payload payload) {
         assert(at >= now_);
         const std::uint64_t id = ++last_id_;
-        queue_.push({at, id, std::move(payload)});
-        pending_.insert(id);
+        queue_.emplace(Key{at, id}, std::move(payload));
+        times_.emplace(id, at);
         return {id};
     }
 
     // True if the entry was still pending.
     bool cancel(Handle& handle) {
-        const bool erased = handle && pending_.erase(handle.id) > 0;
+        bool erased = false;
+        if (handle) {
+            if (const auto it = times_.find(handle.id); it != times_.end()) {
+                queue_.erase(Key{it->second, handle.id});
+                times_.erase(it);
+                erased = true;
+            }
+        }
         handle = {};
         return erased;
     }
 
     // Removes the next pending entry and advances the clock to its time.
     std::optional<Due> pop() {
-        while (!queue_.empty()) {
-            Entry entry = queue_.top();
-            queue_.pop();
-            if (pending_.erase(entry.id) == 0) continue;  // cancelled
-            now_ = entry.time;
-            return Due{entry.time, std::move(entry.payload)};
-        }
-        return std::nullopt;
+        if (queue_.empty()) return std::nullopt;
+        auto node = queue_.extract(queue_.begin());
+        times_.erase(node.key().id);
+        now_ = node.key().time;
+        return Due{now_, std::move(node.mapped())};
+    }
+
+    // Moves the clock forward to `at`, which must not skip a pending entry.
+    // Entries scheduled afterwards start from there.
+    void advance_to(SimTime at) {
+        assert(queue_.empty() || queue_.begin()->first.time >= at);
+        if (at > now_) now_ = at;
     }
 
 private:
-    struct Entry {
+    struct Key {
         SimTime time;
         std::uint64_t id;
-        Payload payload;
+        auto operator<=>(const Key&) const = default;
     };
-    struct Later {
-        bool operator()(const Entry& a, const Entry& b) const {
-            return a.time > b.time || (a.time == b.time && a.id > b.id);
-        }
-    };
-    std::priority_queue<Entry, std::vector<Entry>, Later> queue_;
-    // Membership only, never iterated: hashing order cannot affect results.
-    std::unordered_set<std::uint64_t> pending_;
+    std::map<Key, Payload> queue_;
+    // Lookup only, never iterated: hashing order cannot affect results.
+    std::unordered_map<std::uint64_t, SimTime> times_;
     std::uint64_t last_id_ = 0;
     SimTime now_{};
 };

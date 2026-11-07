@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(resend VERSION 0.1.0 LANGUAGES CXX)
+project(resend VERSION 0.1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,14 +12,20 @@ set(RESEND_SLINT_COMPILATION_UNITS 4 CACHE STRING
     "Number of C++ files generated from ui/app.slint, compiled in parallel")
 
 if(MSVC)
-    set(resend_warnings /W4)
+    # /utf-8: sources and string literals are UTF-8 whatever the system code page.
+    set(resend_warnings /W4 /utf-8)
 else()
     set(resend_warnings -Wall -Wextra -Wpedantic)
 endif()
 
-add_library(resend_core src/core/address.cpp src/network.cpp)
+add_library(resend_core src/core/address.cpp src/core/sim_time.cpp src/network.cpp)
 target_include_directories(resend_core PUBLIC src)
 target_compile_options(resend_core PRIVATE ${resend_warnings})
+
+# App logic without Slint: playback and what the canvas shows.
+add_library(resend_app src/app/playback.cpp src/app/scene.cpp)
+target_link_libraries(resend_app PUBLIC resend_core)
+target_compile_options(resend_app PRIVATE ${resend_warnings})
 
 add_executable(resend-cli src/cli.cpp)
 target_link_libraries(resend-cli PRIVATE resend_core)
@@ -34,6 +40,10 @@ if(BUILD_TESTING)
     target_link_libraries(resend-core-tests PRIVATE resend_core)
     target_compile_options(resend-core-tests PRIVATE ${resend_warnings})
     add_test(NAME core-types COMMAND resend-core-tests)
+    add_executable(resend-app-tests tests/app_tests.cpp)
+    target_link_libraries(resend-app-tests PRIVATE resend_app)
+    target_compile_options(resend-app-tests PRIVATE ${resend_warnings})
+    add_test(NAME app-logic COMMAND resend-app-tests)
     # The documented exit codes: 0 reachable, 1 unreachable, 2 invalid input.
     add_test(NAME cli-ping-reachable COMMAND resend-cli 192.168.1.20)
     add_test(NAME cli-ping-disconnected COMMAND resend-cli 192.168.1.20 --disconnect)
@@ -75,9 +85,10 @@ if(RESEND_BUILD_GUI)
 
     # Window, generated UI code and controller, shared by the app and its tests.
     add_library(resend_ui STATIC src/app_controller.cpp)
-    target_link_libraries(resend_ui PUBLIC resend_core Slint::Slint)
+    target_link_libraries(resend_ui PUBLIC resend_app Slint::Slint)
     target_compile_options(resend_ui PRIVATE ${resend_warnings})
     slint_target_sources(resend_ui ui/app.slint COMPILATION_UNITS ${RESEND_SLINT_COMPILATION_UNITS})
+    target_compile_definitions(resend_ui PRIVATE RESEND_VERSION="${PROJECT_VERSION}")
 
     add_executable(resend src/main.cpp)
     target_link_libraries(resend PRIVATE resend_ui)

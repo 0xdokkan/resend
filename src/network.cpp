@@ -199,10 +199,17 @@ std::vector<MacEntry> Engine::mac_table(int id) const {
 }
 void Engine::record(TraceRecord record) { trace_.add(scheduler_.now(), record); }
 void Engine::emit(const std::string& protocol, const std::string& summary,
-                  const std::string& detail, int from, int to, int link_id, bool success) {
-    events_.push_back({time_ms(), protocol, summary, detail, from, to, link_id, success});
+                  const std::string& detail, int from, int to, int link_id, bool success, int pdu) {
+    events_.push_back({time_ms(), protocol, summary, detail, from, to, link_id, success, pdu});
 }
 bool Engine::pending() const { return !scheduler_.empty(); }
+void Engine::run_until(SimTime time) {
+    while (const auto next = scheduler_.next_time()) {
+        if (*next > time) break;
+        step();
+    }
+    scheduler_.advance_to(time);
+}
 bool Engine::transmit(int from, int port, PduId pdu) {
     const auto* source = device(from);
     if (!source || !source->enabled) return false;
@@ -212,10 +219,14 @@ bool Engine::transmit(int from, int port, PduId pdu) {
         if (wire.a == from && wire.a_port == port) { target = wire.b; ingress = wire.b_port; }
         if (wire.b == from && wire.b_port == port) { target = wire.a; ingress = wire.a_port; }
         if (target < 0) continue;
-        scheduler_.schedule(scheduler_.now() + link_delay,
+        const auto now = scheduler_.now();
+        scheduler_.schedule(now + link_delay,
                             {.kind = ActionKind::Deliver, .from = from, .to = target, .link_id = wire.id, .port = ingress, .pdu = pdu});
         record({.kind = TraceKind::FrameSent, .device = device_id(from), .port = port_number(port),
                 .link = link_id(wire.id), .pdu = pdu});
+        trace_.add(Transmission{.pdu = pdu, .link = link_id(wire.id), .from = device_id(from), .to = device_id(target),
+                                .from_port = port_number(port), .to_port = port_number(ingress),
+                                .start = now, .arrival = now + link_delay, .record = trace_.records().back().seq});
         return true;
     }
     return false;
@@ -287,7 +298,7 @@ void Engine::deliver(const Action& action) {
     if (!wire->enabled || !target->enabled) {
         note(TraceKind::FrameDropped, wire->enabled ? Reason::DeviceDown : Reason::LinkDown);
         detail += "\nCannot be received: the link or the device is disabled.";
-        emit(protocol, summary, detail, action.from, action.to, action.link_id, false);
+        emit(protocol, summary, detail, action.from, action.to, action.link_id, false, static_cast<int>(action.pdu.value));
         return;
     }
     note(TraceKind::FrameReceived);
@@ -371,7 +382,7 @@ void Engine::deliver(const Action& action) {
         summary = "Ping succeeded · " + src_ip + " → " + target->name;
         detail += "\nEcho Reply matching the current ping. The destination is reachable.";
     }
-    emit(protocol, summary, detail, action.from, action.to, action.link_id, ok);
+    emit(protocol, summary, detail, action.from, action.to, action.link_id, ok, static_cast<int>(action.pdu.value));
 }
 bool Engine::step() {
     const auto due = scheduler_.pop();
@@ -393,7 +404,7 @@ bool Engine::step() {
         emit("ARP", source->name + " · who has " + destination + "?",
              "ARP Request sent to broadcast (" + MacAddress::broadcast().to_string() + "). Attempt " + std::to_string(action.attempt) + "/3.\n" +
              (sent ? "The destination is in the local subnet. Looking for its MAC address." : "The port has no active link: no frame can leave."),
-             source->id, -1, -1, sent);
+             source->id, -1, -1, sent, static_cast<int>(pdu.value));
         arp_timer_ = scheduler_.schedule(scheduler_.now() + response_timeout,
                                          {.kind = ActionKind::ArpTimeout, .attempt = action.attempt});
         break;

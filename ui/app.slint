@@ -1,18 +1,31 @@
 import { AboutSlint, LineEdit, ListView, ScrollView, Palette } from "std-widgets.slint";
 
-// Device card size in canvas units; C++ reads it to place cables and bounds.
+// Device card size in canvas units. C++ owns the values (src/app/scene.hpp)
+// and sets them at startup; the defaults only serve the live preview.
 export global Geometry {
-    out property <float> card-width: 160;
-    out property <float> card-height: 94;
+    in-out property <float> card-width: 160;
+    in-out property <float> card-height: 94;
 }
 
+// Port bit masks: bit i is port i + 1.
 export struct NodeView {
     id: int, title: string, kind: string, address: string, mac: string,
     x: float, y: float, selected: bool, enabled: bool,
+    port-count: int, connected-ports: int, down-ports: int, active-ports: int,
 }
+// Cable ends on the card borders; a-port and b-port label switch ports.
 export struct LinkView {
     id: int, ax: float, ay: float, bx: float, by: float,
-    enabled: bool, active: bool, label: string,
+    enabled: bool, highlight: bool, label: string, a-port: string, b-port: string,
+}
+// A frame on a cable at the displayed instant, in canvas units.
+export struct PacketView {
+    pdu: int, x: float, y: float, tail-x: float, tail-y: float,
+    protocol: string, label: string, broadcast: bool, selected: bool, description: string,
+}
+// A device decision; x, y is the top centre of its card, stack counts upwards.
+export struct MarkerView {
+    x: float, y: float, stack: int, text: string, tone: string, opacity: float,
 }
 export struct TraceView {
     index: int, time: string, protocol: string, summary: string, detail: string,
@@ -29,32 +42,41 @@ global Theme {
     out property <color> mint: #7ce3c0;
     out property <color> blue: #82b8fb;
     out property <color> amber: #f1c47b;
+    out property <color> red: #f58f8f;
 }
 
 component Action inherits Rectangle {
     in property <string> text;
+    // Read by screen readers instead of `text` when the text is only a value.
+    in property <string> accessible-text;
     in property <bool> primary: false;
     in property <bool> quiet: false;
     in property <bool> danger: false;
     in property <bool> enabled: true;
+    // A switch: `checked` shows as the primary style and is announced.
+    in property <bool> toggle: false;
+    in property <bool> checked: false;
     callback clicked();
     preferred-height: 34px;
     min-height: 30px;
     min-width: label.preferred-width + 24px;
     border-radius: 7px;
-    background: !root.enabled ? #18212e : root.primary ? (touch.has-hover ? #a0f1d7 : Theme.mint)
+    property <bool> filled: root.primary || (root.toggle && root.checked);
+    background: !root.enabled ? #18212e : root.filled ? (touch.has-hover ? #a0f1d7 : Theme.mint)
         : touch.has-hover ? #253347 : root.quiet ? transparent : Theme.raised;
     border-width: 1px;
-    border-color: focus.has-focus ? Theme.mint : root.primary ? transparent : root.quiet ? transparent : Theme.line;
+    border-color: focus.has-focus ? Theme.mint : root.filled ? transparent : root.quiet ? transparent : Theme.line;
     opacity: root.enabled ? 1 : 0.45;
     accessible-role: button;
-    accessible-label: root.text;
+    accessible-label: root.accessible-text != "" ? root.accessible-text : root.text;
     accessible-enabled: root.enabled;
+    accessible-checkable: root.toggle;
+    accessible-checked: root.checked;
     accessible-action-default => { if root.enabled { root.clicked(); } }
     forward-focus: focus;
     label := Text {
         text: root.text;
-        color: root.primary ? #10231e : root.danger ? #f5a5a5 : Theme.ink;
+        color: !root.enabled ? Theme.muted : root.filled ? #10231e : root.danger ? #f5a5a5 : Theme.ink;
         font-size: 12px;
         font-weight: 600;
         horizontal-alignment: center;
@@ -145,19 +167,30 @@ export component AppWindow inherits Window {
 
     in property <[NodeView]> nodes;
     in property <[LinkView]> links;
+    in property <[PacketView]> packets;
+    in property <[MarkerView]> markers;
     in property <[TraceView]> traces;
     in property <int> selected-id: -1;
     in property <string> selected-kind;
     in property <string> selected-mac;
     in property <string> selected-details;
+    in property <bool> selected-enabled: true;
     in property <int> link-source-id: -1;
     in-out property <string> edit-name;
     in-out property <string> edit-ip;
     in-out property <string> edit-prefix;
     in-out property <string> target-ip: "192.168.1.20";
+    // True while the animation plays, including a step in progress.
     in property <bool> running;
     in property <bool> has-pending;
+    in property <string> sim-clock: "0.000 ms";
+    in property <string> speed-label: "1×";
+    in property <bool> reduced-motion;
+    // Layer by layer description of the selected frame, if any.
+    in property <string> frame-layers;
     in property <string> status-text: "Select a host to send a ping.";
+    // Set from CMake's project version.
+    in property <string> version: "dev";
     in property <int> event-count;
     in property <string> event-title;
     in property <string> event-detail;
@@ -187,6 +220,10 @@ export component AppWindow inherits Window {
     callback toggle-link(int);
     callback remove-link(int);
     callback select-event(int);
+    callback select-frame(int);
+    callback cycle-speed();
+    callback toggle-motion();
+    callback toggle-power();
 
     property <float> zoom: 1.0;
     property <length> pan-x: 40px;
@@ -196,7 +233,6 @@ export component AppWindow inherits Window {
     property <length> drag-offset-x;
     property <length> drag-offset-y;
     property <float> next-zoom;
-    property <float> packet-phase: 0;
     // While true, resizing the window keeps the whole network in view.
     property <bool> auto-fit: true;
     property <bool> show-about;
@@ -237,11 +273,6 @@ export component AppWindow inherits Window {
     }
 
     init => { Palette.color-scheme = ColorScheme.dark; }
-    Timer {
-        running: root.running;
-        interval: 30ms;
-        triggered => { root.packet-phase = Math.mod(root.packet-phase + 0.05, 1.0); }
-    }
 
     VerticalLayout {
         padding: 0px;
@@ -307,6 +338,7 @@ export component AppWindow inherits Window {
                         Text { text: "Topology"; color: Theme.ink; font-weight: 600; vertical-alignment: center; }
                         Text { text: root.nodes.length + " devices · " + root.links.length + " links"; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
                         Rectangle { horizontal-stretch: 1; }
+                        Action { text: "Reduce motion"; toggle: true; checked: root.reduced-motion; clicked => { root.toggle-motion(); } }
                         Action { text: "Fit"; clicked => { root.fit-view(); } }
                         Action { text: "−"; width: 30px; clicked => { root.auto-fit = false; root.zoom = max(0.35, root.zoom / 1.15); } }
                         Action { text: Math.round(root.zoom * 100) + "%"; width: 56px; clicked => { root.auto-fit = false; root.zoom = 1; root.pan-x = 40px; root.pan-y = 60px; } }
@@ -356,8 +388,8 @@ export component AppWindow inherits Window {
                     for link in root.links: Path {
                         width: canvas.width; height: canvas.height;
                         viewbox-width: canvas.width / 1px; viewbox-height: canvas.height / 1px;
-                        stroke: !link.enabled ? #586473 : link.active ? Theme.mint : #4f7493;
-                        stroke-width: link.active ? 3px : 2px;
+                        stroke: !link.enabled ? #586473 : link.highlight ? Theme.mint : #4f7493;
+                        stroke-width: link.highlight ? 3px : 2px;
                         MoveTo { x: link.ax * root.zoom + root.pan-x / 1px; y: link.ay * root.zoom + root.pan-y / 1px; }
                         LineTo { x: link.bx * root.zoom + root.pan-x / 1px; y: link.by * root.zoom + root.pan-y / 1px; }
                     }
@@ -372,12 +404,6 @@ export component AppWindow inherits Window {
                         accessible-label: (link.enabled ? "Disable " : "Enable ") + link.label;
                         accessible-action-default => { root.toggle-link(link.id); }
                         link-touch := TouchArea { mouse-cursor: pointer; clicked => { root.toggle-link(link.id); } }
-                    }
-                    for link in root.links: Rectangle {
-                        visible: link.active && link.enabled;
-                        x: (link.ax + (link.bx - link.ax) * (root.running ? root.packet-phase : 0.38)) * root.zoom * 1px + root.pan-x - 4px;
-                        y: (link.ay + (link.by - link.ay) * (root.running ? root.packet-phase : 0.38)) * root.zoom * 1px + root.pan-y - 4px;
-                        width: 8px; height: 8px; border-radius: 3px; background: Theme.mint;
                     }
 
                     for node in root.nodes: Rectangle {
@@ -399,7 +425,20 @@ export component AppWindow inherits Window {
                         Text { x: 47px * root.zoom; y: 14px * root.zoom; width: 101px * root.zoom; text: node.title; overflow: elide; font-size: 13px * root.zoom; font-weight: 600; color: Theme.ink; }
                         Text { x: 47px * root.zoom; y: 33px * root.zoom; text: node.kind == "switch" ? "SWITCH L2" : "HOST"; font-size: 8px * root.zoom; font-weight: 600; color: Theme.muted; letter-spacing: 1px * root.zoom; }
                         Rectangle { x: 12px * root.zoom; y: 53px * root.zoom; width: 136px * root.zoom; height: 1px; background: #2b4153; }
-                        Text { x: 12px * root.zoom; y: 67px * root.zoom; width: 104px * root.zoom; text: node.address; overflow: elide; color: Theme.muted; font-size: 10px * root.zoom; }
+                        if node.kind != "switch": Text { x: 12px * root.zoom; y: 66px * root.zoom; width: 94px * root.zoom; text: node.address; overflow: elide; color: Theme.muted; font-size: 10px * root.zoom; }
+                        // Front panel: one light per port, lit while a frame passes.
+                        for i in node.port-count: Rectangle {
+                            property <bool> connected: Math.mod(Math.floor(node.connected-ports / Math.pow(2, i)), 2) == 1;
+                            property <bool> down: Math.mod(Math.floor(node.down-ports / Math.pow(2, i)), 2) == 1;
+                            property <bool> active: Math.mod(Math.floor(node.active-ports / Math.pow(2, i)), 2) == 1;
+                            x: (node.kind == "switch" ? 12 + 14 * i : 112) * 1px * root.zoom;
+                            y: 69px * root.zoom;
+                            width: 11px * root.zoom; height: 8px * root.zoom;
+                            border-radius: 2px * root.zoom;
+                            background: self.active ? Theme.mint : !self.connected ? #0d1520 : self.down ? #4a3b2a : #2f5f7f;
+                            border-width: 1px;
+                            border-color: self.active ? #d8fff1 : !self.connected ? #3a4d60 : self.down ? Theme.amber : #5d9cc4;
+                        }
                         node-focus := FocusScope {
                             focus-on-tab-navigation: true;
                             focus-gained(reason) => { root.select-node(node.id); }
@@ -444,6 +483,68 @@ export component AppWindow inherits Window {
                             port := TouchArea { mouse-cursor: pointer; clicked => { root.link-node(node.id); } }
                         }
                     }
+                    // Switch port numbers where cables meet the cards.
+                    for link in root.links: Rectangle {
+                        visible: link.a-port != "";
+                        x: link.ax * root.zoom * 1px + root.pan-x - 8px;
+                        y: link.ay * root.zoom * 1px + root.pan-y - 8px;
+                        width: 16px; height: 16px; border-radius: 8px;
+                        background: #101a26; border-width: 1px; border-color: link.highlight ? Theme.mint : #5d9cc4;
+                        Text { text: link.a-port; color: Theme.ink; font-size: 9px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                    for link in root.links: Rectangle {
+                        visible: link.b-port != "";
+                        x: link.bx * root.zoom * 1px + root.pan-x - 8px;
+                        y: link.by * root.zoom * 1px + root.pan-y - 8px;
+                        width: 16px; height: 16px; border-radius: 8px;
+                        background: #101a26; border-width: 1px; border-color: link.highlight ? Theme.mint : #5d9cc4;
+                        Text { text: link.b-port; color: Theme.ink; font-size: 9px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+
+                    // Frames on the cables: a trail shows where they come from.
+                    for packet in root.packets: Path {
+                        width: canvas.width; height: canvas.height;
+                        viewbox-width: canvas.width / 1px; viewbox-height: canvas.height / 1px;
+                        stroke: packet.protocol == "ARP" ? #f1c47b99 : #7ce3c099;
+                        stroke-width: 4px;
+                        MoveTo { x: packet.tail-x * root.zoom + root.pan-x / 1px; y: packet.tail-y * root.zoom + root.pan-y / 1px; }
+                        LineTo { x: packet.x * root.zoom + root.pan-x / 1px; y: packet.y * root.zoom + root.pan-y / 1px; }
+                    }
+                    for packet in root.packets: Rectangle {
+                        property <color> tint: packet.protocol == "ARP" ? Theme.amber : Theme.mint;
+                        x: packet.x * root.zoom * 1px + root.pan-x - self.width / 2;
+                        y: packet.y * root.zoom * 1px + root.pan-y - self.height / 2;
+                        width: packet-label.preferred-width + 14px; height: 18px;
+                        border-radius: 9px;
+                        background: self.tint;
+                        border-width: packet.selected ? 2px : 0px;
+                        border-color: #ffffff;
+                        drop-shadow-blur: 6px; drop-shadow-color: #00000088;
+                        // Broadcast frames carry a ring.
+                        if packet.broadcast: Rectangle {
+                            x: -4px; y: -4px; width: parent.width + 8px; height: parent.height + 8px;
+                            border-radius: 13px; border-width: 1.5px; border-color: parent.tint; background: transparent;
+                        }
+                        packet-label := Text { text: packet.label; color: #10231e; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                        accessible-role: button;
+                        accessible-label: "Packet: " + packet.description;
+                        accessible-action-default => { root.select-frame(packet.pdu); }
+                        TouchArea { mouse-cursor: pointer; clicked => { root.select-frame(packet.pdu); } }
+                    }
+                    for marker in root.markers: Rectangle {
+                        property <color> tint: marker.tone == "learn" ? Theme.blue : marker.tone == "forward" ? Theme.mint
+                            : marker.tone == "wait" ? Theme.amber : marker.tone == "drop" ? Theme.red
+                            : marker.tone == "success" ? Theme.mint : Theme.muted;
+                        x: marker.x * root.zoom * 1px + root.pan-x - self.width / 2;
+                        y: marker.y * root.zoom * 1px + root.pan-y - 24px - marker.stack * 22px;
+                        width: marker-text.preferred-width + 14px; height: 19px;
+                        border-radius: 5px;
+                        opacity: marker.opacity;
+                        background: marker.tone == "success" ? #1d4a3c : marker.tone == "drop" ? #4a2228 : #142131;
+                        border-width: 1px; border-color: self.tint;
+                        marker-text := Text { text: marker.text; color: marker.tone == "muted" ? Theme.muted : Theme.ink; font-size: 10px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+
                     if root.nodes.length == 0: VerticalLayout {
                         padding: 60px; alignment: center; spacing: 12px;
                         Text { text: "A network starts\nwith a connection."; color: Theme.ink; font-size: 28px; font-weight: 600; horizontal-alignment: center; }
@@ -459,6 +560,20 @@ export component AppWindow inherits Window {
                             font-size: 10px; horizontal-alignment: center; vertical-alignment: center;
                         }
                     }
+                    // Simulated clock: the instant the canvas shows.
+                    Rectangle {
+                        x: parent.width - self.width - 16px; y: 14px;
+                        width: clock.preferred-width + 24px; height: 28px;
+                        background: #121e2b; border-radius: 6px;
+                        border-width: 1px; border-color: root.running ? #42655e : transparent;
+                        clock := Text {
+                            text: "t = " + root.sim-clock + (root.running ? "  ▷ " + root.speed-label : "");
+                            color: root.running ? Theme.mint : Theme.muted;
+                            font-size: 11px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center;
+                        }
+                        accessible-role: text;
+                        accessible-label: "Simulated time " + root.sim-clock;
+                    }
                 }
                 Rectangle {
                     height: 59px; background: #111c29;
@@ -468,6 +583,7 @@ export component AppWindow inherits Window {
                         LineEdit { width: 144px; text <=> root.target-ip; placeholder-text: "Destination IPv4"; accessible-label: "Destination IPv4"; }
                         Action { text: "Send"; primary: true; enabled: root.selected-kind == "host" && !root.has-pending; clicked => { root.ping(); } }
                         Rectangle { horizontal-stretch: 1; }
+                        Action { text: root.speed-label; accessible-text: "Playback speed"; width: 48px; clicked => { root.cycle-speed(); } }
                         Action { text: "Step →"; enabled: root.has-pending && !root.running; clicked => { root.step(); } }
                         Action { text: root.running ? "Ⅱ Pause" : "▷ Run"; enabled: root.has-pending; clicked => { root.run-toggle(); } }
                         Action { text: "Reset"; quiet: true; clicked => { root.reset(); } }
@@ -512,7 +628,11 @@ export component AppWindow inherits Window {
                                 Rectangle { height: 1px; background: Theme.line; }
                                 Caption { text: "DEVICE STATE"; height: 20px; }
                                 Text { text: root.selected-details; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
-                                Action { text: "Delete device"; danger: true; quiet: true; clicked => { root.delete-selected(); } }
+                                HorizontalLayout {
+                                    spacing: 6px;
+                                    Action { text: root.selected-enabled ? "Power off" : "Power on"; clicked => { root.toggle-power(); } }
+                                    Action { text: "Delete device"; danger: true; quiet: true; clicked => { root.delete-selected(); } }
+                                }
                             }
                             Rectangle { height: 1px; background: Theme.line; }
                             Caption { text: "LINKS  /  " + root.links.length; height: 24px; }
@@ -600,9 +720,15 @@ export component AppWindow inherits Window {
                             horizontal-scrollbar-policy: always-off;
                             VerticalLayout {
                                 alignment: start;
+                                spacing: 8px;
                                 Text {
                                     text: root.event-detail == "" ? "Select an event to follow the addresses, the switch decisions and the exchanges between hosts. Change a configuration and see what happens." : root.event-detail;
                                     color: Theme.muted; font-size: 12px; wrap: word-wrap;
+                                }
+                                if root.frame-layers != "": Caption { text: "FRAME, LAYER BY LAYER"; }
+                                if root.frame-layers != "": Text {
+                                    text: root.frame-layers;
+                                    color: Theme.ink; font-size: 11px; wrap: word-wrap;
                                 }
                             }
                         }
@@ -617,7 +743,7 @@ export component AppWindow inherits Window {
                 padding-left: 20px; padding-right: 20px; spacing: 12px;
                 Text { text: root.running ? "● RUNNING" : root.has-pending ? "● PAUSED" : "● READY"; color: Theme.mint; font-size: 9px; font-weight: 600; vertical-alignment: center; }
                 Text { text: root.status-text; color: Theme.muted; font-size: 10px; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
-                Text { text: "resend  /  prototype 0.1"; color: Theme.muted; font-size: 9px; vertical-alignment: center; }
+                Text { text: "resend  /  " + root.version; color: Theme.muted; font-size: 9px; vertical-alignment: center; }
             }
         }
     }
@@ -642,7 +768,7 @@ export component AppWindow inherits Window {
                 padding: 24px;
                 spacing: 10px;
                 Text { text: "resend"; color: Theme.ink; font-size: 22px; font-weight: 700; }
-                Text { text: "Prototype 0.1 · a local network sandbox with Ethernet, ARP, IPv4 and ICMP."; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+                Text { text: "Version " + root.version + " · a local network sandbox with Ethernet, ARP, IPv4 and ICMP."; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
                 Text { text: "© 2026 Zayd Soulmani · MIT License"; color: Theme.ink; font-size: 12px; }
                 Text { text: "The interface uses Slint under the Royalty-free License 2.0."; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
                 AboutSlint { }

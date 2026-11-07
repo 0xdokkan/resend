@@ -11,8 +11,9 @@ This document describes the engine as it is today, the architecture it is moving
 | `src/core/sim_time.hpp` | `SimTime`, a 64-bit duration in nanoseconds | New, used by the engine |
 | `src/sim/scheduler.hpp` | Deterministic event queue with cancellable timers | New, used by the engine |
 | `src/sim/pdu.hpp` | `Frame`: the frame as modelled today, with ARP or IPv4/ICMP flattened into the address fields | Temporary |
-| `src/sim/trace.hpp` | `TraceRecord`, `TraceKind`, `Reason` and the PDU archive | New, used by the engine |
+| `src/sim/trace.hpp` | `TraceRecord`, `TraceKind`, `Reason`, the PDU archive and the transmissions on the cables | New, used by the engine |
 | `src/network.*` | `Engine`: topology, hosts, switches, ARP, ICMP and the readable event texts (`Event`) | To be replaced in M2 |
+| `src/app/playback.*`, `src/app/scene.*` | `PlaybackController` and what the canvas shows at an instant; no Slint dependency | New, used by the app |
 
 `Engine` keeps its public interface, but it uses the typed addresses, the scheduler instead of a queue filtered by validity flags, and at every step it writes the structured trace next to the textual `Event`s. When the trace was introduced, the CLI output was compared line by line with the previous engine in seven scenarios and was identical.
 
@@ -77,19 +78,21 @@ struct TraceRecord { SimTime time; std::uint64_t seq; TraceKind kind; Reason rea
 - **Tables.** Each table belongs to the module that manages it: `ArpCache` with the state and expiry of every entry, `MacTable` with port and last update, `RoutingTable` with longest-prefix lookup. They reach the UI as typed, read-only snapshots.
 - **Timers.** `schedule()` returns a cancellable handle. Each ping is an application with its own timers, so several pings at the same time come naturally.
 - **Edits while running.** `Simulation::apply(Edit)` applies the edit at the current time and records it in the trace. A frame in flight on a cable that gets unplugged is lost on delivery with the reason `LinkDown`; after an IP change the other hosts' caches stay stale, as they would in reality. "Reset" means rebuilding the simulation from the scenario.
-- **Time and animation.** The `PlaybackController` turns real time into simulated time with a speed factor. The engine exposes transmissions in flight as `{cable, direction, t_start, t_arrival}`; the animation only interpolates those and never affects the result.
+- **Time and animation.** The `PlaybackController` (`src/app/playback.*`, already written) turns real time into simulated time with a speed factor and runs the engine up to the instant on screen, never beyond. The trace's transmissions say which frames are on which cable; the animation only interpolates them and never affects the result.
 - **Byte encoding kept separate.** The `wire` module handles checksums, the hex view and pcap export. The engine works on structures; the encoding is checked with round trips and with `tshark`.
 
 ## Time and scheduler
 
-`SimTime` counts nanoseconds in 64 bits: enough for about 292 simulated years, and exact for serialization delays (1500 bytes at 1 Gb/s take 12 µs). The current model uses 10 ms per cable and 1 s for the ARP and Echo timeouts.
+`SimTime` counts nanoseconds in 64 bits: enough for about 292 simulated years, and exact for serialization delays (1500 bytes at 1 Gb/s take 12 µs). The current model uses 10 ms per cable and 1 s for the ARP and Echo timeouts. `parse_duration` reads values such as `15ms` or `1.5s` exactly, without floating point.
 
-`Scheduler<Payload>` (`src/sim/scheduler.hpp`):
+`Scheduler<Payload>` (`src/sim/scheduler.hpp`) keeps its entries in a map ordered by time and then by scheduling order:
 
-- runs entries in time order; entries due at the same time run in the order they were scheduled. An entry scheduled while running, for the current time, runs after the entries already queued for that time;
-- `schedule(at, payload)` returns a `Handle`; `cancel(handle)` cancels the entry if it is still pending, clears the handle and reports whether it cancelled anything;
-- `pop()` skips cancelled entries, moves the clock to the entry's time and returns it. A cancelled entry never moves the clock;
-- `empty()` and `size()` count only pending entries.
+- entries due at the same time run in the order they were scheduled. An entry scheduled while running, for the current time, runs after the entries already queued for that time;
+- `schedule(at, payload)` returns a `Handle`; `cancel(handle)` removes the entry if it is still pending, clears the handle and reports whether it cancelled anything. A cancelled entry is gone at once, so it never moves the clock;
+- `next_time()` tells when the next entry is due without removing it; `pop()` removes it and moves the clock to its time;
+- `advance_to(t)` moves the clock forward to `t` when nothing is due before it, so commands issued afterwards start from there.
+
+`Engine::run_until(t)` processes every entry due at or before `t`, including those scheduled while it runs for an instant up to `t`, then moves the clock to `t`.
 
 In `Engine`, cancellation replaces the flags that used to decide after the fact whether a timer was still valid: the ARP reply cancels the ARP timer, the Echo Reply cancels the ICMP timeout. As a result, `pending()` no longer copies and scans the queue.
 
@@ -98,6 +101,8 @@ In `Engine`, cancellation replaces the flags that used to decide after the fact 
 The trace is an append-only sequence of records, plus the archive of the frames the records refer to. A frame is archived once, when it is created, and keeps its `PduId` along its whole path: the copies a switch forwards or floods are the same frame, so a frame can be followed across the network by its id.
 
 Records contain no text. The readable explanation is a separate layer: today it is still the `Event` texts written by `Engine`; with the new core it becomes the `explain` module, which produces the text from the records. Tests check the records, so rewording or translating the explanations does not break them.
+
+Every `FrameSent` also adds a **transmission**: the frame, the cable, the sending and receiving device and port, the instant it leaves and the instant it arrives, and the `seq` of its `FrameSent` record. Transmissions are kept in the order they start. They are what the animation interpolates; what happens on arrival is in the records at that instant.
 
 ### Fields
 
@@ -178,7 +183,7 @@ Given the same scenario, seed and sequence of commands, the trace must be identi
 - No `float` in simulation logic: canvas coordinates stay outside the engine.
 - Unordered containers (`unordered_map`, `unordered_set`) are used only for membership and lookup, never iterated in an order that could affect the result. The scheduler, for example, uses an `unordered_set` only to know whether an entry is still pending.
 - Random numbers: `std::mt19937_64` seeded by the scenario, but without the `std::uniform_*_distribution` classes, which produce different values on libstdc++, libc++ and MSVC. Ranges are derived with a function of our own.
-- Playback speed and animations read the engine; they never drive it.
+- Playback speed and animations read the engine; they never drive it. `playback_never_changes_the_result` in `tests/app_tests.cpp` plays the same ping at 0.25× and 4×, with small and large ticks, and compares the traces.
 
 ## Next steps (M2)
 

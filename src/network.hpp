@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -34,6 +35,7 @@ struct Event {
     std::string protocol, summary, detail;
     int from{-1}, to{-1}, link_id{-1};
     bool success{true};
+    int pdu{-1};  // the frame the event is about, as an index in the trace
 };
 
 struct ArpEntry { Ipv4Address ip; MacAddress mac; };
@@ -58,6 +60,10 @@ public:
     bool move_device(int id, float x, float y);
     bool start_ping(int source_id, const std::string& destination_ip);
     bool step();
+    // Processes every event due at or before `time`, then moves the clock to
+    // `time`, so commands issued afterwards start from there.
+    void run_until(SimTime time);
+    std::optional<SimTime> next_event_time() const { return scheduler_.next_time(); }
     bool pending() const;
     void reset_simulation();
     void clear();
@@ -107,7 +113,7 @@ private:
     void send_echo_request();
     void emit(const std::string& protocol, const std::string& summary,
               const std::string& detail, int from = -1, int to = -1,
-              int link_id = -1, bool success = true);
+              int link_id = -1, bool success = true, int pdu = -1);
     int free_port(int id) const;
     bool connected(int a, int b) const;
 };

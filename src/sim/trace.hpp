@@ -54,9 +54,22 @@ struct TraceRecord {
     bool operator==(const TraceRecord&) const = default;
 };
 
+// A frame on a cable, from the moment it leaves a port until it reaches the
+// other end. What happens on arrival is in the records at `arrival`.
+struct Transmission {
+    PduId pdu{};
+    LinkId link{};
+    DeviceId from{}, to{};
+    std::uint8_t from_port = 0, to_port = 0;  // zero-based
+    SimTime start{}, arrival{};
+    std::uint64_t record = 0;  // seq of the FrameSent record
+    bool operator==(const Transmission&) const = default;
+};
+
 // Append-only records plus the frames they refer to. A frame is archived
 // once and shared by every record about it, including the copies a switch
 // floods, so a frame can be followed across the network by its id.
+// Transmissions are kept in the order they start.
 class Trace {
 public:
     PduId archive(const Frame& frame) {
@@ -68,17 +81,21 @@ public:
         record.seq = records_.size();
         records_.push_back(record);
     }
+    void add(Transmission transmission) { transmissions_.push_back(transmission); }
     void clear() {
         records_.clear();
         pdus_.clear();
+        transmissions_.clear();
     }
     const Frame& pdu(PduId id) const { return pdus_.at(id.value); }
     const std::vector<Frame>& pdus() const { return pdus_; }
     const std::vector<TraceRecord>& records() const { return records_; }
+    const std::vector<Transmission>& transmissions() const { return transmissions_; }
 
 private:
     std::vector<TraceRecord> records_;
     std::vector<Frame> pdus_;
+    std::vector<Transmission> transmissions_;
 };
 
 } // namespace netsim
