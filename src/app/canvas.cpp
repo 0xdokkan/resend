@@ -40,8 +40,25 @@ void append(std::string& path, const Segment& segment) {
 } // namespace
 
 unsigned CanvasController::resize(float width, float height) {
+    if (width == viewport_.x && height == viewport_.y) return None;
     viewport_ = {width, height};
     return follow_ ? fit() : None;
+}
+
+unsigned CanvasController::set_free_area(Box area) {
+    if (area.x == free_.x && area.y == free_.y && area.width == free_.width && area.height == free_.height) return None;
+    free_ = area;
+    return follow_ ? fit() : None;
+}
+
+// The free area within the canvas; the whole canvas when the HUD leaves too
+// little of it (less than a card and its margin), or none was given.
+Box CanvasController::free_area() const {
+    const float left = std::clamp(free_.x, 0.0f, viewport_.x), top = std::clamp(free_.y, 0.0f, viewport_.y);
+    const float right = std::clamp(free_.x + free_.width, left, viewport_.x);
+    const float bottom = std::clamp(free_.y + free_.height, top, viewport_.y);
+    if (right - left < card_width + 40 || bottom - top < card_height + 40) return {0, 0, viewport_.x, viewport_.y};
+    return {left, top, right - left, bottom - top};
 }
 
 unsigned CanvasController::zoom_at(Point screen, float factor) {
@@ -52,7 +69,7 @@ unsigned CanvasController::zoom_at(Point screen, float factor) {
     return View;
 }
 
-unsigned CanvasController::zoom_by(float factor) { return zoom_at({viewport_.x / 2, viewport_.y / 2}, factor); }
+unsigned CanvasController::zoom_by(float factor) { return zoom_at(free_area().center(), factor); }
 
 unsigned CanvasController::reset_zoom() {
     zoom_ = 1;
@@ -84,14 +101,15 @@ unsigned CanvasController::fit() {
         right = std::max(right, card.x + card.width);
         bottom = std::max(bottom, card.y + card.height);
     }
-    constexpr float margin = 48;
-    zoom_ = std::clamp(std::min((viewport_.x - 2 * margin) / (right - left), (viewport_.y - 2 * margin) / (bottom - top)), min_zoom, 1.0f);
-    pan_ = {(viewport_.x - (right - left) * zoom_) / 2 - left * zoom_, (viewport_.y - (bottom - top) * zoom_) / 2 - top * zoom_};
+    constexpr float margin = 24;
+    const auto area = free_area();
+    zoom_ = std::clamp(std::min((area.width - 2 * margin) / (right - left), (area.height - 2 * margin) / (bottom - top)), min_zoom, 1.0f);
+    pan_ = {area.x + (area.width - (right - left) * zoom_) / 2 - left * zoom_, area.y + (area.height - (bottom - top) * zoom_) / 2 - top * zoom_};
     return View;
 }
 
 Point CanvasController::new_card_place() const {
-    const auto centre = to_canvas({viewport_.x / 2, viewport_.y / 2});
+    const auto centre = to_canvas(free_area().center());
     const Point wanted{centre.x - card_width / 2, centre.y - card_height / 2};
     // Cards keep a gap for the cables and the markers above them.
     constexpr float gap = 30;
@@ -156,7 +174,7 @@ bool CanvasController::change(const netsim::Edit& edit, const std::string& label
     const auto outcome = workspace_.change(edit, label, gesture);
     refused_in_past_ = outcome.in_past;
     if (outcome.in_past) status_ = tr("The instant shown is before later changes: go to the latest instant to change the network.");
-    else if (!outcome.ok()) status_ = netsim::explain::describe(outcome.problem);
+    else if (!outcome.ok()) status_ = why_refused(outcome);
     return outcome.ok();
 }
 

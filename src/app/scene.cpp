@@ -81,7 +81,10 @@ bool edit_marker(const netsim::EditEntry& entry, Marker& marker) {
         [&](const auto& edit) {
             using T = std::decay_t<decltype(edit)>;
             bool shown = true;
-            if constexpr (std::is_same_v<T, netsim::SetPowered>) marker.text = "⏻ " + (edit.powered ? tr("powered on") : tr("powered off"));
+            if constexpr (std::is_same_v<T, netsim::SetPowered>) {
+                marker.text = edit.powered ? tr("powered on") : tr("powered off");
+                marker.icon = "power";
+            }
             else if constexpr (std::is_same_v<T, netsim::SetAddress>) marker.text = "IP " + (edit.address ? edit.address->to_string() : tr("none"));
             else if constexpr (std::is_same_v<T, netsim::SetGateway>) marker.text = tr("gateway {0}", {edit.gateway ? edit.gateway->to_string() : tr("none")});
             else if constexpr (std::is_same_v<T, netsim::SetRoutes>) marker.text = tr("routes ×{0}", {std::to_string(edit.routes.size())});
@@ -217,7 +220,8 @@ bool marker_for(const netsim::Scenario& layout, const netsim::Simulation& simula
     case TraceKind::EditApplied:
         return record.device.value != 0 && edit_marker(simulation.edits().at(record.value), marker);
     case TraceKind::SimulatorGuard:
-        marker.text = "⚠ " + tr("storm stopped");
+        marker.text = tr("storm stopped");
+        marker.icon = "warning";
         marker.tone = Tone::Guard;
         return true;
     case TraceKind::FrameSent:
@@ -257,6 +261,42 @@ Segment cable_between(const Box& a, const Box& b, float gap) {
 
 Point lerp(Point a, Point b, float t) { return {a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t}; }
 
+std::vector<Segment> dashes(const std::vector<Segment>& cables, float phase) {
+    std::vector<Segment> out;
+    phase -= std::floor(phase);
+    for (const auto& cable : cables) {
+        const float length = std::hypot(cable.b.x - cable.a.x, cable.b.y - cable.a.y);
+        if (length < 1) continue;
+        for (float start = (phase - 1) * dash_period; start < length; start += dash_period) {
+            const float from = std::max(start, 0.0f), to = std::min(start + dash_length, length);
+            if (to > from) out.push_back({lerp(cable.a, cable.b, from / length), lerp(cable.a, cable.b, to / length)});
+        }
+    }
+    return out;
+}
+
+float dash_phase(netsim::SimTime now) {
+    const auto micro = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
+    return static_cast<float>(micro % 2000) / 2000.0f;
+}
+
+std::string_view packet_sprite(PduKind kind) {
+    switch (kind) {
+    case PduKind::ArpRequest: return "arp-request";
+    case PduKind::ArpReply: return "arp-reply";
+    case PduKind::EchoRequest: return "echo-request";
+    case PduKind::EchoReply: return "echo-reply";
+    case PduKind::TimeExceeded: return "time-exceeded";
+    case PduKind::Unreachable: return "unreachable";
+    case PduKind::OtherIcmp: return "other-icmp";
+    }
+    return "other-icmp";
+}
+
+bool is_problem(Reason reason) {
+    return reason != Reason::None && reason != Reason::NotForUs && reason != Reason::ArpForOtherHost && reason != Reason::Ipv4NotForUs;
+}
+
 std::string packet_label(PduKind kind) {
     switch (kind) {
     case PduKind::ArpRequest: return tr("ARP req");
@@ -283,7 +323,8 @@ std::string frame_name(PduKind kind) {
     return tr("Frame");
 }
 
-Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simulation, const PlaybackController& playback) {
+Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simulation, const PlaybackController& playback,
+                  Intensity intensity) {
     Scene scene;
     const auto now = playback.now();
     const auto& trace = simulation.trace();
@@ -301,6 +342,7 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
         PacketSprite sprite;
         sprite.transmission = flight.transmission;
         sprite.pdu = static_cast<int>(sent.pdu.value);
+        sprite.cable = cable;
         sprite.at = lerp(cable.a, cable.b, progress);
         sprite.tail = lerp(cable.a, cable.b, progress - back);
         sprite.kind = netsim::kind_of(frame);
@@ -315,6 +357,7 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
     const auto& records = trace.records();
     std::vector<Marker> markers;
     std::map<int, unsigned> activity;
+    std::map<int, look::DeviceState> states;
     std::size_t index = records.size();
     bool outcome_shown = false;
     while (index > 0 && records[index - 1].time > now - marker_life) {
@@ -325,7 +368,26 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
             (record.kind == TraceKind::FrameSent || record.kind == TraceKind::FrameReceived ||
              record.kind == TraceKind::FrameDropped))
             activity[static_cast<int>(record.device.value)] |= 1U << *record.port;
+        // What the device does, the most telling first: an error lasts as
+        // long as its marker, sending and receiving as long as the lights.
+        if (record.device.value != 0) {
+            const bool error = ((record.kind == TraceKind::FrameDropped || record.kind == TraceKind::DatagramDropped) &&
+                                is_problem(record.reason)) ||
+                               record.kind == TraceKind::PingFailed;
+            const auto rank = [](look::DeviceState state) {
+                return state == look::DeviceState::Error ? 3 : state == look::DeviceState::Sending ? 2 : state == look::DeviceState::Receiving ? 1 : 0;
+            };
+            auto doing = look::DeviceState::On;
+            if (error) doing = look::DeviceState::Error;
+            else if (age < activity_life && record.kind == TraceKind::FrameSent) doing = look::DeviceState::Sending;
+            else if (age < activity_life && record.kind == TraceKind::FrameReceived) doing = look::DeviceState::Receiving;
+            if (doing != look::DeviceState::On) {
+                auto& shown = states[static_cast<int>(record.device.value)];
+                if (rank(doing) > rank(shown)) shown = doing;
+            }
+        }
         Marker marker;
+        marker.record = index;
         if (!marker_for(layout, simulation, index, marker)) continue;
         outcome_shown |= record.kind == TraceKind::PingSucceeded || record.kind == TraceKind::PingFailed;
         if (age > marker_fade) {
@@ -341,6 +403,7 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
         if (record.kind == TraceKind::FrameSent) break;
         if (record.kind == TraceKind::PingSucceeded || record.kind == TraceKind::PingFailed) {
             Marker marker;
+            marker.record = back - 1;
             if (marker_for(layout, simulation, back - 1, marker)) markers.push_back(std::move(marker));
             break;
         }
@@ -360,6 +423,8 @@ Scene build_scene(const netsim::Scenario& layout, const netsim::Simulation& simu
         scene.markers.push_back(std::move(marker));
     }
     scene.port_activity.assign(activity.begin(), activity.end());
+    scene.device_activity.assign(states.begin(), states.end());
+    add_effects(scene, layout, simulation, now, intensity);
     return scene;
 }
 

@@ -1,0 +1,31 @@
+# a ping through a gateway nobody has, at 1x, 60 frames a second: the records' cues, then what is heard
+frame 1  0.277 ms
+  ask #1;
+  heard: ask;
+frame 36  10.000 ms
+  hop 0 #2;
+  heard: hop 0;
+frame 72  20.000 ms
+  hop 1 #7; hop 2 #9;
+  heard: hop 1+2;
+frame 164  1000.222 ms
+  ask #12;
+  heard: ask;
+frame 200  1010.222 ms
+  hop 3 #13;
+  heard: hop 3;
+frame 236  1020.222 ms
+  hop 4 #17; hop 5 #19;
+  heard: hop 4+5;
+frame 327  2000.166 ms
+  ask #22;
+  heard: ask;
+frame 363  2010.166 ms
+  hop 6 #23;
+  heard: hop 6;
+frame 399  2020.166 ms
+  hop 7 #27; hop 0 #29;
+  heard: hop 7+0;
+frame 490  3000.111 ms
+  fail #33;
+  heard: fail;

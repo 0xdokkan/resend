@@ -67,6 +67,11 @@ public:
     // The canvas size. While the view follows the network (after Fit, until
     // the user pans or zooms), a new size fits it again.
     unsigned resize(float width, float height);
+    // The part of the canvas no panel of the HUD covers, in screen
+    // coordinates: Fit frames the network there, new cards go to its middle
+    // and the zoom buttons zoom around it. Empty: the whole canvas.
+    unsigned set_free_area(Box area);
+    Box free_area() const;
     unsigned zoom_at(Point screen, float factor);
     unsigned zoom_by(float factor);  // around the centre
     unsigned reset_zoom();           // 100 %, the network's corner at the top left
@@ -126,6 +131,7 @@ private:
     float zoom_ = 1;
     Point pan_{40, 60};
     Point viewport_{};
+    Box free_{};
     bool follow_ = true;  // fit again when the canvas is resized
     Mode mode_ = Mode::Idle;
     Point press_{}, pointer_{};

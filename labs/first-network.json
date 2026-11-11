@@ -1,0 +1,196 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "guided",
+  "topic": "First networks",
+  "title": "Your first network",
+  "brief": "Build two LANs and join them with a router: PC-A and Switch-1 on 192.168.1.0/24, PC-B and Switch-2 on 192.168.2.0/24. The devices come as out of their boxes: PCs without an address, router ports disabled. Then make PC-A reach PC-B.",
+  "network": {
+    "devices": [],
+    "links": []
+  },
+  "names": [
+    "PC-A",
+    "PC-B",
+    "Switch-1",
+    "Switch-2",
+    "Router"
+  ],
+  "new_devices": {
+    "host_address": false,
+    "router_ports_up": false
+  },
+  "goals": [
+    {
+      "id": "pc-a-address",
+      "kind": "config",
+      "text": "PC-A has an address in 192.168.1.0/24",
+      "device": "PC-A",
+      "address_in": "192.168.1.0/24"
+    },
+    {
+      "id": "pc-b-address",
+      "kind": "config",
+      "text": "PC-B has an address in 192.168.2.0/24",
+      "device": "PC-B",
+      "address_in": "192.168.2.0/24"
+    },
+    {
+      "id": "router-port-1",
+      "kind": "config",
+      "text": "The router's port 1 is enabled",
+      "device": "Router",
+      "port": 1,
+      "up": true
+    },
+    {
+      "id": "router-port-2",
+      "kind": "config",
+      "text": "The router's port 2 is enabled",
+      "device": "Router",
+      "port": 2,
+      "up": true
+    },
+    {
+      "id": "reach",
+      "kind": "reach",
+      "text": "PC-A reaches PC-B at 192.168.2.10",
+      "from": "PC-A",
+      "to": "192.168.2.10"
+    }
+  ],
+  "steps": [
+    "Add two PCs, two switches and a router from the build bar, and name them PC-A, PC-B, Switch-1, Switch-2 and Router in the inspector. In Packet Tracer you would drag them from the device list.",
+    "Cable PC-A to Switch-1, Switch-1 to the router, the router to Switch-2 and Switch-2 to PC-B: drag from the + of a card to another card. In Packet Tracer: copper straight-through cables.",
+    "Give PC-A 192.168.1.10 with prefix length 24, and PC-B 192.168.2.10/24. In Packet Tracer: Desktop, IP Configuration, with the mask 255.255.255.0, which is /24.",
+    "Select the router: give port 1, towards Switch-1, 192.168.1.1/24 and port 2, towards Switch-2, 192.168.2.1/24, then turn both ports on. In Packet Tracer: interface g0/0, ip address 192.168.1.1 255.255.255.0, no shutdown.",
+    "Ping 192.168.2.10 from PC-A, then press Check: the reach goal says why the ping fails.",
+    "Give PC-A the default gateway 192.168.1.1 and PC-B 192.168.2.1: the router's address on each LAN. In Packet Tracer: the Default Gateway field.",
+    "Ping again and press Check."
+  ],
+  "hints": [
+    "A cable goes from a card's + to another card, onto the first free port of each.",
+    "The router's ports are numbered from 1 in the inspector, in the order the cables were plugged.",
+    "A PC sends a datagram for another subnet to its default gateway. Without one, it has nowhere to send it."
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 1,
+          "kind": "host",
+          "name": "PC-A",
+          "x": 80,
+          "y": 90,
+          "gateway": "192.168.1.1",
+          "ports": [
+            {
+              "ipv4": "192.168.1.10/24"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "kind": "host",
+          "name": "PC-B",
+          "x": 580,
+          "y": 90,
+          "gateway": "192.168.2.1",
+          "ports": [
+            {
+              "ipv4": "192.168.2.10/24"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "switch",
+          "name": "Switch-1",
+          "x": 80,
+          "y": 300
+        },
+        {
+          "id": 4,
+          "kind": "switch",
+          "name": "Switch-2",
+          "x": 580,
+          "y": 300
+        },
+        {
+          "id": 5,
+          "kind": "router",
+          "name": "Router",
+          "x": 330,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "192.168.1.1/24"
+            },
+            {
+              "ipv4": "192.168.2.1/24"
+            },
+            {
+              "up": false
+            },
+            {
+              "up": false
+            }
+          ],
+          "routes": []
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 1,
+            "port": 1
+          },
+          "b": {
+            "device": 3,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 3,
+            "port": 2
+          },
+          "b": {
+            "device": 5,
+            "port": 1
+          }
+        },
+        {
+          "id": 3,
+          "a": {
+            "device": 5,
+            "port": 2
+          },
+          "b": {
+            "device": 4,
+            "port": 1
+          }
+        },
+        {
+          "id": 4,
+          "a": {
+            "device": 4,
+            "port": 2
+          },
+          "b": {
+            "device": 2,
+            "port": 1
+          }
+        }
+      ]
+    },
+    "commands": [
+      {
+        "from": "PC-A",
+        "ping": "192.168.2.10"
+      }
+    ]
+  }
+}

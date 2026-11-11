@@ -18,6 +18,12 @@ public:
             context.note(arrival, TraceKind::FrameDropped, Reason::NotForUs);
             return;
         }
+        // Without an address the host takes no part in IPv4: no request is
+        // for it, no datagram either.
+        if (!has_address(context)) {
+            context.note(arrival, TraceKind::FrameDropped, frame.arp() ? Reason::ArpForOtherHost : Reason::Ipv4NotForUs);
+            return;
+        }
         if (const auto* packet = frame.arp()) {
             const auto sender = packet->sender_mac;
             for (auto& outgoing : arp_.receive(context, nic_, arrival, *packet)) leave(context, std::move(outgoing), sender);
@@ -32,6 +38,11 @@ public:
             send_request(context, PingId{static_cast<std::uint32_t>(timer.key)});
             break;
         case TimerKind::ArpRetry:
+            // The address was removed while the host was asking: it cannot ask again.
+            if (!has_address(context)) {
+                for (const auto& outgoing : arp_.abandon(Arp::timer_address(timer.key))) discard(context, outgoing, Reason::NoAddress);
+                break;
+            }
             for (const auto& outgoing : arp_.retry(context, nic_, Arp::timer_address(timer.key)))
                 discard(context, outgoing, Reason::ArpUnresolved);
             break;
@@ -71,7 +82,15 @@ private:
         route(context, {Ipv4Packet{self.address(), packet.src, default_ttl, ip_protocol::icmp, 0, reply}, std::nullopt}, *hop);
     }
 
+    bool has_address(const Context& context) const { return context.config().ports.at(nic_.port).ipv4.has_value(); }
+
     void send_request(Context& context, PingId id) {
+        if (!has_address(context)) {
+            // The request is numbered and lost at once: there is no source address to send it from.
+            const auto outgoing = pings_.request(context, id, Ipv4Address{});
+            context.echo_lost(id, outgoing.packet.icmp.sequence, Reason::NoAddress);
+            return;
+        }
         const auto self = nic_.address(context);
         auto outgoing = pings_.request(context, id, self.address());
         const auto sequence = outgoing.packet.icmp.sequence;

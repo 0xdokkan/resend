@@ -1,0 +1,254 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "challenge",
+  "topic": "Addresses",
+  "title": "Subnets of different sizes",
+  "brief": "Split 192.168.10.0/24 among the router's three LANs. LAN A needs room for 100 hosts, LAN B for 50, LAN C for 20. Give each the smallest block that fits, in that order from the first address of the network. The router takes the first usable address of each block, each PC the last one, with the router as its gateway.",
+  "network": {
+    "devices": [
+      {
+        "id": 1,
+        "kind": "router",
+        "name": "Router",
+        "x": 330,
+        "y": 300,
+        "ports": [
+          {},
+          {},
+          {}
+        ],
+        "routes": []
+      },
+      {
+        "id": 2,
+        "kind": "host",
+        "name": "PC-A",
+        "x": 80,
+        "y": 90,
+        "ports": [
+          {}
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "host",
+        "name": "PC-B",
+        "x": 330,
+        "y": 90,
+        "ports": [
+          {}
+        ]
+      },
+      {
+        "id": 4,
+        "kind": "host",
+        "name": "PC-C",
+        "x": 580,
+        "y": 90,
+        "ports": [
+          {}
+        ]
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "a": {
+          "device": 2,
+          "port": 1
+        },
+        "b": {
+          "device": 1,
+          "port": 1
+        }
+      },
+      {
+        "id": 2,
+        "a": {
+          "device": 3,
+          "port": 1
+        },
+        "b": {
+          "device": 1,
+          "port": 2
+        }
+      },
+      {
+        "id": 3,
+        "a": {
+          "device": 4,
+          "port": 1
+        },
+        "b": {
+          "device": 1,
+          "port": 3
+        }
+      }
+    ]
+  },
+  "new_devices": {
+    "host_address": false
+  },
+  "locks": [
+    {
+      "device": "Router",
+      "settings": [
+        "cables",
+        "routes",
+        "ports"
+      ]
+    }
+  ],
+  "goals": [
+    {
+      "id": "lan-a",
+      "kind": "config",
+      "text": "Port 1 of the router is on 192.168.10.0/25",
+      "device": "Router",
+      "port": 1,
+      "address_in": "192.168.10.0/25"
+    },
+    {
+      "id": "lan-b",
+      "kind": "config",
+      "text": "Port 2 of the router is on 192.168.10.128/26",
+      "device": "Router",
+      "port": 2,
+      "address_in": "192.168.10.128/26"
+    },
+    {
+      "id": "lan-c",
+      "kind": "config",
+      "text": "Port 3 of the router is on 192.168.10.192/27",
+      "device": "Router",
+      "port": 3,
+      "address_in": "192.168.10.192/27"
+    },
+    {
+      "id": "a-to-c",
+      "kind": "reach",
+      "text": "PC-A reaches PC-C at 192.168.10.222",
+      "from": "PC-A",
+      "to": "192.168.10.222"
+    },
+    {
+      "id": "b-to-a",
+      "kind": "reach",
+      "text": "PC-B reaches PC-A at 192.168.10.126",
+      "from": "PC-B",
+      "to": "192.168.10.126"
+    },
+    {
+      "id": "c-to-b",
+      "kind": "reach",
+      "text": "PC-C reaches PC-B at 192.168.10.190",
+      "from": "PC-C",
+      "to": "192.168.10.190"
+    }
+  ],
+  "hints": [
+    "A block of /25 has 128 addresses, 126 of them usable by hosts; /26 has 64, /27 has 32.",
+    "After 192.168.10.0/25 comes 192.168.10.128; after a /26 there, 192.168.10.192.",
+    "The last usable address of a block is one below its broadcast address."
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 1,
+          "kind": "router",
+          "name": "Router",
+          "x": 330,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "192.168.10.1/25"
+            },
+            {
+              "ipv4": "192.168.10.129/26"
+            },
+            {
+              "ipv4": "192.168.10.193/27"
+            }
+          ],
+          "routes": []
+        },
+        {
+          "id": 2,
+          "kind": "host",
+          "name": "PC-A",
+          "x": 80,
+          "y": 90,
+          "gateway": "192.168.10.1",
+          "ports": [
+            {
+              "ipv4": "192.168.10.126/25"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "host",
+          "name": "PC-B",
+          "x": 330,
+          "y": 90,
+          "gateway": "192.168.10.129",
+          "ports": [
+            {
+              "ipv4": "192.168.10.190/26"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "kind": "host",
+          "name": "PC-C",
+          "x": 580,
+          "y": 90,
+          "gateway": "192.168.10.193",
+          "ports": [
+            {
+              "ipv4": "192.168.10.222/27"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 2,
+            "port": 1
+          },
+          "b": {
+            "device": 1,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 3,
+            "port": 1
+          },
+          "b": {
+            "device": 1,
+            "port": 2
+          }
+        },
+        {
+          "id": 3,
+          "a": {
+            "device": 4,
+            "port": 1
+          },
+          "b": {
+            "device": 1,
+            "port": 3
+          }
+        }
+      ]
+    }
+  }
+}

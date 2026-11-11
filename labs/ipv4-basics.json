@@ -1,0 +1,269 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "challenge",
+  "topic": "Addresses",
+  "title": "Addresses on one LAN",
+  "brief": "Four PCs on one switch, without addresses. Put them all on the network 10.0.0.0/24, with PC-4 as 10.0.0.4, so that every PC reaches PC-4.",
+  "network": {
+    "devices": [
+      {
+        "id": 5,
+        "kind": "switch",
+        "name": "Switch",
+        "x": 330,
+        "y": 300
+      },
+      {
+        "id": 1,
+        "kind": "host",
+        "name": "PC-1",
+        "x": 80,
+        "y": 90,
+        "ports": [
+          {}
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "host",
+        "name": "PC-2",
+        "x": 250,
+        "y": 90,
+        "ports": [
+          {}
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "host",
+        "name": "PC-3",
+        "x": 420,
+        "y": 90,
+        "ports": [
+          {}
+        ]
+      },
+      {
+        "id": 4,
+        "kind": "host",
+        "name": "PC-4",
+        "x": 590,
+        "y": 90,
+        "ports": [
+          {}
+        ]
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "a": {
+          "device": 1,
+          "port": 1
+        },
+        "b": {
+          "device": 5,
+          "port": 1
+        }
+      },
+      {
+        "id": 2,
+        "a": {
+          "device": 2,
+          "port": 1
+        },
+        "b": {
+          "device": 5,
+          "port": 2
+        }
+      },
+      {
+        "id": 3,
+        "a": {
+          "device": 3,
+          "port": 1
+        },
+        "b": {
+          "device": 5,
+          "port": 3
+        }
+      },
+      {
+        "id": 4,
+        "a": {
+          "device": 4,
+          "port": 1
+        },
+        "b": {
+          "device": 5,
+          "port": 4
+        }
+      }
+    ]
+  },
+  "new_devices": {
+    "host_address": false
+  },
+  "locks": [
+    {
+      "device": "Switch"
+    }
+  ],
+  "goals": [
+    {
+      "id": "pc-1",
+      "kind": "config",
+      "text": "PC-1 has an address in 10.0.0.0/24",
+      "device": "PC-1",
+      "address_in": "10.0.0.0/24"
+    },
+    {
+      "id": "pc-2",
+      "kind": "config",
+      "text": "PC-2 has an address in 10.0.0.0/24",
+      "device": "PC-2",
+      "address_in": "10.0.0.0/24"
+    },
+    {
+      "id": "pc-3",
+      "kind": "config",
+      "text": "PC-3 has an address in 10.0.0.0/24",
+      "device": "PC-3",
+      "address_in": "10.0.0.0/24"
+    },
+    {
+      "id": "pc-1-reach",
+      "kind": "reach",
+      "text": "PC-1 reaches PC-4 at 10.0.0.4",
+      "from": "PC-1",
+      "to": "10.0.0.4"
+    },
+    {
+      "id": "pc-2-reach",
+      "kind": "reach",
+      "text": "PC-2 reaches PC-4 at 10.0.0.4",
+      "from": "PC-2",
+      "to": "10.0.0.4"
+    },
+    {
+      "id": "pc-3-reach",
+      "kind": "reach",
+      "text": "PC-3 reaches PC-4 at 10.0.0.4",
+      "from": "PC-3",
+      "to": "10.0.0.4"
+    }
+  ],
+  "hints": [
+    "On 10.0.0.0/24 the first 24 bits name the network: every PC's address starts with 10.0.0 and has prefix length 24.",
+    "10.0.0.0 names the network and 10.0.0.255 is its broadcast address: neither can be a PC's.",
+    "Two PCs with the same address confuse everyone: give each its own."
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 5,
+          "kind": "switch",
+          "name": "Switch",
+          "x": 330,
+          "y": 300
+        },
+        {
+          "id": 1,
+          "kind": "host",
+          "name": "PC-1",
+          "x": 80,
+          "y": 90,
+          "ports": [
+            {
+              "ipv4": "10.0.0.1/24"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "kind": "host",
+          "name": "PC-2",
+          "x": 250,
+          "y": 90,
+          "ports": [
+            {
+              "ipv4": "10.0.0.2/24"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "host",
+          "name": "PC-3",
+          "x": 420,
+          "y": 90,
+          "ports": [
+            {
+              "ipv4": "10.0.0.3/24"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "kind": "host",
+          "name": "PC-4",
+          "x": 590,
+          "y": 90,
+          "ports": [
+            {
+              "ipv4": "10.0.0.4/24"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 1,
+            "port": 1
+          },
+          "b": {
+            "device": 5,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 2,
+            "port": 1
+          },
+          "b": {
+            "device": 5,
+            "port": 2
+          }
+        },
+        {
+          "id": 3,
+          "a": {
+            "device": 3,
+            "port": 1
+          },
+          "b": {
+            "device": 5,
+            "port": 3
+          }
+        },
+        {
+          "id": 4,
+          "a": {
+            "device": 4,
+            "port": 1
+          },
+          "b": {
+            "device": 5,
+            "port": 4
+          }
+        }
+      ]
+    }
+  }
+}

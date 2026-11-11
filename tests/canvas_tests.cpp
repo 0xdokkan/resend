@@ -59,10 +59,24 @@ void view() {
     CHECK(std::abs(top_left.x - (1000 - bottom_right.x)) < 1e-3f && std::abs(top_left.y - (600 - bottom_right.y)) < 1e-3f);
     CHECK(near(canvas.to_canvas(canvas.to_screen({12, 34})), {12, 34}));
     // A small canvas zooms out, down to the limit; resizing follows the fit.
-    canvas.resize(300, 200);
+    canvas.resize(250, 160);
     CHECK(canvas.zoom() == CanvasController::min_zoom && canvas.compact());
-    canvas.resize(700, 500);
+    canvas.resize(600, 400);
     CHECK(canvas.zoom() > CanvasController::min_zoom && canvas.zoom() < 1);
+    // The HUD's panels cover parts of the canvas: Fit frames the network in
+    // what they leave, and zooms around its middle.
+    canvas.resize(1360, 900);
+    CHECK(canvas.set_free_area({100, 66, 820, 640}) == CanvasController::View);
+    const auto free_left = canvas.to_screen({100, -resend::marker_room});
+    const auto free_right = canvas.to_screen({660, 394});
+    CHECK(free_left.x >= 100 && free_left.y >= 66 && free_right.x <= 920 && free_right.y <= 706);
+    CHECK(std::abs((free_left.x + free_right.x) / 2 - 510) < 1e-2f && std::abs((free_left.y + free_right.y) / 2 - 386) < 1e-2f);
+    CHECK(canvas.set_free_area({100, 66, 820, 640}) == CanvasController::None);
+    // Too little left to frame anything: the whole canvas.
+    canvas.set_free_area({0, 0, 100, 50});
+    CHECK(canvas.free_area().width == 1360 && canvas.free_area().height == 900);
+    canvas.set_free_area({});
+    canvas.resize(700, 500);
 
     // The wheel zooms around the pointer, which stays over the same point.
     const Point pointer{250, 120};

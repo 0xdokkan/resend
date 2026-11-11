@@ -1,0 +1,91 @@
+// The sprites of assets/sprites/, painted in the theme's colours by C++
+// (src/app_look.cpp) whenever the theme changes. Each is drawn with
+// `image-rendering: pixelated` at a whole number of physical pixels per art
+// pixel: `unit` for the HUD, `canvas-unit` for the canvas at its zoom.
+
+export global UiSprites {
+    // One art pixel of the HUD in logical pixels, about 2 and snapped to
+    // whole physical pixels.
+    in-out property <length> unit: 2px;
+    // One art pixel of an icon, about 1, snapped likewise.
+    in-out property <length> icon-unit: 1px;
+    // One art pixel of the canvas at the current zoom, snapped likewise.
+    in-out property <length> canvas-unit: 3px;
+    // Below one physical pixel per art pixel the canvas draws the 16 px set.
+    in-out property <bool> canvas-small: false;
+    // One art pixel of a port light, about the zoom.
+    in-out property <length> port-unit: 1px;
+    // One art pixel of a packet on the canvas, about 1.5 × the zoom.
+    in-out property <length> packet-unit: 2px;
+    // The window's scale factor, for snapping positions.
+    in-out property <float> scale: 1;
+
+    // The canvas's sprites in every state (docs/sprites.md). Devices: host,
+    // switch, router, six states each (off, on, selected, sending,
+    // receiving, error), at index kind × 6 + state; the small set likewise.
+    in-out property <[image]> devices;
+    in-out property <[image]> devices-small;
+    // Port lights: free, connected, down, active.
+    in-out property <[image]> ports;
+    // Frames, by kind: ARP request, ARP reply, Echo request, Echo reply,
+    // other ICMP, Time Exceeded, Destination Unreachable.
+    in-out property <[image]> packets;
+    // The grid, one tile of `grid-size` repeated.
+    in-out property <image> grid-tile;
+    in-out property <length> grid-size: 28px;
+
+    // devices.txt
+    in-out property <image> host;
+    in-out property <image> switch;
+    in-out property <image> router;
+    in-out property <image> host-small;
+    in-out property <image> switch-small;
+    in-out property <image> router-small;
+    // packets.txt
+    in-out property <image> arp-request;
+    in-out property <image> arp-reply;
+    in-out property <image> echo-request;
+    in-out property <image> echo-reply;
+    // icons.txt
+    in-out property <image> logo;
+    // Always in the default theme: it is the window's icon.
+    in-out property <image> app-icon;
+    in-out property <image> play;
+    in-out property <image> pause;
+    in-out property <image> step;
+    in-out property <image> reset;
+    in-out property <image> sound;
+    in-out property <image> mute;
+    in-out property <image> effects;
+    in-out property <image> goal-done;
+    in-out property <image> goal-open;
+    in-out property <image> caret;
+    in-out property <image> undo;
+    in-out property <image> redo;
+    in-out property <image> chevron-right;
+    in-out property <image> chevron-left;
+    in-out property <image> chevron-down;
+    in-out property <image> chevron-up;
+    in-out property <image> close;
+    in-out property <image> check;
+    in-out property <image> warning;
+    in-out property <image> power;
+    in-out property <image> plus;
+    in-out property <image> minus;
+    in-out property <image> fit;
+    in-out property <image> trash;
+    in-out property <image> menu;
+    in-out property <image> search;
+    in-out property <image> arrow-right;
+    in-out property <image> arrow-left;
+    in-out property <image> traceroute;
+    in-out property <image> home;
+    in-out property <image> terminal;
+    in-out property <image> sliders;
+    in-out property <image> table;
+    in-out property <image> keyboard;
+    in-out property <image> theme;
+    in-out property <image> lock;
+    in-out property <image> hint;
+    in-out property <image> lab;
+}

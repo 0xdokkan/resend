@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=resend
+GenericName=Network simulator
+Comment=Build networks and see why a packet arrives or stops
+Exec=resend %f
+Icon=io.github._0xdokkan.resend
+Terminal=false
+Categories=Education;ComputerScience;
+Keywords=network;simulator;sandbox;ethernet;arp;ipv4;icmp;ping;traceroute;router;switch;
+StartupWMClass=io.github._0xdokkan.resend

@@ -1,11 +1,162 @@
-import { LineEdit } from "std-widgets.slint";
-import { Theme } from "theme.slint";
+// The parts the window is built from, in the pixel style of
+// docs/decisions/0003-visual-direction.md: frames with notched corners and a
+// shade one art pixel down, text in the three fonts of `Type`.
+import { Theme, Tones, Type, Motion, UiSound } from "theme.slint";
+import { UiSprites } from "sprites.slint";
+
+// A frame with notched corners: an outline one art pixel wide, a fill, an
+// optional highlight along the top, and a shade under it. Children are
+// placed inside, over the fill.
+export component PixelFrame inherits Rectangle {
+    in property <color> fill: Theme.panel;
+    in property <color> border: Theme.outline;
+    in property <color> highlight: transparent;
+    in property <bool> shadow: true;
+    // The size of one art pixel.
+    in property <length> unit: UiSprites.unit;
+    // Pressed buttons sink into their shade.
+    in property <length> sink: 0px;
+    background: transparent;
+    if root.shadow && root.sink == 0px: Rectangle {
+        x: root.unit; y: root.unit * 2; width: root.width - root.unit * 2; height: root.height - root.unit;
+        background: Theme.shade;
+    }
+    Rectangle {
+        y: root.sink;
+        animate y { duration: Motion.quick; easing: ease-out; }
+        Rectangle { x: root.unit; y: 0; width: root.width - root.unit * 2; height: root.height; background: root.border; }
+        Rectangle { x: 0; y: root.unit; width: root.width; height: root.height - root.unit * 2; background: root.border; }
+        Rectangle {
+            x: root.unit; y: root.unit; width: root.width - root.unit * 2; height: root.height - root.unit * 2;
+            background: root.fill;
+            animate background { duration: Motion.quick; }
+        }
+        Rectangle { x: root.unit * 2; y: root.unit; width: root.width - root.unit * 4; height: root.unit; background: root.highlight; }
+    }
+}
+
+// What a control does and the key that does the same, said beside it once the
+// pointer has rested on it. Controls call `point` and `leave`; one TipLayer,
+// over the whole HUD, draws the plate, so no panel can cover it.
+export global UiTip {
+    out property <string> text;
+    out property <string> keys;
+    // The control, in the window's coordinates, and the side the plate goes
+    // on when there is room: "below" or "right".
+    out property <length> x;
+    out property <length> y;
+    out property <length> width;
+    out property <length> height;
+    out property <string> side;
+    out property <bool> wanted;
+    // Counts the controls pointed at.
+    out property <int> serial;
+    public function point(text: string, keys: string, side: string, x: length, y: length, width: length, height: length) {
+        self.text = text;
+        self.keys = keys;
+        self.side = side;
+        self.x = x;
+        self.y = y;
+        self.width = width;
+        self.height = height;
+        self.wanted = text != "";
+        self.serial += 1;
+    }
+    // Only the control the tip is about takes it away: the pointer may have
+    // reached the next one first.
+    public function leave(x: length, y: length) {
+        if self.x == x && self.y == y { self.wanted = false; }
+    }
+}
+
+// A key, as the tips and the key map show it.
+export component KeyCap inherits Rectangle {
+    in property <string> text;
+    width: cap-text.preferred-width + 12px;
+    height: 20px;
+    PixelFrame { width: 100%; height: 100%; unit: UiSprites.unit / 2; shadow: false; fill: Theme.sunken; border: Theme.edge; }
+    cap-text := Text {
+        text: root.text;
+        color: Theme.ink; font-family: Type.mono; font-size: Type.small; font-weight: 700;
+        horizontal-alignment: center; vertical-alignment: center;
+    }
+}
+
+// The plate of UiTip. It waits for the pointer to rest, then follows it
+// from control to control without waiting again.
+export component TipLayer inherits Rectangle {
+    property <bool> shown;
+    property <bool> wanted: UiTip.wanted;
+    property <int> serial: UiTip.serial;
+    changed wanted => {
+        if !self.wanted {
+            self.shown = false;
+            rest.running = false;
+        }
+    }
+    changed serial => {
+        if UiTip.wanted && !self.shown {
+            rest.running = false;
+            rest.running = true;
+        }
+    }
+    rest := Timer {
+        interval: 450ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.shown = UiTip.wanted;
+        }
+    }
+    if root.shown && UiTip.text != "": PixelFrame {
+        // The control, in this layer's coordinates.
+        property <length> cx: UiTip.x - root.absolute-position.x;
+        property <length> cy: UiTip.y - root.absolute-position.y;
+        property <length> gap: 6px;
+        property <bool> beside: UiTip.side == "right" && self.cx + UiTip.width + self.gap + self.width + 8px <= root.width;
+        property <bool> under: self.cy + UiTip.height + self.gap + self.height + 8px <= root.height;
+        width: tip-row.preferred-width;
+        height: 30px;
+        x: self.beside ? self.cx + UiTip.width + self.gap
+            : max(8px, min(root.width - self.width - 8px, self.cx + (UiTip.width - self.width) / 2));
+        y: self.beside ? max(8px, min(root.height - self.height - 8px, self.cy + (UiTip.height - self.height) / 2))
+            : self.under ? self.cy + UiTip.height + self.gap : self.cy - self.height - self.gap;
+        unit: UiSprites.unit / 2;
+        fill: Theme.raised;
+        border: Theme.outline;
+        highlight: Theme.raised-edge;
+        accessible-role: none;
+        tip-row := HorizontalLayout {
+            padding-left: 10px; padding-right: UiTip.keys != "" ? 6px : 10px; spacing: 8px;
+            Text { text: UiTip.text; color: Theme.ink; font-family: Type.text; font-size: Type.small; vertical-alignment: center; }
+            if UiTip.keys != "": VerticalLayout { alignment: center; KeyCap { text: UiTip.keys; } }
+        }
+    }
+}
+
+// An icon from the sprite sheets at a whole number of physical pixels per
+// art pixel, tinted when it is drawn in ink.
+export component Icon inherits Image {
+    in property <length> unit: UiSprites.icon-unit;
+    in property <color> tint: transparent;
+    width: 16 * self.unit;
+    height: 16 * self.unit;
+    image-rendering: pixelated;
+    colorize: self.tint;
+    accessible-role: none;
+}
 
 // A button. As a toggle, `checked` shows in the primary style and is announced.
 export component Action inherits Rectangle {
     in property <string> text;
     // Read by screen readers instead of `text` when the text is only a symbol or a value.
     in property <string> accessible-text;
+    // Drawn before the text, or alone when there is no text.
+    in property <image> icon;
+    // Drawn after the text: the caret of a button that opens a menu.
+    in property <image> trailing;
+    // The text is a command: in the monospace.
+    in property <bool> code: false;
     in property <bool> primary: false;
     in property <bool> quiet: false;
     in property <bool> danger: false;
@@ -13,37 +164,81 @@ export component Action inherits Rectangle {
     in property <bool> toggle: false;
     in property <bool> checked: false;
     in property <bool> small: false;
+    // The key that does the same, shown in the button's tip.
+    in property <string> keys;
+    // The tip, when it should say more than the button's name.
+    in property <string> tip;
     callback clicked();
-    preferred-height: root.small ? 26px : 32px;
-    min-height: root.small ? 24px : 28px;
-    min-width: label.preferred-width + (root.small ? 16px : 22px);
-    border-radius: 7px;
+    // A button that shows only an icon or a value, or has a key, says what
+    // it does when the pointer rests on it.
+    property <string> tip-text: root.tip != "" ? root.tip : root.accessible-text != "" ? root.accessible-text : root.text;
+    property <bool> tips: root.tip != "" || root.keys != "" || (root.accessible-text != "" && root.accessible-text != root.text);
+    property <bool> pointed: touch.has-hover && root.tips;
+    changed pointed => {
+        if self.pointed {
+            UiTip.point(root.tip-text, root.keys, "below", root.absolute-position.x, root.absolute-position.y, root.width, root.height);
+        } else {
+            UiTip.leave(root.absolute-position.x, root.absolute-position.y);
+        }
+    }
     property <bool> filled: root.primary || (root.toggle && root.checked);
-    background: !root.enabled ? #18212e : root.filled ? (touch.has-hover ? #a0f1d7 : Theme.mint)
-        : touch.has-hover ? Theme.hover : root.quiet ? transparent : Theme.raised;
-    border-width: 1px;
-    border-color: focus.has-focus ? Theme.mint : root.filled ? transparent : root.quiet ? transparent : Theme.line;
-    opacity: root.enabled ? 1 : 0.45;
+    property <bool> down: touch.pressed && root.enabled;
+    property <bool> hovered: touch.has-hover && root.enabled;
+    property <bool> has-icon: root.icon.width > 0;
+    property <color> ink: !root.enabled ? Theme.muted : root.filled ? Theme.on-accent : root.danger ? Theme.drop.text : Theme.ink;
+    preferred-height: root.small ? 28px : 34px;
+    min-height: root.small ? 24px : 30px;
+    min-width: content.preferred-width + (root.small ? 14px : 20px);
+    // A button keeps its height: the spare room of a column goes to the
+    // lists and the texts beside it, never to a row of buttons.
+    vertical-stretch: 0;
+    opacity: root.enabled ? 1 : 0.55;
     accessible-role: button;
     accessible-label: root.accessible-text != "" ? root.accessible-text : root.text;
     accessible-enabled: root.enabled;
     accessible-checkable: root.toggle;
     accessible-checked: root.checked;
-    accessible-action-default => { if root.enabled { root.clicked(); } }
+    accessible-action-default => { if root.enabled { UiSound.click(); root.clicked(); } }
     forward-focus: focus;
-    label := Text {
-        text: root.text;
-        color: !root.enabled ? Theme.muted : root.filled ? #10231e : root.danger ? #f5a5a5 : Theme.ink;
-        font-size: root.small ? 11px : 12px;
-        font-weight: 600;
-        horizontal-alignment: center;
-        vertical-alignment: center;
+    PixelFrame {
+        width: 100%; height: 100%;
+        unit: UiSprites.unit / 2;
+        sink: root.down ? self.unit : 0px;
+        shadow: !root.quiet || root.hovered;
+        fill: !root.enabled ? Theme.raised : root.filled ? (root.hovered ? Theme.accent.l : Theme.accent.base)
+            : root.hovered ? Theme.hover : root.quiet ? Theme.panel : Theme.raised;
+        border: focus.has-focus ? Theme.accent.base : root.quiet && !root.hovered ? Theme.panel : Theme.outline;
+        highlight: root.filled || root.quiet ? transparent : Theme.raised-edge;
+        content := HorizontalLayout {
+            y: parent.sink;
+            animate y { duration: Motion.quick; easing: ease-out; }
+            alignment: center;
+            spacing: 6px;
+            padding-left: 2px; padding-right: 2px;
+            if root.has-icon: VerticalLayout {
+                alignment: center;
+                Icon { source: root.icon; tint: root.ink; }
+            }
+            if root.text != "": Text {
+                text: root.text;
+                color: root.ink;
+                font-family: root.code ? Type.mono : Type.ui;
+                font-size: root.small ? Type.small : Type.body;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+            if root.trailing.width > 0: VerticalLayout {
+                alignment: center;
+                Icon { source: root.trailing; tint: root.ink; }
+            }
+        }
     }
     focus := FocusScope {
         enabled: root.enabled;
         focus-on-tab-navigation: true;
         key-pressed(e) => {
             if e.text == " " || e.text == "\n" {
+                UiSound.click();
                 root.clicked();
                 return accept;
             }
@@ -51,15 +246,22 @@ export component Action inherits Rectangle {
         }
     }
     touch := TouchArea {
-        enabled: root.enabled;
-        mouse-cursor: pointer;
-        clicked => { focus.focus(); root.clicked(); }
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if root.enabled {
+                UiTip.leave(root.absolute-position.x, root.absolute-position.y);
+                focus.focus();
+                UiSound.click();
+                root.clicked();
+            }
+        }
     }
 }
 
 export component Caption inherits Text {
     color: Theme.muted;
-    font-size: 10px;
+    font-family: Type.ui;
+    font-size: Type.small;
     font-weight: 600;
     letter-spacing: 1px;
 }
@@ -69,47 +271,197 @@ export component Divider inherits Rectangle {
     background: Theme.line;
 }
 
-// A labelled text field; `accepted` when Enter is pressed in it.
+// A scroll bar in the HUD's own pixels, in sight whenever there is more
+// than what shows; the standard one is two pixels wide until pointed at.
+// It lies over the right edge of what it scrolls, which leaves it 12 px:
+// the thumb is dragged, and a press beside it brings it under the pointer.
+export component ScrollBar inherits Rectangle {
+    // How far the content is moved (0 or less), how long it is, and how
+    // much of it shows.
+    in-out property <length> offset;
+    in property <length> content;
+    in property <length> page;
+    property <length> range: max(0px, root.content - root.page);
+    property <length> thumb: max(24px, min(root.height, root.height * root.page / max(1px, root.content)));
+    property <length> travel: max(1px, root.height - self.thumb);
+    property <length> thumb-y: self.range > 0 ? self.travel * clamp(-root.offset / self.range, 0, 1) : 0px;
+    property <length> unit: UiSprites.unit;
+    width: 12px;
+    visible: self.range > 0.5px;
+    accessible-role: none;
+    Rectangle {
+        x: parent.width - root.unit * 4; width: root.unit * 2;
+        background: Theme.edge;
+    }
+    Rectangle {
+        x: parent.width - root.unit * 4; y: root.thumb-y; width: root.unit * 2; height: root.thumb;
+        background: touch.pressed ? Theme.accent.base : touch.has-hover ? Theme.ink : Theme.muted;
+    }
+    touch := TouchArea {
+        // Where the content was when the thumb was taken.
+        property <length> held;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
+                if self.mouse-y < root.thumb-y || self.mouse-y > root.thumb-y + root.thumb {
+                    root.offset = -root.range * clamp((self.mouse-y - root.thumb / 2) / root.travel, 0, 1);
+                }
+                self.held = root.offset;
+            }
+        }
+        moved => {
+            if self.pressed {
+                root.offset = -clamp(-self.held + (self.mouse-y - self.pressed-y) * root.range / root.travel, 0px, root.range);
+            }
+        }
+    }
+}
+
+// What is taller than its room scrolls, under a ScrollBar: with the wheel,
+// or by the bar. The content is as wide as the room, so its text wraps; it
+// keeps 12 px clear on the right. It is as tall as it asks to be: the
+// standard ScrollView goes by the least its content can do with, and a
+// panel of buttons, which can each give up a few pixels, lost its last
+// lines with nothing to scroll.
+export component Scroll inherits Rectangle {
+    in-out property <length> content-y <=> flick.content-y;
+    out property <length> content-height: flick.content-height;
+    out property <length> visible-height: flick.height;
+    min-height: 40px;
+    flick := Flickable {
+        width: 100%; height: 100%;
+        // A press is for what is under it, not for dragging the page.
+        interactive: false;
+        content-width: self.width;
+        content-height: max(self.height, holder.preferred-height);
+        holder := VerticalLayout {
+            x: 0; y: 0; width: flick.content-width; height: flick.content-height;
+            @children
+        }
+    }
+    ScrollBar {
+        x: parent.width - self.width; y: 2px; height: parent.height - 4px;
+        offset <=> flick.content-y;
+        content: flick.content-height;
+        page: flick.height;
+    }
+}
+
+// A one-line text field: the box and its text, with no label of its own.
+// `edited` as the text changes, `accepted` when Enter is pressed in it.
+export component TextBox inherits Rectangle {
+    // Read by screen readers.
+    in property <string> label;
+    in property <string> placeholder;
+    in property <bool> mono: true;
+    in property <bool> invalid;
+    in-out property <string> text;
+    callback edited(string);
+    callback accepted();
+    public function focus-input() { input.focus(); }
+    min-width: 40px;
+    preferred-width: 160px;
+    height: 32px;
+    PixelFrame {
+        width: 100%; height: 100%;
+        unit: UiSprites.unit / 2;
+        shadow: false;
+        fill: Theme.sunken;
+        border: input.has-focus ? Theme.accent.base : root.invalid ? Theme.drop.base : Theme.edge;
+    }
+    if root.text == "" && root.placeholder != "": Text {
+        x: 9px; width: parent.width - 18px;
+        text: root.placeholder;
+        color: Theme.muted;
+        font-family: root.mono ? Type.mono : Type.text;
+        font-size: Type.small;
+        vertical-alignment: center;
+        overflow: elide;
+        accessible-role: none;
+    }
+    Rectangle {
+        x: 9px; width: parent.width - 18px;
+        clip: true;
+        input := TextInput {
+            width: max(parent.width, self.preferred-width);
+            text <=> root.text;
+            color: Theme.ink;
+            selection-background-color: Theme.accent.chip;
+            selection-foreground-color: Theme.accent.chip-ink;
+            font-family: root.mono ? Type.mono : Type.text;
+            font-size: Type.small;
+            vertical-alignment: center;
+            single-line: true;
+            accessible-role: text-input;
+            accessible-label: root.label;
+            accessible-value: self.text;
+            accessible-action-set-value(value) => { self.text = value; root.edited(value); }
+            edited => { root.edited(self.text); }
+            accepted => { root.accepted(); }
+        }
+    }
+}
+
+// A labelled text field. A refused value is explained under it (`error`).
 export component Field inherits VerticalLayout {
     in property <string> label;
     in property <string> placeholder;
+    in property <string> error;
+    in property <bool> mono: true;
     in-out property <string> text;
+    callback edited(string);
     callback accepted();
     spacing: 4px;
-    // Elided rather than widening a narrow panel in a longer language.
-    Text { text: root.label; color: Theme.muted; font-size: 11px; overflow: elide; }
-    LineEdit {
-        // Narrow panels: the style's minimum would push the panel wider.
-        min-width: 40px;
+    // Elided rather than widening a narrow panel.
+    Text { text: root.label; color: Theme.muted; font-family: Type.text; font-size: Type.small; overflow: elide; }
+    TextBox {
         text <=> root.text;
-        placeholder-text: root.placeholder;
-        accessible-label: root.label;
+        label: root.label;
+        placeholder: root.placeholder;
+        mono: root.mono;
+        invalid: root.error != "";
+        edited(value) => { root.edited(value); }
         accepted => { root.accepted(); }
     }
+    if root.error != "": Text { text: root.error; color: Theme.drop.text; font-family: Type.text; font-size: Type.small; wrap: word-wrap; }
 }
 
 // A filter that is on or off.
 export component Chip inherits Rectangle {
     in property <string> text;
     in property <bool> checked;
-    in property <color> tint: Theme.blue;
+    in property <Tones> tint: Theme.accent;
+    // What it filters or switches, and the key that does the same, for its tip.
+    in property <string> tip;
+    in property <string> keys;
     callback clicked();
-    height: 24px;
-    width: chip-text.preferred-width + 18px;
-    border-radius: 12px;
-    background: root.checked ? #1b2f3d : touch.has-hover ? Theme.hover : transparent;
-    border-width: 1px;
-    border-color: focus.has-focus ? Theme.mint : root.checked ? root.tint : Theme.line;
+    property <bool> pointed: touch.has-hover && (root.tip != "" || root.keys != "");
+    changed pointed => {
+        if self.pointed {
+            UiTip.point(root.tip != "" ? root.tip : root.text, root.keys, "below", root.absolute-position.x, root.absolute-position.y, root.width, root.height);
+        } else {
+            UiTip.leave(root.absolute-position.x, root.absolute-position.y);
+        }
+    }
+    height: 26px;
+    width: chip-text.preferred-width + 20px;
     accessible-role: checkbox;
     accessible-label: root.text;
     accessible-checkable: true;
     accessible-checked: root.checked;
     accessible-action-default => { root.clicked(); }
     forward-focus: focus;
+    PixelFrame {
+        width: 100%; height: 100%;
+        unit: UiSprites.unit / 2;
+        shadow: false;
+        fill: root.checked ? root.tint.chip : touch.has-hover ? Theme.hover : Theme.panel;
+        border: focus.has-focus ? Theme.accent.base : root.checked ? root.tint.base : Theme.edge;
+    }
     chip-text := Text {
         text: root.text;
-        color: root.checked ? Theme.ink : Theme.muted;
-        font-size: 10px;
+        color: root.checked ? root.tint.chip-ink : Theme.ink;
+        font-family: Type.ui;
+        font-size: Type.small;
         font-weight: 600;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -124,60 +476,276 @@ export component Chip inherits Rectangle {
     touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
 }
 
-// A host's screen, a switch's front panel, or a router's round body with
-// a datagram going each way.
-export component DeviceIcon inherits Rectangle {
+// A device's sprite, small or full, in the theme's colours.
+export component DeviceIcon inherits Image {
     // "host", "switch" or "router"
     in property <string> kind: "host";
-    property <color> tint: Theme.device-color(root.kind);
-    property <float> scale: root.width / 29px;
-    background: transparent;
-    if root.kind == "host": Rectangle {
-        x: 2px * root.scale; y: 2px * root.scale;
-        width: parent.width - 4px * root.scale; height: parent.height - 9px * root.scale;
-        border-width: 1.5px * root.scale; border-color: root.tint; border-radius: 3px * root.scale;
-        Rectangle { width: 1.5px * root.scale; height: 5px * root.scale; x: (parent.width - self.width) / 2; y: parent.height; background: root.tint; }
-        Rectangle { width: 12px * root.scale; height: 1.5px * root.scale; x: (parent.width - self.width) / 2; y: parent.height + 4px * root.scale; background: root.tint; }
-    }
-    if root.kind == "router": Rectangle {
-        x: (parent.width - self.width) / 2; y: 1px * root.scale;
-        width: 23px * root.scale; height: 23px * root.scale;
-        border-width: 1.5px * root.scale; border-color: root.tint; border-radius: self.width / 2;
-        Path {
-            width: 100%; height: 100%;
-            viewbox-width: 23; viewbox-height: 23;
-            commands: "M 6 9 L 16 9 M 13.5 6.5 L 16 9 L 13.5 11.5 M 17 14 L 7 14 M 9.5 11.5 L 7 14 L 9.5 16.5";
-            stroke: root.tint;
-            stroke-width: 1.5px * root.scale;
+    in property <bool> small: true;
+    source: root.small ? (root.kind == "switch" ? UiSprites.switch-small : root.kind == "router" ? UiSprites.router-small : UiSprites.host-small)
+        : (root.kind == "switch" ? UiSprites.switch : root.kind == "router" ? UiSprites.router : UiSprites.host);
+    image-rendering: pixelated;
+    accessible-role: none;
+}
+
+// The title row of a panel, with the button that folds it away.
+export component PanelHeader inherits Rectangle {
+    in property <string> title;
+    in property <string> detail;
+    // "host", "switch" or "router" when the detail names a device: its
+    // sprite stands before the name, and the name is in full ink.
+    in property <string> device;
+    // The fold button's label, e.g. "Hide the inspector".
+    in property <string> fold-text;
+    // The key that folds it, for the button's tip.
+    in property <string> fold-keys;
+    in property <image> fold-icon: UiSprites.chevron-left;
+    callback fold();
+    height: 44px;
+    HorizontalLayout {
+        padding-left: 14px; padding-right: 8px; spacing: 10px;
+        Text { text: root.title; color: Theme.ink; font-family: Type.pixel; font-size: Type.pixel-title; font-weight: 600; vertical-alignment: center; }
+        if root.device != "": VerticalLayout {
+            alignment: center;
+            DeviceIcon { kind: root.device; small: true; width: 16 * UiSprites.icon-unit; height: 16 * UiSprites.icon-unit; }
         }
-    }
-    if root.kind == "switch": Rectangle {
-        x: 1px * root.scale; y: 6px * root.scale; width: parent.width - 2px * root.scale; height: 15px * root.scale;
-        border-width: 1.5px * root.scale; border-color: root.tint; border-radius: 3px * root.scale;
-        for i in 4: Rectangle {
-            x: (4px + i * 5px) * root.scale; y: 6px * root.scale;
-            width: 3px * root.scale; height: 4px * root.scale;
-            background: root.tint;
+        Text {
+            text: root.detail;
+            color: root.device != "" ? Theme.ink : Theme.muted;
+            font-family: Type.text; font-size: root.device != "" ? Type.body : Type.small; font-weight: root.device != "" ? 600 : 400;
+            vertical-alignment: center; overflow: elide; horizontal-stretch: 1;
+        }
+        VerticalLayout {
+            alignment: center;
+            Action { icon: root.fold-icon; accessible-text: root.fold-text; keys: root.fold-keys; quiet: true; small: true; width: 30px; clicked => { root.fold(); } }
         }
     }
 }
 
-// The title row of a side panel, with the button that folds it away.
-export component PanelHeader inherits Rectangle {
-    in property <string> title;
-    in property <string> detail;
-    // The fold button's label, e.g. "Hide inspector".
-    in property <string> fold-text;
-    in property <string> fold-symbol: "‹";
-    callback fold();
-    height: 44px;
+// A row of tabs over a panel; `current` is the index of the open one.
+export component Tabs inherits Rectangle {
+    in property <[string]> titles;
+    in-out property <int> current;
+    callback changed-to(int);
+    property <length> unit: UiSprites.unit;
+    height: 34px;
+    horizontal-stretch: 1;
+    // The line the tabs stand on; the open one's stretch of it is in the accent.
+    Rectangle { y: parent.height - root.unit; height: root.unit; background: Theme.line; }
     HorizontalLayout {
-        padding-left: 16px; padding-right: 8px; spacing: 8px;
-        Text { text: root.title; color: Theme.ink; font-size: 13px; font-weight: 600; vertical-alignment: center; }
-        Text { text: root.detail; color: Theme.muted; font-size: 11px; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
-        VerticalLayout {
-            alignment: center;
-            Action { text: root.fold-symbol; accessible-text: root.fold-text; quiet: true; small: true; width: 28px; clicked => { root.fold(); } }
+        spacing: 4px;
+        alignment: start;
+        for title[i] in root.titles: Rectangle {
+            property <bool> open: root.current == i;
+            width: tab-text.preferred-width + 24px;
+            accessible-role: tab;
+            accessible-label: title;
+            accessible-item-selectable: true;
+            accessible-item-selected: self.open;
+            accessible-action-default => { root.current = i; root.changed-to(i); }
+            Rectangle {
+                y: 0; height: parent.height - root.unit;
+                background: tab-focus.has-focus ? Theme.hover : transparent;
+            }
+            tab-text := Text {
+                y: 0; height: parent.height - root.unit;
+                text: title;
+                color: parent.open || tab-touch.has-hover ? Theme.ink : Theme.muted;
+                font-family: Type.ui; font-size: Type.body; font-weight: 600;
+                horizontal-alignment: center; vertical-alignment: center;
+            }
+            Rectangle {
+                y: parent.height - root.unit; height: root.unit;
+                background: parent.open ? Theme.accent.base : transparent;
+            }
+            tab-focus := FocusScope {
+                focus-on-tab-navigation: true;
+                key-pressed(e) => {
+                    if e.text == " " || e.text == "\n" { root.current = i; root.changed-to(i); return accept; }
+                    return reject;
+                }
+            }
+            tab-touch := TouchArea { mouse-cursor: pointer; clicked => { tab-focus.focus(); root.current = i; root.changed-to(i); } }
         }
+    }
+}
+
+// A slider for the instant shown: a track of pixels and a handle.
+export component Scrubber inherits Rectangle {
+    in property <string> label;
+    in property <float> minimum: 0;
+    in property <float> maximum: 1;
+    in property <bool> enabled: true;
+    in-out property <float> value;
+    callback changed(float);
+    property <float> span: max(root.maximum - root.minimum, 0.000001);
+    property <float> share: max(0, min(1, (root.value - root.minimum) / root.span));
+    min-width: 80px;
+    height: 28px;
+    accessible-role: slider;
+    accessible-label: root.label;
+    accessible-enabled: root.enabled;
+    accessible-value: root.value;
+    accessible-value-minimum: root.minimum;
+    accessible-value-maximum: root.maximum;
+    accessible-value-step: root.span / 100;
+    accessible-action-set-value(text) => { root.set(text.to-float()); }
+    accessible-action-increment => { root.set(root.value + root.span / 20); }
+    accessible-action-decrement => { root.set(root.value - root.span / 20); }
+    forward-focus: focus;
+    function set(value: float) {
+        if root.enabled {
+            root.value = max(root.minimum, min(root.maximum, value));
+            root.changed(root.value);
+        }
+    }
+    property <length> knob: 14px;
+    track := PixelFrame {
+        x: root.knob / 2; y: (root.height - self.height) / 2;
+        width: root.width - root.knob; height: 10px;
+        unit: UiSprites.unit / 2;
+        shadow: false;
+        fill: Theme.sunken;
+        border: focus.has-focus ? Theme.accent.base : Theme.edge;
+        Rectangle {
+            x: parent.unit * 2; y: parent.unit * 2;
+            width: (parent.width - parent.unit * 4) * root.share; height: parent.height - parent.unit * 4;
+            background: root.enabled ? Theme.accent.d : Theme.line;
+        }
+    }
+    PixelFrame {
+        x: (root.width - root.knob) * root.share; y: (root.height - self.height) / 2;
+        width: root.knob; height: 22px;
+        unit: UiSprites.unit / 2;
+        fill: !root.enabled ? Theme.raised : drag.has-hover || drag.pressed ? Theme.accent.l : Theme.accent.base;
+        highlight: Theme.accent.l;
+    }
+    focus := FocusScope {
+        enabled: root.enabled;
+        focus-on-tab-navigation: true;
+        key-pressed(e) => {
+            if e.text == Key.LeftArrow || e.text == Key.DownArrow { root.set(root.value - root.span / 20); return accept; }
+            if e.text == Key.RightArrow || e.text == Key.UpArrow { root.set(root.value + root.span / 20); return accept; }
+            if e.text == Key.Home { root.set(root.minimum); return accept; }
+            if e.text == Key.End { root.set(root.maximum); return accept; }
+            return reject;
+        }
+    }
+    drag := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                focus.focus();
+                root.set(root.minimum + root.span * (self.mouse-x - root.knob / 2) / (root.width - root.knob));
+            }
+        }
+        moved => {
+            if self.pressed { root.set(root.minimum + root.span * (self.mouse-x - root.knob / 2) / (root.width - root.knob)); }
+        }
+    }
+}
+
+// A table's column: its title, and how many characters of the monospace
+// its widest cell takes (C++ counts them, src/app_inspector.cpp).
+export struct TableColumn { title: string, chars: int }
+
+// Rows of data in the monospace, each column as wide as what it holds; the
+// table scrolls sideways when it is wider than its panel, so no cell is cut.
+export component Table inherits Rectangle {
+    in property <string> label;
+    in property <[TableColumn]> columns;
+    in property <[[StandardListViewItem]]> rows;
+    in property <string> empty-text;
+    property <length> pad: 14px;
+    property <length> row-height: 24px;
+    property <length> total: root.column-x(root.columns.length);
+    // Where column `i` starts.
+    pure function column-x(i: int) -> length {
+        return i <= 0 ? 0px : i == 1 ? root.column-width(0)
+            : i == 2 ? root.column-width(0) + root.column-width(1)
+            : i == 3 ? root.column-width(0) + root.column-width(1) + root.column-width(2)
+            : i == 4 ? root.column-width(0) + root.column-width(1) + root.column-width(2) + root.column-width(3)
+            : root.column-width(0) + root.column-width(1) + root.column-width(2) + root.column-width(3) + root.column-width(4)
+              + (i >= 6 ? root.column-width(5) : 0px);
+    }
+    pure function column-width(i: int) -> length {
+        return i < root.columns.length ? max(root.columns[i].chars, 2) * Type.mono-advance + root.pad : 0px;
+    }
+    min-height: root.row-height * 2 + 12px;
+    preferred-height: root.row-height * (max(root.rows.length, 1) + 1) + 12px;
+    accessible-role: table;
+    accessible-label: root.label;
+    PixelFrame {
+        width: 100%; height: 100%;
+        unit: UiSprites.unit / 2;
+        shadow: false;
+        fill: Theme.sunken;
+        border: Theme.edge;
+    }
+    flick := Flickable {
+        x: 4px; y: 4px; width: parent.width - 8px; height: parent.height - 8px;
+        content-width: max(self.width, root.total);
+        content-height: max(self.height, root.row-height * (root.rows.length + 1));
+        for column[i] in root.columns: Text {
+            x: root.column-x(i) + 6px; y: 0; width: root.column-width(i) - 8px; height: root.row-height;
+            text: column.title;
+            color: Theme.muted;
+            font-family: Type.mono; font-size: Type.small; font-weight: 700;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Rectangle { y: root.row-height - 1px; width: max(parent.width, root.total); height: 1px; background: Theme.line; }
+        for row[r] in root.rows: Rectangle {
+            y: root.row-height * (r + 1);
+            width: max(flick.width, root.total);
+            height: root.row-height;
+            background: Math.mod(r, 2) == 1 ? Theme.panel : transparent;
+            for cell[i] in row: Text {
+                x: root.column-x(i) + 6px; width: root.column-width(i) - 8px; height: root.row-height;
+                text: cell.text;
+                color: Theme.ink;
+                font-family: Type.mono; font-size: Type.small;
+                vertical-alignment: center;
+            }
+        }
+        if root.rows.length == 0: Text {
+            y: root.row-height; x: 6px; width: flick.width - 12px; height: root.row-height;
+            text: root.empty-text;
+            color: Theme.muted;
+            font-family: Type.text; font-size: Type.small;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    // Wider than its panel: a bar under the rows shows how far it is moved.
+    if flick.content-width > flick.width + 0.5px: Rectangle {
+        x: flick.x; y: root.height - UiSprites.unit * 2; width: flick.width; height: UiSprites.unit;
+        background: Theme.edge;
+        Rectangle {
+            x: parent.width * (-flick.content-x / flick.content-width);
+            width: parent.width * flick.width / flick.content-width;
+            background: Theme.muted;
+        }
+    }
+}
+
+// A short text near what it is about, on a plate.
+export component Plate inherits Rectangle {
+    in property <string> text;
+    in property <Tones> tone: Theme.metal;
+    in property <bool> strong;
+    width: plate-text.preferred-width + 16px;
+    height: 24px;
+    PixelFrame {
+        width: 100%; height: 100%;
+        unit: UiSprites.unit / 2;
+        fill: root.strong ? root.tone.chip : Theme.panel;
+        border: root.strong ? root.tone.base : Theme.outline;
+    }
+    plate-text := Text {
+        text: root.text;
+        color: root.strong ? root.tone.chip-ink : Theme.ink;
+        font-family: Type.ui; font-size: Type.small; font-weight: 600;
+        horizontal-alignment: center; vertical-alignment: center;
     }
 }

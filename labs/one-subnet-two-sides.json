@@ -1,0 +1,250 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "troubleshooting",
+  "topic": "First networks",
+  "title": "One subnet on two sides",
+  "brief": "PC-A and PC-B sit on two LANs joined by a router, yet PC-A cannot reach PC-B. PC-B belongs to the second LAN, 192.168.2.0/24, as 192.168.2.20. Find out what is wrong and repair it: the router and PC-A are fine.",
+  "network": {
+    "devices": [
+      {
+        "id": 1,
+        "kind": "host",
+        "name": "PC-A",
+        "x": 80,
+        "y": 90,
+        "gateway": "192.168.1.1",
+        "ports": [
+          {
+            "ipv4": "192.168.1.10/24"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "switch",
+        "name": "Switch-1",
+        "x": 80,
+        "y": 300
+      },
+      {
+        "id": 3,
+        "kind": "router",
+        "name": "Router",
+        "x": 330,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "192.168.1.1/24"
+          },
+          {
+            "ipv4": "192.168.2.1/24"
+          }
+        ],
+        "routes": []
+      },
+      {
+        "id": 4,
+        "kind": "switch",
+        "name": "Switch-2",
+        "x": 580,
+        "y": 300
+      },
+      {
+        "id": 5,
+        "kind": "host",
+        "name": "PC-B",
+        "x": 580,
+        "y": 90,
+        "gateway": "192.168.1.1",
+        "ports": [
+          {
+            "ipv4": "192.168.1.20/24"
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "a": {
+          "device": 1,
+          "port": 1
+        },
+        "b": {
+          "device": 2,
+          "port": 1
+        }
+      },
+      {
+        "id": 2,
+        "a": {
+          "device": 2,
+          "port": 2
+        },
+        "b": {
+          "device": 3,
+          "port": 1
+        }
+      },
+      {
+        "id": 3,
+        "a": {
+          "device": 3,
+          "port": 2
+        },
+        "b": {
+          "device": 4,
+          "port": 1
+        }
+      },
+      {
+        "id": 4,
+        "a": {
+          "device": 4,
+          "port": 2
+        },
+        "b": {
+          "device": 5,
+          "port": 1
+        }
+      }
+    ]
+  },
+  "locks": [
+    {
+      "device": "Router"
+    },
+    {
+      "device": "PC-A"
+    }
+  ],
+  "goals": [
+    {
+      "id": "reach",
+      "kind": "reach",
+      "text": "PC-A reaches PC-B at 192.168.2.20",
+      "from": "PC-A",
+      "to": "192.168.2.20"
+    },
+    {
+      "id": "back",
+      "kind": "reach",
+      "text": "PC-B reaches PC-A at 192.168.1.10",
+      "from": "PC-B",
+      "to": "192.168.1.10"
+    }
+  ],
+  "hints": [
+    "Compare PC-B's address with the address of the router port on PC-B's LAN.",
+    "A router joins different subnets: each of its ports has one. A PC with the subnet of the other side cannot be reached across it."
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 1,
+          "kind": "host",
+          "name": "PC-A",
+          "x": 80,
+          "y": 90,
+          "gateway": "192.168.1.1",
+          "ports": [
+            {
+              "ipv4": "192.168.1.10/24"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "kind": "switch",
+          "name": "Switch-1",
+          "x": 80,
+          "y": 300
+        },
+        {
+          "id": 3,
+          "kind": "router",
+          "name": "Router",
+          "x": 330,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "192.168.1.1/24"
+            },
+            {
+              "ipv4": "192.168.2.1/24"
+            }
+          ],
+          "routes": []
+        },
+        {
+          "id": 4,
+          "kind": "switch",
+          "name": "Switch-2",
+          "x": 580,
+          "y": 300
+        },
+        {
+          "id": 5,
+          "kind": "host",
+          "name": "PC-B",
+          "x": 580,
+          "y": 90,
+          "gateway": "192.168.2.1",
+          "ports": [
+            {
+              "ipv4": "192.168.2.20/24"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 1,
+            "port": 1
+          },
+          "b": {
+            "device": 2,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 2,
+            "port": 2
+          },
+          "b": {
+            "device": 3,
+            "port": 1
+          }
+        },
+        {
+          "id": 3,
+          "a": {
+            "device": 3,
+            "port": 2
+          },
+          "b": {
+            "device": 4,
+            "port": 1
+          }
+        },
+        {
+          "id": 4,
+          "a": {
+            "device": 4,
+            "port": 2
+          },
+          "b": {
+            "device": 5,
+            "port": 1
+          }
+        }
+      ]
+    }
+  }
+}

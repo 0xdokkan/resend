@@ -1,0 +1,278 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "challenge",
+  "topic": "Routing",
+  "title": "Static routes",
+  "brief": "Three networks: 10.1.0.0/24 with PC-A, 10.12.0.0/30 between the routers, 10.3.0.0/24 with PC-C. Every address and gateway is set, but each router knows only the networks it touches. Give them the static routes they need so that PC-A and PC-C reach each other.",
+  "network": {
+    "devices": [
+      {
+        "id": 1,
+        "kind": "host",
+        "name": "PC-A",
+        "x": 80,
+        "y": 90,
+        "gateway": "10.1.0.1",
+        "ports": [
+          {
+            "ipv4": "10.1.0.10/24"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "router",
+        "name": "R1",
+        "x": 80,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "10.1.0.1/24"
+          },
+          {
+            "ipv4": "10.12.0.1/30"
+          }
+        ],
+        "routes": []
+      },
+      {
+        "id": 3,
+        "kind": "router",
+        "name": "R2",
+        "x": 580,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "10.12.0.2/30"
+          },
+          {
+            "ipv4": "10.3.0.1/24"
+          }
+        ],
+        "routes": []
+      },
+      {
+        "id": 4,
+        "kind": "host",
+        "name": "PC-C",
+        "x": 580,
+        "y": 90,
+        "gateway": "10.3.0.1",
+        "ports": [
+          {
+            "ipv4": "10.3.0.10/24"
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "a": {
+          "device": 1,
+          "port": 1
+        },
+        "b": {
+          "device": 2,
+          "port": 1
+        }
+      },
+      {
+        "id": 2,
+        "a": {
+          "device": 2,
+          "port": 2
+        },
+        "b": {
+          "device": 3,
+          "port": 1
+        }
+      },
+      {
+        "id": 3,
+        "a": {
+          "device": 3,
+          "port": 2
+        },
+        "b": {
+          "device": 4,
+          "port": 1
+        }
+      }
+    ]
+  },
+  "locks": [
+    {
+      "device": "PC-A"
+    },
+    {
+      "device": "PC-C"
+    },
+    {
+      "device": "R1",
+      "settings": [
+        "addresses",
+        "cables"
+      ]
+    },
+    {
+      "device": "R2",
+      "settings": [
+        "addresses",
+        "cables"
+      ]
+    }
+  ],
+  "goals": [
+    {
+      "id": "r1-route",
+      "kind": "config",
+      "text": "R1 has a route to 10.3.0.0/24 through R2",
+      "device": "R1",
+      "route": "10.3.0.0/24",
+      "via": "10.12.0.2"
+    },
+    {
+      "id": "r2-route",
+      "kind": "config",
+      "text": "R2 has a route to 10.1.0.0/24 through R1",
+      "device": "R2",
+      "route": "10.1.0.0/24",
+      "via": "10.12.0.1"
+    },
+    {
+      "id": "reach",
+      "kind": "reach",
+      "text": "PC-A reaches PC-C at 10.3.0.10",
+      "from": "PC-A",
+      "to": "10.3.0.10"
+    },
+    {
+      "id": "path",
+      "kind": "path",
+      "text": "The traceroute from PC-A to PC-C answers from R1, R2 and PC-C",
+      "from": "PC-A",
+      "to": "10.3.0.10",
+      "hops": [
+        "10.1.0.1",
+        "10.12.0.2",
+        "10.3.0.10"
+      ]
+    }
+  ],
+  "hints": [
+    "A static route names a network and the next hop towards it: an address of a neighbour router, on a network both share.",
+    "R1 reaches R2 at 10.12.0.2; R2 reaches R1 at 10.12.0.1.",
+    "The replies need a route back as much as the requests need one there."
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 1,
+          "kind": "host",
+          "name": "PC-A",
+          "x": 80,
+          "y": 90,
+          "gateway": "10.1.0.1",
+          "ports": [
+            {
+              "ipv4": "10.1.0.10/24"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "kind": "router",
+          "name": "R1",
+          "x": 80,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "10.1.0.1/24"
+            },
+            {
+              "ipv4": "10.12.0.1/30"
+            }
+          ],
+          "routes": [
+            {
+              "destination": "10.3.0.0/24",
+              "via": "10.12.0.2"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "router",
+          "name": "R2",
+          "x": 580,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "10.12.0.2/30"
+            },
+            {
+              "ipv4": "10.3.0.1/24"
+            }
+          ],
+          "routes": [
+            {
+              "destination": "10.1.0.0/24",
+              "via": "10.12.0.1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "kind": "host",
+          "name": "PC-C",
+          "x": 580,
+          "y": 90,
+          "gateway": "10.3.0.1",
+          "ports": [
+            {
+              "ipv4": "10.3.0.10/24"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 1,
+            "port": 1
+          },
+          "b": {
+            "device": 2,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 2,
+            "port": 2
+          },
+          "b": {
+            "device": 3,
+            "port": 1
+          }
+        },
+        {
+          "id": 3,
+          "a": {
+            "device": 3,
+            "port": 2
+          },
+          "b": {
+            "device": 4,
+            "port": 1
+          }
+        }
+      ]
+    }
+  }
+}

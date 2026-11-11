@@ -1,6 +1,8 @@
-import { LineEdit, ScrollView, StandardTableView } from "std-widgets.slint";
-import { Theme } from "theme.slint";
-import { Action, Caption, Divider, Field, PanelHeader } from "widgets.slint";
+import { Theme, Type } from "theme.slint";
+import { UiSprites } from "sprites.slint";
+import { Action, Caption, Divider, Field, Icon, PanelHeader, PixelFrame, Scroll, Table, TableColumn, Tabs, TextBox } from "widgets.slint";
+import { TerminalTab } from "terminal.slint";
+import { UiApp, UiLab } from "state.slint";
 
 // A port of the selected device: its admin state, where its cable goes and,
 // on a router, its address with the prefix length ("" for none).
@@ -17,6 +19,10 @@ export global UiInspector {
     // "host", "switch", "router", "cable", or "" for the network as a whole.
     in property <string> kind;
     in property <string> heading;
+    // What a lab keeps of the selected device as it gave it, or "".
+    in property <string> lock-note;
+    // Settings, Tables or Terminal.
+    in-out property <int> tab;
     in-out property <string> name;
     in-out property <string> address;
     in-out property <string> prefix;
@@ -35,13 +41,21 @@ export global UiInspector {
     in property <[RouteView]> routes;
     in-out property <string> route-destination;
     in-out property <string> route-via;
-    // The ARP cache of a host or a router, the MAC table of a switch.
+    // The ARP cache of a host or a router, the MAC table of a switch, and
+    // the width of each column.
     in property <[[StandardListViewItem]]> table-rows;
+    in property <[TableColumn]> table-columns;
     // A router's routing table: connected networks, then static routes.
     in property <[[StandardListViewItem]]> routing-rows;
+    in property <[TableColumn]> routing-columns;
     in property <string> table-note;
     // The network as a whole, when nothing is selected.
     in property <string> summary;
+    // A value refused by the last Apply: the field it was typed in ("name",
+    // "address", "prefix", "gateway", "ageing", "delay", "route-destination",
+    // "route-via", "port-N" for a router port), and why.
+    in property <string> error-field;
+    in property <string> error-text;
 
     callback apply();
     callback toggle-power();
@@ -63,26 +77,33 @@ component PortRow inherits Rectangle {
     height: row.preferred-height;
     row := HorizontalLayout {
         spacing: 8px;
+        Rectangle {
+            width: 10px;
+            Rectangle {
+                y: (parent.height - self.height) / 2; width: 8px; height: 8px;
+                background: !root.port.up ? Theme.drop.base : root.port.cable == "" ? Theme.metal.d : Theme.link.base;
+            }
+        }
         VerticalLayout {
             horizontal-stretch: 1;
             alignment: center;
             spacing: 1px;
-            Text { text: root.port.label; color: Theme.ink; font-size: 11px; font-weight: 600; }
+            Text { text: root.port.label; color: Theme.ink; font-size: Type.small; font-weight: 600; }
             Text {
                 text: root.port.cable == "" ? @tr("No cable") : "→ " + root.port.cable;
-                color: Theme.muted; font-size: 10px; overflow: elide;
+                color: Theme.muted; font-size: Type.small; overflow: elide;
             }
         }
         if root.port.link-id >= 0: Action {
-            text: "⇢";
+            icon: UiSprites.arrow-right;
             accessible-text: @tr("Select the cable of {0}", root.port.label);
-            small: true; quiet: true; width: 28px;
+            small: true; quiet: true; width: 30px;
             clicked => { UiInspector.select-cable(root.port.link-id); }
         }
         Action {
             text: root.port.up ? @tr("On") : @tr("Off");
             accessible-text: root.port.label;
-            toggle: true; checked: root.port.up; small: true; width: 44px;
+            toggle: true; checked: root.port.up; small: true; width: 48px;
             clicked => { UiInspector.set-port-up(root.port.index, !root.port.up); }
         }
     }
@@ -93,13 +114,16 @@ component RouterPortRow inherits VerticalLayout {
     in property <PortView> port;
     spacing: 4px;
     PortRow { port: root.port; }
-    LineEdit {
-        min-width: 40px;
+    TextBox {
         text: root.port.address;
-        placeholder-text: @tr("No address, e.g. 10.1.0.1/24");
-        accessible-label: @tr("IPv4 address of {0}", root.port.label);
+        placeholder: @tr("No address, e.g. 10.1.0.1/24");
+        label: @tr("IPv4 address of {0}", root.port.label);
+        invalid: UiInspector.error-field == "port-" + root.port.index;
         edited(text) => { UiInspector.port-address-edited(root.port.index, text); }
         accepted => { UiInspector.apply(); }
+    }
+    if UiInspector.error-field == "port-" + root.port.index: Text {
+        text: UiInspector.error-text; color: Theme.drop.text; font-size: Type.small; wrap: word-wrap;
     }
 }
 
@@ -114,230 +138,255 @@ component RouteRow inherits Rectangle {
             spacing: 1px;
             Text {
                 text: root.route.destination + " → " + root.route.via;
-                color: root.route.active ? Theme.ink : Theme.muted; font-size: 11px; font-weight: 600; overflow: elide;
+                color: root.route.active ? Theme.ink : Theme.muted; font-family: Type.mono; font-size: Type.small; overflow: elide;
             }
-            if !root.route.active: Text { text: root.route.note; color: Theme.amber; font-size: 10px; wrap: word-wrap; }
+            if !root.route.active: Text { text: root.route.note; color: Theme.ask.text; font-size: Type.small; wrap: word-wrap; }
         }
         Action {
-            text: "✕";
+            icon: UiSprites.close;
             accessible-text: @tr("Remove the route to {0}", root.route.destination);
-            small: true; quiet: true; danger: true; width: 28px;
+            small: true; quiet: true; danger: true; width: 30px;
             clicked => { UiInspector.remove-route(root.route.index); }
         }
     }
 }
 
-export component Inspector inherits Rectangle {
+// A note under a group of fields.
+component Note inherits Text {
+    color: Theme.muted; font-size: Type.small; wrap: word-wrap;
+}
+
+component PowerAndDelete inherits HorizontalLayout {
+    spacing: 6px;
+    Action { icon: UiSprites.power; text: UiInspector.powered ? @tr("Power off") : @tr("Power on"); clicked => { UiInspector.toggle-power(); } }
+    Action { icon: UiSprites.trash; text: @tr("Delete device"); danger: true; quiet: true; clicked => { UiInspector.remove-device(); } }
+}
+
+// The parts of the two tabs are components of their own, not layouts written
+// under an `if`: Slint 1.18 measures a wrapped text written straight under
+// an `if` or a `for` as one line, so the panel came out shorter than what it
+// holds and its last lines could not be scrolled to (tests/look_tests.cpp
+// keeps it so).
+// Why a lab keeps the selected device as it is.
+component LockNote inherits HorizontalLayout {
+    spacing: 8px;
+    VerticalLayout { alignment: start; Icon { source: UiSprites.lock; tint: Theme.ask.text; } }
+    Text { text: UiInspector.lock-note; color: Theme.ask.text; font-size: Type.small; wrap: word-wrap; horizontal-stretch: 1; }
+}
+
+// Nothing selected: the network as a whole, and its lesson.
+component NetworkSettings inherits VerticalLayout {
+    spacing: 10px;
+    Caption { text: UiLab.active ? @tr("LAB") : @tr("LESSON"); }
+    Text { text: UiApp.title == "" ? @tr("Your own network") : UiApp.title; color: Theme.ink; font-size: Type.label; font-weight: 600; wrap: word-wrap; }
+    Text {
+        text: UiApp.notes == "" ? @tr("Build a network, send a ping and follow every frame. Examples in the File menu come with a lesson.") : UiApp.notes;
+        color: Theme.ink; font-size: Type.small; wrap: word-wrap;
+    }
+    Divider { }
+    Caption { text: @tr("NETWORK"); }
+    Text { text: UiInspector.summary; color: Theme.ink; font-size: Type.small; wrap: word-wrap; }
+    Note { text: @tr("Select a device or a cable to see and change its properties."); }
+    Note { text: @tr("Drag a card to move it. Drag from a port light or from + to another card to plug a cable."); }
+}
+
+// A host or a switch.
+component DeviceSettings inherits VerticalLayout {
+    spacing: 10px;
+    Caption { text: UiInspector.kind == "switch" ? @tr("ETHERNET SWITCH") : @tr("IPv4 HOST"); }
+    Field {
+        label: @tr("Name"); mono: false; text <=> UiInspector.name;
+        error: UiInspector.error-field == "name" ? UiInspector.error-text : "";
+        accepted => { UiInspector.apply(); }
+    }
+    if UiInspector.kind == "host": HorizontalLayout {
+        spacing: 8px;
+        Field {
+            horizontal-stretch: 3;
+            label: @tr("IPv4 address"); placeholder: "192.168.1.10";
+            text <=> UiInspector.address;
+            error: UiInspector.error-field == "address" ? UiInspector.error-text : "";
+            accepted => { UiInspector.apply(); }
+        }
+        Field {
+            horizontal-stretch: 1;
+            label: @tr("Prefix length"); placeholder: "24";
+            text <=> UiInspector.prefix;
+            error: UiInspector.error-field == "prefix" ? UiInspector.error-text : "";
+            accepted => { UiInspector.apply(); }
+        }
+    }
+    if UiInspector.kind == "host": Field {
+        label: @tr("Default gateway"); placeholder: @tr("None, e.g. 192.168.1.1");
+        text <=> UiInspector.gateway;
+        error: UiInspector.error-field == "gateway" ? UiInspector.error-text : "";
+        accepted => { UiInspector.apply(); }
+    }
+    if UiInspector.kind == "switch": Field {
+        label: @tr("MAC ageing time"); placeholder: "300s";
+        text <=> UiInspector.ageing;
+        error: UiInspector.error-field == "ageing" ? UiInspector.error-text : "";
+        accepted => { UiInspector.apply(); }
+    }
+    Action { icon: UiSprites.check; text: @tr("Apply"); accessible-text: @tr("Apply the configuration"); primary: true; clicked => { UiInspector.apply(); } }
+    PowerAndDelete { }
+    Divider { }
+    Caption { text: @tr("PORTS"); }
+    for port in UiInspector.ports: PortRow { port: port; }
+}
+
+// A router: its ports with their addresses, and its static routes.
+component RouterSettings inherits VerticalLayout {
+    spacing: 10px;
+    Caption { text: @tr("IPv4 ROUTER"); }
+    Field {
+        label: @tr("Name"); mono: false; text <=> UiInspector.name;
+        error: UiInspector.error-field == "name" ? UiInspector.error-text : "";
+        accepted => { UiInspector.apply(); }
+    }
+    Action { icon: UiSprites.check; text: @tr("Apply"); accessible-text: @tr("Apply the configuration"); primary: true; clicked => { UiInspector.apply(); } }
+    PowerAndDelete { }
+    Divider { }
+    HorizontalLayout {
+        spacing: 6px;
+        Caption { text: @tr("PORTS"); vertical-alignment: center; horizontal-stretch: 1; }
+        Action {
+            icon: UiSprites.minus; accessible-text: @tr("Remove the last port"); small: true; width: 30px;
+            enabled: UiInspector.port-count > UiInspector.min-ports;
+            clicked => { UiInspector.set-port-count(UiInspector.port-count - 1); }
+        }
+        Text { text: UiInspector.port-count; color: Theme.ink; font-family: Type.mono; font-size: Type.body; font-weight: 700; vertical-alignment: center; }
+        Action {
+            icon: UiSprites.plus; accessible-text: @tr("Add a port"); small: true; width: 30px;
+            enabled: UiInspector.port-count < UiInspector.max-ports;
+            clicked => { UiInspector.set-port-count(UiInspector.port-count + 1); }
+        }
+    }
+    for port in UiInspector.ports: RouterPortRow { port: port; }
+    Note { text: @tr("Each address makes its network a connected route. Apply saves the addresses typed."); }
+    Divider { }
+    Caption { text: @tr("STATIC ROUTES"); }
+    for route in UiInspector.routes: RouteRow { route: route; }
+    if UiInspector.routes.length == 0: Note { text: @tr("No static routes: the router reaches only its connected networks."); }
+    HorizontalLayout {
+        spacing: 8px;
+        Field {
+            horizontal-stretch: 1;
+            label: @tr("Network"); placeholder: @tr("e.g. {0}", "10.2.0.0/24");
+            text <=> UiInspector.route-destination;
+            error: UiInspector.error-field == "route-destination" ? UiInspector.error-text : "";
+            accepted => { UiInspector.add-route(); }
+        }
+        Field {
+            horizontal-stretch: 1;
+            label: @tr("Next hop"); placeholder: @tr("e.g. {0}", "10.12.0.2");
+            text <=> UiInspector.route-via;
+            error: UiInspector.error-field == "route-via" ? UiInspector.error-text : "";
+            accepted => { UiInspector.add-route(); }
+        }
+    }
+    Action { icon: UiSprites.plus; text: @tr("Add route"); accessible-text: @tr("Add the static route"); clicked => { UiInspector.add-route(); } }
+    Note { text: @tr("0.0.0.0/0 is the default route, for every address no other route matches."); }
+}
+
+// A cable.
+component CableSettings inherits VerticalLayout {
+    spacing: 10px;
+    Caption { text: @tr("CABLE"); }
+    Text { text: UiInspector.cable-a; color: Theme.ink; font-size: Type.small; wrap: word-wrap; }
+    Text { text: "↕"; color: Theme.muted; font-size: Type.small; }
+    Text { text: UiInspector.cable-b; color: Theme.ink; font-size: Type.small; wrap: word-wrap; }
+    Field {
+        label: @tr("Delay"); placeholder: "10ms";
+        text <=> UiInspector.delay;
+        error: UiInspector.error-field == "delay" ? UiInspector.error-text : "";
+        accepted => { UiInspector.apply-cable(); }
+    }
+    Action { icon: UiSprites.check; text: @tr("Apply"); accessible-text: @tr("Apply the delay"); primary: true; clicked => { UiInspector.apply-cable(); } }
+    HorizontalLayout {
+        spacing: 6px;
+        Action { text: UiInspector.cable-up ? @tr("Disable cable") : @tr("Enable cable"); clicked => { UiInspector.toggle-cable(); } }
+        Action { text: @tr("Unplug cable"); danger: true; quiet: true; clicked => { UiInspector.unplug(); } }
+    }
+    Note { text: @tr("A disabled cable stays plugged in but carries nothing: frames on it are lost."); }
+}
+
+// A router's routing table.
+component RoutingTable inherits VerticalLayout {
+    spacing: 8px;
+    Caption { text: @tr("ROUTING TABLE"); }
+    Table { label: @tr("Routing table"); columns: UiInspector.routing-columns; rows: UiInspector.routing-rows; empty-text: @tr("No routes."); }
+    Note { text: @tr("A datagram follows the longest prefix that matches its destination."); }
+    Divider { }
+}
+
+// The ARP cache of a host or a router, the MAC table of a switch.
+component DeviceTables inherits VerticalLayout {
+    spacing: 8px;
+    Caption { text: UiInspector.kind == "switch" ? @tr("MAC TABLE") : @tr("ARP CACHE"); }
+    Table {
+        label: UiInspector.kind == "switch" ? @tr("MAC table") : @tr("ARP cache");
+        columns: UiInspector.table-columns; rows: UiInspector.table-rows;
+        empty-text: @tr("Empty.");
+    }
+    Note { text: UiInspector.table-note; }
+}
+
+// The settings of what is selected.
+component SettingsTab inherits VerticalLayout {
+    spacing: 10px;
+    alignment: start;
+
+    if UiInspector.lock-note != "": LockNote { }
+
+    if UiInspector.kind == "": NetworkSettings { }
+
+    if UiInspector.kind == "host" || UiInspector.kind == "switch": DeviceSettings { }
+
+    if UiInspector.kind == "router": RouterSettings { }
+
+    if UiInspector.kind == "cable": CableSettings { }
+}
+
+// The tables of what is selected, at the instant shown.
+component TablesTab inherits VerticalLayout {
+    spacing: 10px;
+    alignment: start;
+    if UiInspector.kind == "router": RoutingTable { }
+    if UiInspector.kind == "host" || UiInspector.kind == "switch" || UiInspector.kind == "router": DeviceTables { }
+    if UiInspector.kind == "" || UiInspector.kind == "cable": Note {
+        text: @tr("Select a device to see its tables at the instant shown.");
+    }
+}
+
+export component Inspector inherits PixelFrame {
     callback fold();
-    background: Theme.panel;
+    fill: Theme.panel;
+    accessible-role: groupbox;
+    accessible-label: @tr("Inspector");
     VerticalLayout {
+        padding-bottom: 6px;
         PanelHeader {
             title: @tr("Inspector");
             detail: UiInspector.heading;
+            device: UiInspector.kind == "cable" ? "" : UiInspector.kind;
             fold-text: @tr("Hide the inspector");
-            fold-symbol: "›";
+            fold-keys: "I";
+            fold-icon: UiSprites.chevron-right;
             fold => { root.fold(); }
         }
-        ScrollView {
-            content-width: self.visible-width;
-            horizontal-scrollbar-policy: always-off;
+        HorizontalLayout {
+            padding-left: 12px; padding-right: 12px;
+            Tabs { titles: [@tr("Settings"), @tr("Tables"), @tr("Terminal")]; current <=> UiInspector.tab; }
+        }
+        if UiInspector.tab == 2: TerminalTab { vertical-stretch: 1; }
+        if UiInspector.tab != 2: Scroll {
+            vertical-stretch: 1;
             VerticalLayout {
-                padding-left: 16px; padding-right: 16px; padding-bottom: 16px;
-                spacing: 10px;
+                padding-left: 14px; padding-right: 16px; padding-top: 12px; padding-bottom: 14px;
                 alignment: start;
-
-                if UiInspector.kind == "": VerticalLayout {
-                    spacing: 10px;
-                    Caption { text: @tr("NETWORK"); }
-                    Text { text: UiInspector.summary; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
-                    Text {
-                        text: @tr("Select a device or a cable to see and change its properties.");
-                        color: Theme.muted; font-size: 11px; wrap: word-wrap;
-                    }
-                }
-
-                if UiInspector.kind == "host" || UiInspector.kind == "switch": VerticalLayout {
-                    spacing: 10px;
-                    Caption { text: UiInspector.kind == "switch" ? @tr("ETHERNET SWITCH") : @tr("IPv4 HOST"); }
-                    Field { label: @tr("Name"); text <=> UiInspector.name; accepted => { UiInspector.apply(); } }
-                    if UiInspector.kind == "host": HorizontalLayout {
-                        spacing: 8px;
-                        Field {
-                            horizontal-stretch: 3;
-                            label: @tr("IPv4 address"); placeholder: "192.168.1.10";
-                            text <=> UiInspector.address;
-                            accepted => { UiInspector.apply(); }
-                        }
-                        Field {
-                            horizontal-stretch: 1;
-                            label: @tr("Prefix length"); placeholder: "24";
-                            text <=> UiInspector.prefix;
-                            accepted => { UiInspector.apply(); }
-                        }
-                    }
-                    if UiInspector.kind == "host": Field {
-                        label: @tr("Default gateway"); placeholder: @tr("None, e.g. 192.168.1.1");
-                        text <=> UiInspector.gateway;
-                        accepted => { UiInspector.apply(); }
-                    }
-                    if UiInspector.kind == "switch": Field {
-                        label: @tr("MAC ageing time"); placeholder: "300s";
-                        text <=> UiInspector.ageing;
-                        accepted => { UiInspector.apply(); }
-                    }
-                    Action { text: @tr("Apply"); accessible-text: @tr("Apply the configuration"); clicked => { UiInspector.apply(); } }
-                    HorizontalLayout {
-                        spacing: 6px;
-                        Action { text: UiInspector.powered ? @tr("Power off") : @tr("Power on"); clicked => { UiInspector.toggle-power(); } }
-                        Action { text: @tr("Delete device"); danger: true; quiet: true; clicked => { UiInspector.remove-device(); } }
-                    }
-                    Divider { }
-                    Caption { text: @tr("PORTS"); }
-                    for port in UiInspector.ports: PortRow { port: port; }
-                    Divider { }
-                    Caption { text: UiInspector.kind == "switch" ? @tr("MAC TABLE") : @tr("ARP CACHE"); }
-                    if UiInspector.kind == "host": StandardTableView {
-                        // The style's minimum would push the panel wider.
-                        min-width: 120px;
-                        height: 150px;
-                        columns: [
-                            // Wider than the panel: the table scrolls sideways.
-                            { title: @tr("Address"), min-width: 100px },
-                            { title: "MAC", min-width: 128px },
-                            { title: @tr("State"), min-width: 84px },
-                            { title: @tr("Expires in"), min-width: 84px },
-                        ];
-                        rows: UiInspector.table-rows;
-                    }
-                    if UiInspector.kind == "switch": StandardTableView {
-                        // The style's minimum would push the panel wider.
-                        min-width: 120px;
-                        height: 180px;
-                        columns: [
-                            { title: @tr("MAC address"), min-width: 128px, horizontal-stretch: 3 },
-                            { title: @tr("Port"), min-width: 44px, horizontal-stretch: 1 },
-                            { title: @tr("Age"), min-width: 60px, horizontal-stretch: 1 },
-                        ];
-                        rows: UiInspector.table-rows;
-                    }
-                    Text { text: UiInspector.table-note; color: Theme.muted; font-size: 10px; wrap: word-wrap; }
-                }
-
-                if UiInspector.kind == "router": VerticalLayout {
-                    spacing: 10px;
-                    Caption { text: @tr("IPv4 ROUTER"); }
-                    Field { label: @tr("Name"); text <=> UiInspector.name; accepted => { UiInspector.apply(); } }
-                    Action { text: @tr("Apply"); accessible-text: @tr("Apply the configuration"); clicked => { UiInspector.apply(); } }
-                    HorizontalLayout {
-                        spacing: 6px;
-                        Action { text: UiInspector.powered ? @tr("Power off") : @tr("Power on"); clicked => { UiInspector.toggle-power(); } }
-                        Action { text: @tr("Delete device"); danger: true; quiet: true; clicked => { UiInspector.remove-device(); } }
-                    }
-                    Divider { }
-                    HorizontalLayout {
-                        spacing: 6px;
-                        Caption { text: @tr("PORTS"); vertical-alignment: center; horizontal-stretch: 1; }
-                        Action {
-                            text: "−"; accessible-text: @tr("Remove the last port"); small: true; width: 28px;
-                            enabled: UiInspector.port-count > UiInspector.min-ports;
-                            clicked => { UiInspector.set-port-count(UiInspector.port-count - 1); }
-                        }
-                        Text { text: UiInspector.port-count; color: Theme.ink; font-size: 11px; vertical-alignment: center; }
-                        Action {
-                            text: "+"; accessible-text: @tr("Add a port"); small: true; width: 28px;
-                            enabled: UiInspector.port-count < UiInspector.max-ports;
-                            clicked => { UiInspector.set-port-count(UiInspector.port-count + 1); }
-                        }
-                    }
-                    for port in UiInspector.ports: RouterPortRow { port: port; }
-                    Text {
-                        text: @tr("Each address makes its network a connected route. Apply saves the addresses typed.");
-                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
-                    }
-                    Divider { }
-                    Caption { text: @tr("STATIC ROUTES"); }
-                    for route in UiInspector.routes: RouteRow { route: route; }
-                    if UiInspector.routes.length == 0: Text {
-                        text: @tr("No static routes: the router reaches only its connected networks.");
-                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
-                    }
-                    HorizontalLayout {
-                        spacing: 8px;
-                        Field {
-                            horizontal-stretch: 1;
-                            label: @tr("Network"); placeholder: @tr("e.g. {0}", "10.2.0.0/24");
-                            text <=> UiInspector.route-destination;
-                            accepted => { UiInspector.add-route(); }
-                        }
-                        Field {
-                            horizontal-stretch: 1;
-                            label: @tr("Next hop"); placeholder: @tr("e.g. {0}", "10.12.0.2");
-                            text <=> UiInspector.route-via;
-                            accepted => { UiInspector.add-route(); }
-                        }
-                    }
-                    Action { text: @tr("Add route"); accessible-text: @tr("Add the static route"); clicked => { UiInspector.add-route(); } }
-                    Text {
-                        text: @tr("0.0.0.0/0 is the default route, for every address no other route matches.");
-                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
-                    }
-                    Divider { }
-                    Caption { text: @tr("ROUTING TABLE"); }
-                    StandardTableView {
-                        // The style's minimum would push the panel wider.
-                        min-width: 120px;
-                        height: 150px;
-                        columns: [
-                            { title: @tr("Network"), min-width: 104px },
-                            { title: @tr("Next hop"), min-width: 92px },
-                            { title: @tr("Port"), min-width: 44px },
-                            { title: @tr("State"), min-width: 76px },
-                        ];
-                        rows: UiInspector.routing-rows;
-                    }
-                    Text {
-                        text: @tr("A datagram follows the longest prefix that matches its destination.");
-                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
-                    }
-                    Divider { }
-                    Caption { text: @tr("ARP CACHE"); }
-                    StandardTableView {
-                        min-width: 120px;
-                        height: 150px;
-                        columns: [
-                            { title: @tr("Address"), min-width: 100px },
-                            { title: "MAC", min-width: 128px },
-                            { title: @tr("Port"), min-width: 44px },
-                            { title: @tr("State"), min-width: 84px },
-                            { title: @tr("Expires in"), min-width: 84px },
-                        ];
-                        rows: UiInspector.table-rows;
-                    }
-                    Text { text: UiInspector.table-note; color: Theme.muted; font-size: 10px; wrap: word-wrap; }
-                }
-
-                if UiInspector.kind == "cable": VerticalLayout {
-                    spacing: 10px;
-                    Caption { text: @tr("CABLE"); }
-                    Text { text: UiInspector.cable-a; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
-                    Text { text: "↕"; color: Theme.muted; font-size: 12px; }
-                    Text { text: UiInspector.cable-b; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
-                    Field {
-                        label: @tr("Delay"); placeholder: "10ms";
-                        text <=> UiInspector.delay;
-                        accepted => { UiInspector.apply-cable(); }
-                    }
-                    Action { text: @tr("Apply"); accessible-text: @tr("Apply the delay"); clicked => { UiInspector.apply-cable(); } }
-                    HorizontalLayout {
-                        spacing: 6px;
-                        Action { text: UiInspector.cable-up ? @tr("Disable cable") : @tr("Enable cable"); clicked => { UiInspector.toggle-cable(); } }
-                        Action { text: @tr("Unplug cable"); danger: true; quiet: true; clicked => { UiInspector.unplug(); } }
-                    }
-                    Text {
-                        text: @tr("A disabled cable stays plugged in but carries nothing: frames on it are lost.");
-                        color: Theme.muted; font-size: 10px; wrap: word-wrap;
-                    }
-                }
+                if UiInspector.tab == 0: SettingsTab { }
+                if UiInspector.tab == 1: TablesTab { }
             }
         }
     }

@@ -1,34 +1,74 @@
-import { LineEdit, ScrollView, Palette } from "std-widgets.slint";
-import { Theme, Geometry } from "theme.slint";
-import { Action, Caption, Chip, DeviceIcon, Divider, PanelHeader } from "widgets.slint";
-import { UiCanvas, Canvas, NodeView, LinkView, PacketView, MarkerView } from "canvas.slint";
+import { Palette } from "std-widgets.slint";
+import "../assets/fonts/PixelifySans-Regular.ttf";
+import "../assets/fonts/PixelifySans-SemiBold.ttf";
+import "../assets/fonts/Inter-Regular.ttf";
+import "../assets/fonts/Inter-SemiBold.ttf";
+import "../assets/fonts/JetBrainsMono-Regular.ttf";
+import "../assets/fonts/JetBrainsMono-Bold.ttf";
+import { Theme, Tones, Type, Motion, Geometry, UiSound } from "theme.slint";
+import { UiSprites } from "sprites.slint";
+import { Action, Caption, Chip, DeviceIcon, Icon, PixelFrame, TextBox, TipLayer, UiTip } from "widgets.slint";
+import { UiCanvas, Canvas, ContextMenu, NodeView, LinkView, PacketView, MarkerView, ShapeView } from "canvas.slint";
 import { UiInspector, Inspector, PortView, RouteView } from "inspector.slint";
-import { UiTimeline, TimelinePanel, EventView } from "timeline.slint";
+import { UiTimeline, TimelineBar, TimelinePanel, EventView } from "timeline.slint";
 import { UiFrame, FieldRow, HexByte, HexRow } from "frame.slint";
-import { UiApp, UiRun, ExampleView, LanguageView, FileView } from "state.slint";
-import { FileDialog, ConfirmDialog, AboutDialog } from "dialogs.slint";
+import { UiApp, UiRun, UiLab, ExampleView, FileView, ThemeView, CommandView, GoalView, LabEntryView } from "state.slint";
+import { FileDialog, ConfirmDialog, AboutDialog, CommandPalette, KeyMap, Welcome, LabLibrary } from "dialogs.slint";
+import { LabPanel } from "lab.slint";
+import { UiTerminal, TerminalEntryView, TerminalMenuView, TerminalBlockView } from "terminal.slint";
+import { TableColumn } from "widgets.slint";
 
-export { Geometry, UiCanvas, UiInspector, UiTimeline, UiFrame, UiApp, UiRun }
-export { NodeView, LinkView, PacketView, MarkerView, PortView, RouteView, EventView, FieldRow, HexByte, HexRow, ExampleView, LanguageView, FileView }
+export { Theme, Tones, Motion, UiSound, Geometry, UiSprites, UiCanvas, UiInspector, UiTimeline, UiFrame, UiApp, UiRun, UiLab, GoalView, LabEntryView }
+export { NodeView, LinkView, PacketView, MarkerView, ShapeView, PortView, RouteView, EventView, FieldRow, HexByte, HexRow, ExampleView, FileView }
+export { ThemeView, CommandView, TableColumn, UiTerminal, TerminalEntryView, TerminalMenuView, TerminalBlockView, UiTip }
 
-component DeviceChoice inherits Rectangle {
+// A device to add, with its key.
+component BuildChoice inherits Rectangle {
     in property <string> title;
-    in property <string> subtitle;
     in property <string> kind;
+    in property <string> key;
+    // What the device is, for its tip.
+    in property <string> detail;
     callback clicked();
-    height: 64px;
-    border-radius: 9px;
-    background: touch.has-hover ? #1e2e3d : #172331;
-    border-width: 1px;
-    border-color: focus.has-focus ? Theme.mint : touch.has-hover ? #42655e : Theme.line;
+    width: 64px;
+    height: 70px;
     accessible-role: button;
     accessible-label: @tr("Add {0}", root.title);
+    accessible-description: @tr("Key {0}", root.key);
     accessible-action-default => { root.clicked(); }
     forward-focus: focus;
-    DeviceIcon { x: 12px; y: 12px; width: 27px; height: 26px; kind: root.kind; }
-    Text { x: 50px; y: 13px; text: root.title; color: Theme.ink; font-size: 14px; font-weight: 600; }
-    Text { x: 50px; y: 34px; width: parent.width - 60px; text: root.subtitle; color: Theme.muted; font-size: 10px; overflow: elide; }
-    Text { x: parent.width - 22px; y: 12px; text: "+"; color: Theme.muted; font-size: 18px; }
+    property <bool> pointed: touch.has-hover;
+    changed pointed => {
+        if self.pointed {
+            UiTip.point(root.detail, root.key, "right", root.absolute-position.x, root.absolute-position.y, root.width, root.height);
+        } else {
+            UiTip.leave(root.absolute-position.x, root.absolute-position.y);
+        }
+    }
+    PixelFrame {
+        width: 100%; height: 100%;
+        unit: UiSprites.unit / 2;
+        sink: touch.pressed ? self.unit : 0px;
+        fill: touch.has-hover ? Theme.hover : Theme.raised;
+        border: focus.has-focus ? Theme.accent.base : Theme.outline;
+        highlight: Theme.raised-edge;
+        DeviceIcon {
+            x: (parent.width - self.width) / 2; y: 6px + parent.sink;
+            width: 32 * UiSprites.icon-unit; height: 32 * UiSprites.icon-unit;
+            kind: root.kind; small: false;
+        }
+        Text {
+            x: 0; y: parent.height - 22px + parent.sink; width: parent.width;
+            text: root.title;
+            color: Theme.ink; font-family: Type.ui; font-size: Type.small; font-weight: 600;
+            horizontal-alignment: center; overflow: elide;
+        }
+        Text {
+            x: 5px; y: 3px + parent.sink;
+            text: root.key;
+            color: Theme.muted; font-family: Type.mono; font-size: Type.small;
+        }
+    }
     focus := FocusScope {
         focus-on-tab-navigation: true;
         key-pressed(e) => { if e.text == " " || e.text == "\n" { root.clicked(); return accept; } return reject; }
@@ -36,58 +76,161 @@ component DeviceChoice inherits Rectangle {
     touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
 }
 
-// Devices to add and the lesson that comes with the network.
-component PaletteView inherits Rectangle {
+// The build bar: devices to add, on the left of the canvas.
+component BuildBar inherits PixelFrame {
     callback fold();
-    background: Theme.panel;
-    VerticalLayout {
-        PanelHeader {
-            title: @tr("Build");
-            fold-text: @tr("Hide the palette");
-            fold => { root.fold(); }
+    width: 80px;
+    height: layout.preferred-height;
+    fill: Theme.panel;
+    accessible-role: groupbox;
+    accessible-label: @tr("Build");
+    layout := VerticalLayout {
+        padding: 8px; spacing: 8px;
+        alignment: start;
+        HorizontalLayout {
+            alignment: center;
+            Action { icon: UiSprites.chevron-left; accessible-text: @tr("Hide the palette"); keys: "B"; quiet: true; small: true; width: 30px; clicked => { root.fold(); } }
         }
-        VerticalLayout {
-            padding-left: 14px; padding-right: 14px; padding-bottom: 14px;
-            spacing: 8px;
-            DeviceChoice { title: @tr("Host"); subtitle: @tr("IPv4 · 1 Ethernet port"); kind: "host"; clicked => { UiApp.add-device("host"); } }
-            DeviceChoice { title: @tr("Switch"); subtitle: @tr("Layer 2 · 8 ports"); kind: "switch"; clicked => { UiApp.add-device("switch"); } }
-            DeviceChoice { title: @tr("Router"); subtitle: @tr("IPv4 · 2 to 8 ports"); kind: "router"; clicked => { UiApp.add-device("router"); } }
-            Text {
-                text: @tr("Drag a card to move it. Drag from a port light or from + to another card to plug a cable.");
-                color: Theme.muted; font-size: 10px; wrap: word-wrap;
-            }
-            Divider { }
-            Caption { text: @tr("LESSON"); }
-            Text { text: UiApp.title == "" ? @tr("Your own network") : UiApp.title; color: Theme.ink; font-size: 13px; font-weight: 600; wrap: word-wrap; }
-            ScrollView {
-                vertical-stretch: 1;
-                content-width: self.visible-width;
-                horizontal-scrollbar-policy: always-off;
-                VerticalLayout {
-                    alignment: start;
-                    Text {
-                        text: UiApp.notes == "" ? @tr("Build a network, send a ping and follow every frame. Examples in the File menu come with a lesson.") : UiApp.notes;
-                        color: Theme.muted; font-size: 11px; wrap: word-wrap;
-                    }
-                }
-            }
+        BuildChoice { title: @tr("Host"); kind: "host"; key: "1"; detail: @tr("Add a host: IPv4 · 1 Ethernet port"); clicked => { UiApp.add-device("host"); } }
+        BuildChoice { title: @tr("Switch"); kind: "switch"; key: "2"; detail: @tr("Add a switch: Layer 2 · 8 ports"); clicked => { UiApp.add-device("switch"); } }
+        BuildChoice { title: @tr("Router"); kind: "router"; key: "3"; detail: @tr("Add a router: IPv4 · 2 to 8 ports"); clicked => { UiApp.add-device("router"); } }
+    }
+}
+
+// A HUD plate: a frame on the canvas with a row of things in it.
+// The moment a lab is solved (G4.3): a plate drops in over the canvas, with
+// confetti thrown up from it, then fades and gets out of the way. C++ moves
+// UiLab.celebration from 0 to 1 while it plays (src/app_lab.cpp).
+component Celebration inherits Rectangle {
+    property <float> p: max(0, UiLab.celebration);
+    property <bool> moves: Motion.effects == "full";
+    // The plate drops in during the first fifth, overshooting a little.
+    property <float> k: min(1, self.p / 0.2);
+    property <float> back: 1 + 2.70158 * Math.pow(self.k - 1, 3) + 1.70158 * Math.pow(self.k - 1, 2);
+    property <float> fade: Motion.effects == "off" ? 1 : min(1, self.p / 0.08) * min(1, (1 - self.p) / 0.2);
+    accessible-role: text;
+    accessible-label: @tr("Lab solved: {0}", UiLab.title);
+    if root.moves: Rectangle {
+        for i in 28: Rectangle {
+            property <angle> heading: (196 + Math.mod(i * 53, 148)) * 1deg;
+            property <length> reach: (110 + Math.mod(i * 29, 170)) * 1px;
+            property <length> fall: (260 + Math.mod(i * 71, 180)) * 1px;
+            // Each piece leaves the plate's edge, not its middle.
+            property <length> start: (Math.mod(i * 41, 100) - 50) / 100 * plate.width * 0.8;
+            property <float> e: 1 - (1 - root.p) * (1 - root.p);
+            x: plate.x + plate.width / 2 + self.start + Math.cos(self.heading) * self.reach * self.e - self.width / 2;
+            y: plate.y + plate.height / 2 + Math.sin(self.heading) * self.reach * self.e + self.fall * root.p * root.p - self.height / 2;
+            width: Math.mod(i, 3) == 0 ? 8px : 6px;
+            height: Math.mod(i, 2) == 0 ? 6px : 8px;
+            background: Math.mod(i, 5) == 0 ? Theme.ok.base : Math.mod(i, 5) == 1 ? Theme.ask.base
+                : Math.mod(i, 5) == 2 ? Theme.link.base : Math.mod(i, 5) == 3 ? Theme.route.base : Theme.accent.base;
+            opacity: root.fade;
+        }
+    }
+    plate := PixelFrame {
+        width: max(lines.preferred-width + 48px, 300px);
+        height: 78px;
+        x: (parent.width - self.width) / 2;
+        y: parent.height * 0.3 - (root.moves ? (1 - root.back) * 70px : 0px);
+        opacity: root.fade;
+        unit: UiSprites.unit;
+        fill: Theme.ok.chip;
+        border: Theme.ok.base;
+        lines := VerticalLayout {
+            alignment: center;
+            spacing: 4px;
+            Text { text: @tr("Lab solved!"); color: Theme.ok.chip-ink; font-family: Type.pixel; font-size: Type.pixel-title; font-weight: 600; horizontal-alignment: center; }
+            Text { text: UiLab.title; color: Theme.ok.chip-ink; font-size: Type.small; horizontal-alignment: center; }
         }
     }
 }
 
-// A folded side panel: a strip with the button that opens it again.
-component FoldedPanel inherits Rectangle {
-    in property <string> text;
-    in property <string> symbol;
-    callback unfold();
-    width: 32px;
-    background: Theme.panel;
-    VerticalLayout {
-        padding-top: 8px;
-        alignment: start;
+component HudPlate inherits PixelFrame {
+    in property <string> label;
+    fill: Theme.panel;
+    accessible-role: groupbox;
+    accessible-label: root.label;
+}
+
+// The action bar: what to send, from which host, to which address. The
+// playback of what was sent is with the timeline (TimelineBar).
+component ActionBar inherits HudPlate {
+    label: @tr("Actions");
+    public function focus-destination() { destination.focus-input(); }
+    height: 50px;
+    width: min(row.preferred-width, root.room);
+    in property <length> room: 2000px;
+    // Where there is little room, words give way to symbols.
+    property <bool> compact: root.room < 620px;
+    row := HorizontalLayout {
+        padding: 8px; padding-left: 12px; padding-right: 12px; spacing: 8px;
+        // A ping, or a traceroute: two chips that read as one switch.
         HorizontalLayout {
+            spacing: 2px;
+            VerticalLayout {
+                alignment: center;
+                Chip {
+                    text: @tr("Ping"); checked: !UiRun.traceroute; tint: Theme.ok;
+                    tip: @tr("Echo Requests to the destination, and their replies"); keys: "T";
+                    clicked => { UiRun.traceroute = false; }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Chip {
+                    text: @tr("Traceroute"); checked: UiRun.traceroute; tint: Theme.ok;
+                    tip: @tr("The routers on the way to the destination, hop by hop"); keys: "T";
+                    clicked => { UiRun.traceroute = !UiRun.traceroute; }
+                }
+            }
+        }
+        // Who sends: the host selected on the canvas.
+        HorizontalLayout {
+            spacing: 6px;
+            VerticalLayout {
+                alignment: center;
+                DeviceIcon { kind: "host"; small: true; width: 16 * UiSprites.icon-unit; height: 16 * UiSprites.icon-unit; opacity: UiRun.source != "" ? 1 : 0.5; }
+            }
+            Text {
+                text: UiRun.source != "" ? UiRun.source : root.compact ? @tr("No host") : @tr("Select a host");
+                color: UiRun.source != "" ? Theme.ink : Theme.ask.text;
+                font-size: Type.small; font-weight: 600; vertical-alignment: center;
+                overflow: elide; max-width: 120px;
+                accessible-role: text;
+                accessible-label: UiRun.source != "" ? @tr("From {0}", UiRun.source) : @tr("Select a host to send from");
+            }
+            VerticalLayout { alignment: center; Icon { source: UiSprites.arrow-right; tint: Theme.muted; } }
+        }
+        VerticalLayout {
             alignment: center;
-            Action { text: root.symbol; accessible-text: root.text; quiet: true; small: true; width: 26px; clicked => { root.unfold(); } }
+            destination := TextBox {
+                min-width: 110px; preferred-width: 150px; horizontal-stretch: 1;
+                text <=> UiRun.target;
+                placeholder: @tr("Destination IPv4");
+                label: @tr("Destination IPv4");
+                accepted => { UiRun.ping(); }
+            }
+        }
+        Text {
+            text: UiRun.traceroute ? (root.compact ? "≤" : @tr("max hops")) : (root.compact ? "×" : @tr("count"));
+            color: Theme.muted; font-family: Type.text; font-size: Type.small; vertical-alignment: center;
+            accessible-role: none;
+        }
+        if !UiRun.traceroute: VerticalLayout {
+            alignment: center;
+            TextBox { min-width: 40px; preferred-width: 48px; text <=> UiRun.count; placeholder: "1"; label: @tr("Echo Requests per ping"); accepted => { UiRun.ping(); } }
+        }
+        if UiRun.traceroute: VerticalLayout {
+            alignment: center;
+            TextBox { min-width: 40px; preferred-width: 48px; text <=> UiRun.hops; placeholder: "30"; label: @tr("Hops to try"); accepted => { UiRun.ping(); } }
+        }
+        Action {
+            icon: UiSprites.arrow-right;
+            text: root.compact ? "" : UiRun.traceroute ? @tr("Trace") : @tr("Send");
+            accessible-text: UiRun.traceroute ? @tr("Start the traceroute") : @tr("Send the ping");
+            tip: UiRun.can-ping ? "" : @tr("Select a host on the canvas: it sends the ping");
+            primary: true; enabled: UiRun.can-ping;
+            clicked => { UiRun.ping(); }
         }
     }
 }
@@ -98,19 +241,36 @@ export component AppWindow inherits Window {
     preferred-height: 900px;
     // No minimum of its own: the panels' set it, and folding them lets the
     // window shrink, down to 960 × 540 for a 1080p screen at 2× scale.
-    background: Theme.base;
-    default-font-family: "Inter";
-    default-font-size: 13px;
+    background: Theme.canvas;
+    icon: UiSprites.app-icon;
+    default-font-family: Type.text;
+    default-font-size: Type.body;
 
     // Gives the keyboard to the canvas.
     public function focus-canvas() { canvas.take-focus(); }
+    // Says again how large the canvas is and what the HUD leaves of it. The
+    // `changed` handlers tell C++ of every change, but not of the size the
+    // window starts with when nothing changes it afterwards.
+    public function report-geometry() {
+        canvas.report-size();
+        stage.report-free-area();
+        stage.settle();
+    }
 
     // The canvas has the keyboard at start and again when a dialog closes,
     // so the shortcuts, which come from it, keep working.
     property <string> dialog: UiApp.dialog;
     changed dialog => { if self.dialog == "" { canvas.take-focus(); } }
+    property <bool> menu-open: UiCanvas.menu-open;
+    changed menu-open => { if !self.menu-open && self.dialog == "" { canvas.take-focus(); } }
+    // Esc in the terminal gives the keyboard back to the canvas.
+    property <int> terminal-left: UiTerminal.leave-serial;
+    changed terminal-left => { canvas.take-focus(); }
+    // The standard widgets left (scroll bars, menus) follow the theme's lightness.
+    property <bool> dark: Theme.dark;
+    changed dark => { Palette.color-scheme = self.dark ? ColorScheme.dark : ColorScheme.light; }
     init => {
-        Palette.color-scheme = ColorScheme.dark;
+        Palette.color-scheme = Theme.dark ? ColorScheme.dark : ColorScheme.light;
         canvas.take-focus();
     }
 
@@ -123,6 +283,7 @@ export component AppWindow inherits Window {
                 title: @tr("Open example");
                 for example[i] in UiApp.examples: MenuItem { title: example.title; activated => { UiApp.open-example(i); } }
             }
+            MenuItem { title: @tr("Labs…"); activated => { UiLab.show-library(); } }
             MenuSeparator { }
             MenuItem { title: @tr("Save"); activated => { UiApp.save(); } }
             MenuItem { title: @tr("Save as…"); activated => { UiApp.save-as(); } }
@@ -138,6 +299,8 @@ export component AppWindow inherits Window {
             MenuItem { title: @tr("Add switch"); activated => { UiApp.add-device("switch"); } }
             MenuItem { title: @tr("Add router"); activated => { UiApp.add-device("router"); } }
             MenuItem { title: @tr("Delete selection"); activated => { UiApp.delete-selection(); } }
+            MenuSeparator { }
+            MenuItem { title: @tr("Command palette"); activated => { UiApp.show-commands(); } }
         }
         Menu {
             title: @tr("View");
@@ -149,16 +312,30 @@ export component AppWindow inherits Window {
             MenuItem { title: @tr("Palette"); checkable: true; checked: UiApp.palette-open; activated => { UiApp.palette-open = !UiApp.palette-open; } }
             MenuItem { title: @tr("Inspector"); checkable: true; checked: UiApp.inspector-open; activated => { UiApp.inspector-open = !UiApp.inspector-open; } }
             MenuItem { title: @tr("Timeline"); checkable: true; checked: UiApp.timeline-open; activated => { UiApp.timeline-open = !UiApp.timeline-open; } }
-            MenuItem { title: @tr("Reduce motion"); checkable: true; checked: UiApp.reduced-motion; activated => { UiApp.toggle-motion(); } }
+            MenuItem { title: @tr("Lab panel"); checkable: true; checked: UiLab.open; enabled: UiLab.active; activated => { UiLab.open = !UiLab.open; } }
+            MenuItem { title: @tr("Hide the HUD"); checkable: true; checked: UiApp.hud-hidden; activated => { UiApp.hud-hidden = !UiApp.hud-hidden; } }
             MenuSeparator { }
             Menu {
-                title: @tr("Language");
-                MenuItem { title: @tr("As the system"); checkable: true; checked: UiApp.language == ""; activated => { UiApp.set-language(""); } }
-                for language in UiApp.languages: MenuItem {
-                    title: language.name;
+                title: @tr("Effects");
+                MenuItem { title: @tr("Full"); checkable: true; checked: Motion.effects == "full"; activated => { UiApp.set-effects("full"); } }
+                MenuItem { title: @tr("Reduced"); checkable: true; checked: Motion.effects == "reduced"; activated => { UiApp.set-effects("reduced"); } }
+                MenuItem { title: @tr("Off"); checkable: true; checked: Motion.effects == "off"; activated => { UiApp.set-effects("off"); } }
+            }
+            Menu {
+                title: @tr("Sound");
+                MenuItem { title: @tr("Sound on"); checkable: true; checked: UiSound.on; activated => { UiSound.set-sound("next"); } }
+                MenuSeparator { }
+                MenuItem { title: @tr("Quiet"); checkable: true; checked: UiSound.level == "quiet"; activated => { UiSound.set-sound("quiet"); } }
+                MenuItem { title: @tr("Medium"); checkable: true; checked: UiSound.level == "medium"; activated => { UiSound.set-sound("medium"); } }
+                MenuItem { title: @tr("Loud"); checkable: true; checked: UiSound.level == "loud"; activated => { UiSound.set-sound("loud"); } }
+            }
+            Menu {
+                title: @tr("Theme");
+                for theme in UiApp.themes: MenuItem {
+                    title: theme.title;
                     checkable: true;
-                    checked: UiApp.language == language.code;
-                    activated => { UiApp.set-language(language.code); }
+                    checked: UiApp.theme == theme.id;
+                    activated => { UiApp.set-theme(theme.id); }
                 }
             }
         }
@@ -179,6 +356,7 @@ export component AppWindow inherits Window {
         }
         Menu {
             title: @tr("Help");
+            MenuItem { title: @tr("Keyboard shortcuts"); activated => { UiApp.show-keys(); } }
             MenuItem { title: @tr("About resend"); activated => { UiApp.about(); } }
         }
     }
@@ -186,142 +364,400 @@ export component AppWindow inherits Window {
     // Shortcuts: keys the focused control does not use come here.
     shortcuts := FocusScope {
         key-pressed(e) => {
-            if !(e.modifiers.control || e.modifiers.meta) || UiApp.dialog != "" { return reject; }
-            if e.text == "z" || e.text == "Z" {
-                if e.modifiers.shift { UiApp.redo(); } else { UiApp.undo(); }
+            // Under a dialog only Escape counts, when the focus was left
+            // outside it: the dialog's own scope handles it otherwise.
+            if UiApp.dialog != "" {
+                if e.text == Key.Escape { UiApp.dismiss-dialog(); return accept; }
+                return reject;
+            }
+            if e.modifiers.control || e.modifiers.meta {
+                if e.text == "z" || e.text == "Z" {
+                    if e.modifiers.shift { UiApp.redo(); } else { UiApp.undo(); }
+                    return accept;
+                }
+                if e.text == "y" || e.text == "Y" { UiApp.redo(); return accept; }
+                if e.text == "s" || e.text == "S" {
+                    if e.modifiers.shift { UiApp.save-as(); } else { UiApp.save(); }
+                    return accept;
+                }
+                if e.text == "o" || e.text == "O" { UiApp.open-document(); return accept; }
+                if e.text == "n" || e.text == "N" { UiApp.new-document(); return accept; }
+                if e.text == "q" || e.text == "Q" { UiApp.quit(); return accept; }
+                if e.text == "k" || e.text == "K" { UiApp.show-commands(); return accept; }
+                if e.text == "t" || e.text == "T" { UiTerminal.open(); return accept; }
+                return reject;
+            }
+            if e.modifiers.alt { return reject; }
+            // One key for each action of the HUD (the key map, ?, lists them).
+            if e.text == "1" { UiApp.add-device("host"); return accept; }
+            if e.text == "2" { UiApp.add-device("switch"); return accept; }
+            if e.text == "3" { UiApp.add-device("router"); return accept; }
+            if e.text == " " { UiRun.run-toggle(); return accept; }
+            if e.text == "." { UiRun.step(); return accept; }
+            if e.text == "p" || e.text == "P" { UiApp.hud-hidden = false; action-bar.focus-destination(); return accept; }
+            if e.text == "t" || e.text == "T" { UiRun.traceroute = !UiRun.traceroute; return accept; }
+            if e.text == "]" { UiRun.cycle-speed(); return accept; }
+            if e.text == "r" || e.text == "R" { UiRun.reset(); return accept; }
+            if e.text == "h" || e.text == "H" { UiApp.hud-hidden = !UiApp.hud-hidden; return accept; }
+            if e.text == "b" || e.text == "B" { UiApp.palette-open = !UiApp.palette-open; return accept; }
+            if e.text == "i" || e.text == "I" { UiApp.inspector-open = !UiApp.inspector-open; return accept; }
+            if e.text == "l" || e.text == "L" { UiApp.timeline-open = !UiApp.timeline-open; return accept; }
+            if e.text == "g" || e.text == "G" {
+                if UiLab.active { UiApp.hud-hidden = false; UiLab.open = !UiLab.open; } else { UiLab.show-library(); }
                 return accept;
             }
-            if e.text == "y" || e.text == "Y" { UiApp.redo(); return accept; }
-            if e.text == "s" || e.text == "S" {
-                if e.modifiers.shift { UiApp.save-as(); } else { UiApp.save(); }
-                return accept;
-            }
-            if e.text == "o" || e.text == "O" { UiApp.open-document(); return accept; }
-            if e.text == "n" || e.text == "N" { UiApp.new-document(); return accept; }
-            if e.text == "q" || e.text == "Q" { UiApp.quit(); return accept; }
+            if e.text == "?" { UiApp.show-keys(); return accept; }
+            if e.text == "e" || e.text == "E" { UiApp.set-effects("next"); return accept; }
+            if e.text == "m" || e.text == "M" { UiSound.set-sound("next"); return accept; }
+            if e.text == Key.End { UiRun.latest(); return accept; }
             return reject;
         }
 
-        VerticalLayout {
-            // The document and undo.
-            Rectangle {
-                height: 48px;
-                background: Theme.panel;
-                HorizontalLayout {
-                    padding-left: 18px; padding-right: 14px; spacing: 12px;
-                    VerticalLayout {
-                        alignment: center;
-                        Rectangle {
-                            width: 28px; height: 28px; border-radius: 8px; background: Theme.mint;
-                            Rectangle { x: 6px; y: 7px; width: 5px; height: 5px; background: #15352a; border-radius: 2px; }
-                            Rectangle { x: 17px; y: 16px; width: 5px; height: 5px; background: #15352a; border-radius: 2px; }
-                            Path { width: 28px; height: 28px; stroke: #15352a; stroke-width: 2px; MoveTo { x: 9; y: 11; } LineTo { x: 9; y: 18; } LineTo { x: 17; y: 18; } }
-                        }
+        stage := Rectangle {
+            property <length> m: 10px;
+            property <length> top-height: 46px;
+            property <length> bar-height: 46px;
+            property <length> action-height: 50px;
+            property <bool> hud: !UiApp.hud-hidden;
+            // The drawers: the build bar on the left with the lab beside it,
+            // the inspector on the right down to the timeline's bar, which
+            // spans the window.
+            property <length> side-top: self.m + self.top-height + 10px;
+            property <length> bar-top: self.height - self.m - self.bar-height;
+            property <length> inspector-width: min(370px, self.width - 2 * self.m - 200px);
+            property <length> lab-left: UiApp.palette-open ? self.m + 90px : self.m + 50px;
+            property <length> lab-width: min(340px, max(270px, (self.width - self.inspector-width) * 0.3));
+
+            // A window too narrow for the lab and the inspector with a
+            // network between them shows one of the two: the one opened
+            // last stays and the other folds, to open again by itself when
+            // the window is wide enough for both.
+            property <bool> tight: self.width - self.lab-left - self.lab-width - self.inspector-width - 4 * self.m < 340px;
+            property <bool> inspector-wanted: UiApp.inspector-open;
+            property <bool> lab-wanted: UiLab.active && UiLab.open;
+            property <string> latest: "lab";
+            property <string> parked;
+            changed inspector-wanted => {
+                if self.inspector-wanted { self.latest = "inspector"; }
+                self.settle();
+            }
+            changed lab-wanted => {
+                if self.lab-wanted { self.latest = "lab"; }
+                self.settle();
+            }
+            changed tight => { self.settle(); }
+            function settle() {
+                if self.width <= 0px {
+                    return;
+                }
+                if self.tight && self.inspector-wanted && self.lab-wanted {
+                    if self.latest == "inspector" {
+                        self.parked = "lab";
+                        UiLab.open = false;
+                    } else {
+                        self.parked = "inspector";
+                        UiApp.inspector-open = false;
                     }
-                    Text { text: "resend"; color: Theme.ink; font-size: 19px; font-weight: 700; vertical-alignment: center; }
+                } else if !self.tight && self.parked != "" {
+                    if self.parked == "inspector" {
+                        UiApp.inspector-open = true;
+                    } else if UiLab.active {
+                        UiLab.open = true;
+                    }
+                    self.parked = "";
+                }
+            }
+
+            property <bool> inspector-shown: self.hud && UiApp.inspector-open;
+            property <bool> lab-shown: self.hud && UiLab.active && UiLab.open;
+            // Between the drawers: the action bar, and over the timeline's
+            // bar its events when open.
+            property <length> work-left: self.lab-shown ? self.lab-left + self.lab-width + 10px : UiLab.active ? self.lab-left + 50px : self.lab-left;
+            property <length> work-right: self.inspector-shown ? self.width - self.m - self.inspector-width - 10px : self.width - self.m;
+            property <length> panel-height: min(260px, max(150px, self.height * 0.34));
+            property <length> bottom-top: self.bar-top - 8px - (UiApp.timeline-open ? self.panel-height + 8px : 0px) - self.action-height;
+            // The events open under the lab, which ends above them; in a
+            // window so low that this would leave the lab no room, they open
+            // beside it instead and the lab keeps its height.
+            property <bool> lab-beside: self.lab-shown && UiApp.timeline-open && self.bottom-top - 8px - self.side-top < 300px;
+            // The left column, the build bar (or its tab) and the zoom under
+            // it, keeps its place: in a low window the action bar and the
+            // events start to its right instead of covering it.
+            property <length> zoom-top: self.side-top + (UiApp.palette-open ? 290px : 50px);
+            property <length> column-bottom: self.zoom-top + 70px;
+            property <bool> low: self.bottom-top < self.column-bottom + 4px;
+            property <length> panel-left: self.lab-beside ? self.work-left : self.low ? self.m + 90px : self.m;
+
+            // What the panels leave of the canvas, where Fit frames the
+            // network and new cards appear.
+            property <length> free-left: !self.hud ? 0px : self.work-left;
+            property <length> free-right: !self.hud ? self.width : self.work-right;
+            property <length> free-top: !self.hud ? 0px : self.side-top;
+            property <length> free-bottom: !self.hud ? self.height : self.bottom-top - 4px;
+            function report-free-area() {
+                UiCanvas.free-area(self.free-left / 1px, self.free-top / 1px,
+                    (self.free-right - self.free-left) / 1px, (self.free-bottom - self.free-top) / 1px);
+            }
+            changed free-left => { self.report-free-area(); }
+            changed free-right => { self.report-free-area(); }
+            changed free-top => { self.report-free-area(); }
+            changed free-bottom => { self.report-free-area(); }
+            init => { self.report-free-area(); }
+
+            canvas := Canvas { width: 100%; height: 100%; }
+
+            // The document and undo.
+            doc-plate := HudPlate {
+                visible: stage.hud;
+                x: stage.m; y: stage.m;
+                height: stage.top-height;
+                width: min(title-row.preferred-width, stage.width - clock-plate.width - 3 * stage.m);
+                label: @tr("Document");
+                title-row := HorizontalLayout {
+                    padding-left: 10px; padding-right: 8px; spacing: 10px;
+                    VerticalLayout { alignment: center; Icon { source: UiSprites.logo; unit: UiSprites.unit; } }
+                    Text { text: "resend"; color: Theme.ink; font-family: Type.pixel; font-size: Type.pixel-title; font-weight: 600; vertical-alignment: center; }
                     VerticalLayout { alignment: center; Rectangle { width: 1px; height: 22px; background: Theme.line; } }
                     Text {
                         text: UiApp.document + (UiApp.modified ? "  •" : "");
-                        color: Theme.ink; font-size: 13px; vertical-alignment: center; overflow: elide;
+                        color: Theme.ink; font-size: Type.body; vertical-alignment: center; overflow: elide;
+                        min-width: 60px;
                         accessible-role: text;
                         accessible-label: UiApp.modified ? @tr("{0}, not saved", UiApp.document) : UiApp.document;
                     }
-                    Rectangle { horizontal-stretch: 1; }
                     VerticalLayout {
                         alignment: center;
-                        Action { text: "↶"; accessible-text: UiApp.undo-text; small: true; width: 34px; enabled: UiApp.can-undo; clicked => { UiApp.undo(); } }
+                        Action { icon: UiSprites.undo; accessible-text: UiApp.undo-text; keys: "Ctrl+Z"; small: true; quiet: true; width: 32px; enabled: UiApp.can-undo; clicked => { UiApp.undo(); } }
                     }
                     VerticalLayout {
                         alignment: center;
-                        Action { text: "↷"; accessible-text: UiApp.redo-text; small: true; width: 34px; enabled: UiApp.can-redo; clicked => { UiApp.redo(); } }
+                        Action { icon: UiSprites.redo; accessible-text: UiApp.redo-text; keys: "Ctrl+Y"; small: true; quiet: true; width: 32px; enabled: UiApp.can-redo; clicked => { UiApp.redo(); } }
                     }
                 }
             }
-            Divider { }
 
-            HorizontalLayout {
-                vertical-stretch: 1;
-                if UiApp.palette-open: PaletteView { width: 200px; fold => { UiApp.palette-open = false; } }
-                if !UiApp.palette-open: FoldedPanel { text: @tr("Show the palette"); symbol: "›"; unfold => { UiApp.palette-open = true; } }
-                Rectangle { width: 1px; background: Theme.line; }
-
-                VerticalLayout {
-                    horizontal-stretch: 1;
-                    canvas := Canvas { vertical-stretch: 1; }
-                    // Ping and playback.
+            // The simulated clock, the state of the run and the HUD's own buttons.
+            clock-plate := HudPlate {
+                visible: stage.hud;
+                x: stage.width - self.width - stage.m; y: stage.m;
+                height: stage.top-height;
+                width: clock-row.preferred-width;
+                label: @tr("Clock");
+                clock-row := HorizontalLayout {
+                    padding-left: 12px; padding-right: 8px; spacing: 8px;
                     Rectangle {
-                        height: 50px;
-                        background: #111c29;
-                        HorizontalLayout {
-                            padding: 9px; padding-left: 14px; spacing: 7px;
-                            // Ping, or traceroute when checked.
-                            VerticalLayout {
-                                alignment: center;
-                                Chip { text: @tr("Traceroute"); checked: UiRun.traceroute; tint: Theme.mint; clicked => { UiRun.traceroute = !UiRun.traceroute; } }
-                            }
-                            // Narrower before the bar overflows, as in a longer language.
-                            LineEdit { min-width: 116px; max-width: 136px; horizontal-stretch: 1; text <=> UiRun.target; placeholder-text: @tr("Destination IPv4"); accessible-label: @tr("Destination IPv4"); accepted => { UiRun.ping(); } }
-                            Text { text: UiRun.traceroute ? "≤" : "×"; color: Theme.muted; font-size: 11px; vertical-alignment: center; }
-                            if !UiRun.traceroute: LineEdit { min-width: 34px; max-width: 50px; horizontal-stretch: 1; text <=> UiRun.count; placeholder-text: "1"; accessible-label: @tr("Echo Requests per ping"); accepted => { UiRun.ping(); } }
-                            if UiRun.traceroute: LineEdit { min-width: 34px; max-width: 50px; horizontal-stretch: 1; text <=> UiRun.hops; placeholder-text: "30"; accessible-label: @tr("Hops to try"); accepted => { UiRun.ping(); } }
-                            Action {
-                                text: UiRun.traceroute ? @tr("Trace") : @tr("Send");
-                                accessible-text: UiRun.traceroute ? @tr("Start the traceroute") : @tr("Send the ping");
-                                primary: true; enabled: UiRun.can-ping;
-                                clicked => { UiRun.ping(); }
-                            }
-                            Rectangle { horizontal-stretch: 1; }
-                            Action { text: UiRun.speed-label; accessible-text: @tr("Playback speed"); width: 46px; clicked => { UiRun.cycle-speed(); } }
-                            Action { text: @tr("Step"); enabled: UiRun.pending && !UiRun.running; clicked => { UiRun.step(); } }
-                            Action {
-                                text: UiRun.running ? "Ⅱ " + @tr("Pause") : "▷ " + @tr("Run");
-                                accessible-text: UiRun.running ? @tr("Pause") : @tr("Run");
-                                enabled: UiRun.pending;
-                                clicked => { UiRun.run-toggle(); }
-                            }
-                            Action { text: @tr("Reset"); accessible-text: @tr("Reset the simulation"); quiet: true; clicked => { UiRun.reset(); } }
+                        width: 10px;
+                        Rectangle {
+                            y: (parent.height - self.height) / 2; width: 8px; height: 8px;
+                            background: UiRun.running ? Theme.ok.base : UiRun.pending ? Theme.ask.base : Theme.metal.base;
                         }
                     }
-                }
-
-                Rectangle { width: 1px; background: Theme.line; }
-                if UiApp.inspector-open: Inspector { width: 290px; fold => { UiApp.inspector-open = false; } }
-                if !UiApp.inspector-open: FoldedPanel { text: @tr("Show the inspector"); symbol: "‹"; unfold => { UiApp.inspector-open = true; } }
-            }
-
-            Divider { }
-            if UiApp.timeline-open: TimelinePanel { height: 250px; fold => { UiApp.timeline-open = false; } }
-            if !UiApp.timeline-open: Rectangle {
-                height: 30px;
-                background: Theme.panel;
-                HorizontalLayout {
-                    padding-left: 16px; padding-right: 8px; spacing: 10px;
-                    Text { text: @tr("Timeline"); color: Theme.ink; font-weight: 600; font-size: 12px; vertical-alignment: center; }
-                    Text { text: UiTimeline.title; color: Theme.muted; font-size: 11px; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
+                    Text {
+                        text: "t = " + UiCanvas.clock;
+                        color: UiRun.running ? Theme.ok.text : Theme.ink;
+                        font-family: Type.mono; font-size: Type.body; font-weight: 700;
+                        vertical-alignment: center;
+                        accessible-role: text;
+                        accessible-label: @tr("Simulated time {0}", UiCanvas.clock);
+                    }
+                    Text {
+                        // As wide as its longest word, so the plate keeps its size.
+                        min-width: 62px;
+                        text: UiRun.running ? @tr("RUNNING") : UiRun.pending ? @tr("PAUSED") : @tr("READY");
+                        color: UiRun.running ? Theme.ok.text : UiRun.pending ? Theme.ask.text : Theme.muted;
+                        font-family: Type.ui; font-size: Type.small; font-weight: 600; letter-spacing: 1px; vertical-alignment: center;
+                    }
+                    VerticalLayout { alignment: center; Rectangle { width: 1px; height: 22px; background: Theme.line; } }
                     VerticalLayout {
                         alignment: center;
-                        Action { text: "⌃"; accessible-text: @tr("Show the timeline"); quiet: true; small: true; width: 28px; clicked => { UiApp.timeline-open = true; } }
+                        Action {
+                            icon: UiSprites.effects; small: true; quiet: true; width: 32px; keys: "E";
+                            accessible-text: Motion.effects == "full" ? @tr("Effects: full") : Motion.effects == "reduced" ? @tr("Effects: reduced") : @tr("Effects: off");
+                            opacity: Motion.effects == "off" ? 0.55 : 1;
+                            clicked => { UiApp.set-effects("next"); }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        Action {
+                            icon: UiSound.on ? UiSprites.sound : UiSprites.mute; small: true; quiet: true; width: 32px; keys: "M";
+                            accessible-text: UiSound.on ? @tr("Sound: on") : @tr("Sound: off");
+                            opacity: UiSound.on ? 1 : 0.55;
+                            clicked => { UiSound.set-sound("next"); }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        Action { icon: UiSprites.search; accessible-text: @tr("Command palette"); keys: "Ctrl+K"; small: true; quiet: true; width: 32px; clicked => { UiApp.show-commands(); } }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        Action { icon: UiSprites.keyboard; accessible-text: @tr("Keyboard shortcuts"); keys: "?"; small: true; quiet: true; width: 32px; clicked => { UiApp.show-keys(); } }
                     }
                 }
             }
-            Divider { }
-            Rectangle {
-                height: 28px;
-                background: #0e1722;
-                HorizontalLayout {
-                    padding-left: 16px; padding-right: 16px; spacing: 12px;
-                    Text {
-                        text: UiRun.running ? @tr("● RUNNING") : UiRun.pending ? @tr("● PAUSED") : @tr("● READY");
-                        color: Theme.mint; font-size: 9px; font-weight: 600; vertical-alignment: center;
-                    }
-                    Text { text: UiApp.status; color: Theme.muted; font-size: 10px; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
-                    Text { text: "resend  /  " + UiApp.version; color: Theme.muted; font-size: 9px; vertical-alignment: center; }
+
+            // What the pointer can do, or what it is doing: between the two
+            // plates of the top row, in whatever room they leave.
+            if stage.hud && UiCanvas.hint != "": PixelFrame {
+                property <length> left: doc-plate.x + doc-plate.width + stage.m;
+                property <length> right: clock-plate.x - stage.m;
+                property <length> room: self.right - self.left;
+                x: max(self.left, min(self.right - self.width, (stage.width - self.width) / 2));
+                y: stage.m + (stage.top-height - self.height) / 2;
+                width: min(hint.preferred-width + 24px, max(self.room, 0px));
+                height: 30px;
+                visible: self.room >= 150px;
+                unit: UiSprites.unit / 2;
+                fill: UiCanvas.source-device >= 0 ? Theme.ask.chip : Theme.panel;
+                hint := Text {
+                    x: 12px; width: parent.width - 24px; height: parent.height;
+                    text: UiCanvas.hint;
+                    color: UiCanvas.source-device >= 0 ? Theme.ask.chip-ink : Theme.muted;
+                    font-size: Type.small; overflow: elide;
+                    horizontal-alignment: center; vertical-alignment: center;
                 }
             }
+
+            if stage.hud && UiApp.palette-open: BuildBar {
+                // Slides in as it opens (G4.2).
+                property <length> enter: Motion.travel;
+                property <float> reveal: Motion.effects == "off" ? 1 : 0;
+                init => { self.enter = 0px; self.reveal = 1; }
+                animate enter { duration: Motion.slide; easing: ease-out; }
+                animate reveal { duration: Motion.slide; }
+                opacity: self.reveal;
+                x: stage.m - self.enter; y: stage.side-top;
+                fold => { UiApp.palette-open = false; }
+            }
+            if stage.hud && !UiApp.palette-open: HudPlate {
+                x: stage.m; y: stage.side-top; width: 40px; height: 40px;
+                label: @tr("Build");
+                Action { x: 4px; y: 4px; width: 32px; height: 32px; icon: UiSprites.chevron-right; accessible-text: @tr("Show the palette"); keys: "B"; quiet: true; small: true; clicked => { UiApp.palette-open = true; } }
+            }
+
+            if stage.lab-shown: LabPanel {
+                // Slides in as it opens (G4.2).
+                property <length> enter: Motion.travel;
+                property <float> reveal: Motion.effects == "off" ? 1 : 0;
+                init => { self.enter = 0px; self.reveal = 1; }
+                animate enter { duration: Motion.slide; easing: ease-out; }
+                animate reveal { duration: Motion.slide; }
+                opacity: self.reveal;
+                x: stage.lab-left - self.enter; y: stage.side-top;
+                width: stage.lab-width;
+                // Down to the action bar, which may reach under it, or to
+                // the timeline's bar when the events open beside it.
+                height: (stage.lab-beside ? stage.bar-top : stage.bottom-top) - 8px - stage.side-top;
+                fold => { UiLab.open = false; }
+            }
+            if stage.hud && UiLab.active && !UiLab.open: HudPlate {
+                x: stage.lab-left; y: stage.side-top; width: 40px; height: 40px;
+                label: @tr("Lab");
+                Action { x: 4px; y: 4px; width: 32px; height: 32px; icon: UiSprites.lab; accessible-text: @tr("Show the lab"); keys: "G"; quiet: true; small: true; clicked => { UiLab.open = true; } }
+            }
+
+            if stage.inspector-shown: Inspector {
+                // Slides in as it opens (G4.2).
+                property <length> enter: Motion.travel;
+                property <float> reveal: Motion.effects == "off" ? 1 : 0;
+                init => { self.enter = 0px; self.reveal = 1; }
+                animate enter { duration: Motion.slide; easing: ease-out; }
+                animate reveal { duration: Motion.slide; }
+                opacity: self.reveal;
+                x: stage.width - self.width - stage.m + self.enter; y: stage.side-top;
+                width: stage.inspector-width;
+                height: stage.bar-top - 8px - stage.side-top;
+                fold => { UiApp.inspector-open = false; }
+            }
+            if stage.hud && !UiApp.inspector-open: HudPlate {
+                x: stage.width - self.width - stage.m; y: stage.side-top; width: 40px; height: 40px;
+                label: @tr("Inspector");
+                Action { x: 4px; y: 4px; width: 32px; height: 32px; icon: UiSprites.chevron-left; accessible-text: @tr("Show the inspector"); keys: "I"; quiet: true; small: true; clicked => { UiApp.inspector-open = true; } }
+            }
+
+            // Zoom, under the build bar.
+            zoom := HudPlate {
+                visible: stage.hud && self.y + self.height <= stage.bar-top - 4px;
+                x: stage.m; y: stage.zoom-top;
+                width: 80px; height: zoom-rows.preferred-height;
+                label: @tr("Zoom");
+                // Two rows, so it fits under the build bar in a low window too.
+                zoom-rows := VerticalLayout {
+                    padding: 6px; spacing: 2px;
+                    HorizontalLayout {
+                        spacing: 2px;
+                        Action { icon: UiSprites.minus; accessible-text: @tr("Zoom out"); keys: "-"; quiet: true; small: true; width: 33px; clicked => { UiCanvas.zoom-by(1 / 1.15); } }
+                        Action { icon: UiSprites.plus; accessible-text: @tr("Zoom in"); keys: "+"; quiet: true; small: true; width: 33px; clicked => { UiCanvas.zoom-by(1.15); } }
+                    }
+                    HorizontalLayout {
+                        spacing: 2px;
+                        Action { icon: UiSprites.fit; accessible-text: @tr("Fit the network in view"); keys: "0"; quiet: true; small: true; width: 26px; clicked => { UiCanvas.fit(); } }
+                        Action { text: Math.round(UiCanvas.zoom * 100) + "%"; accessible-text: @tr("Actual size"); tip: @tr("Zoom: back to actual size"); quiet: true; small: true; width: 40px; clicked => { UiCanvas.reset-zoom(); } }
+                    }
+                }
+            }
+            // The bottom: what to send, then the timeline.
+            action-bar := ActionBar {
+                visible: stage.hud;
+                room: stage.work-right - stage.panel-left;
+                x: max(stage.panel-left, min(stage.work-right - self.width, (stage.work-left + stage.work-right - self.width) / 2)); y: stage.bottom-top;
+            }
+            if stage.hud && UiApp.timeline-open: TimelinePanel {
+                x: stage.panel-left; width: stage.work-right - stage.panel-left;
+                height: stage.panel-height;
+                y: stage.bar-top - 8px - self.height;
+            }
+            if stage.hud: TimelineBar {
+                x: stage.m; width: stage.width - 2 * stage.m;
+                y: stage.height - stage.m - self.height;
+                height: stage.bar-height;
+            }
+
+            // The answer to an action: what it did, or why it did nothing.
+            // Longer answers stay longer.
+            toast := PixelFrame {
+                property <int> serial: UiApp.toast-serial;
+                property <bool> shown;
+                changed serial => { self.shown = true; toast-timer.running = false; toast-timer.running = true; }
+                // Over the part of the canvas the drawers leave free.
+                x: max(stage.m, min(stage.width - self.width - stage.m, (stage.work-left + stage.work-right - self.width) / 2));
+                y: self.shown ? stage.bottom-top - self.height - 12px : stage.bottom-top + 20px;
+                animate y { duration: Motion.slide; easing: ease-out; }
+                opacity: self.shown ? 1 : 0;
+                animate opacity { duration: Motion.slide; }
+                width: min(toast-text.preferred-width + 28px, max(260px, min(560px, stage.work-right - stage.work-left)));
+                height: max(34px, toast-text.height + 18px);
+                fill: Theme.accent.chip;
+                border: Theme.accent.base;
+                accessible-role: none;
+                toast-text := Text {
+                    x: 14px; y: (parent.height - self.height) / 2;
+                    width: parent.width - 28px;
+                    text: UiApp.toast;
+                    color: Theme.accent.chip-ink; font-size: Type.small; font-weight: 600;
+                    wrap: word-wrap; horizontal-alignment: center;
+                }
+                toast-timer := Timer {
+                    interval: 2500ms + UiApp.toast.character-count * 45ms;
+                    running: false;
+                    triggered => { parent.shown = false; self.running = false; }
+                }
+            }
+            // Over the free part of the canvas.
+            if UiLab.celebration >= 0: Celebration { x: stage.free-left; width: stage.free-right - stage.free-left; height: 100%; }
+            // Over the HUD: the tip of what the pointer rests on, and the
+            // menu of a right click on the canvas.
+            if stage.hud: TipLayer { width: 100%; height: 100%; }
+            if UiCanvas.menu-open: ContextMenu { width: 100%; height: 100%; }
         }
     }
 
     if UiApp.dialog == "open" || UiApp.dialog == "save": FileDialog { saving: UiApp.dialog == "save"; }
     if UiApp.dialog == "confirm": ConfirmDialog { }
     if UiApp.dialog == "about": AboutDialog { }
+    if UiApp.dialog == "commands": CommandPalette { }
+    if UiApp.dialog == "keys": KeyMap { }
+    if UiApp.dialog == "welcome": Welcome { }
+    if UiApp.dialog == "labs": LabLibrary { }
 }

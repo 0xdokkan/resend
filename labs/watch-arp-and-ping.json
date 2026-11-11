@@ -1,0 +1,207 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "guided",
+  "topic": "Observing",
+  "title": "Watch ARP and ping",
+  "brief": "Two PCs on a switch, ready to go. Ping PC-B from PC-A and watch what happens, frame by frame: then answer from what you saw.",
+  "network": {
+    "devices": [
+      {
+        "id": 1,
+        "kind": "host",
+        "name": "PC-A",
+        "x": 80,
+        "y": 90,
+        "ports": [
+          {
+            "ipv4": "192.168.1.10/24"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "host",
+        "name": "PC-B",
+        "x": 580,
+        "y": 90,
+        "ports": [
+          {
+            "ipv4": "192.168.1.20/24"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "switch",
+        "name": "Switch",
+        "x": 330,
+        "y": 300
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "a": {
+          "device": 1,
+          "port": 1
+        },
+        "b": {
+          "device": 3,
+          "port": 1
+        }
+      },
+      {
+        "id": 2,
+        "a": {
+          "device": 2,
+          "port": 1
+        },
+        "b": {
+          "device": 3,
+          "port": 2
+        }
+      }
+    ]
+  },
+  "locks": [
+    {
+      "device": "PC-A"
+    },
+    {
+      "device": "PC-B"
+    },
+    {
+      "device": "Switch"
+    }
+  ],
+  "goals": [
+    {
+      "id": "asked",
+      "kind": "observed",
+      "text": "PC-A asks with ARP who has 192.168.1.20",
+      "device": "PC-A",
+      "record": "arp-request",
+      "for": "192.168.1.20"
+    },
+    {
+      "id": "answered",
+      "kind": "observed",
+      "text": "PC-B answers the ARP request",
+      "device": "PC-B",
+      "record": "arp-reply"
+    },
+    {
+      "id": "learned",
+      "kind": "observed",
+      "text": "The switch learns where the PCs are",
+      "device": "Switch",
+      "record": "mac-learned"
+    },
+    {
+      "id": "replied",
+      "kind": "observed",
+      "text": "PC-A's ping gets its Echo Reply",
+      "device": "PC-A",
+      "record": "echo-reply"
+    },
+    {
+      "id": "mac",
+      "kind": "answer",
+      "text": "Which destination MAC does PC-A's Echo Request carry?",
+      "from": "PC-A",
+      "to": "192.168.1.20",
+      "quantity": "first-hop-mac"
+    },
+    {
+      "id": "ttl",
+      "kind": "answer",
+      "text": "What is the TTL of the Echo Reply when it reaches PC-A?",
+      "from": "PC-A",
+      "to": "192.168.1.20",
+      "quantity": "reply-ttl"
+    }
+  ],
+  "steps": [
+    "Select PC-A, write 192.168.1.20 in the action bar, press Send, then Run.",
+    "Step through the run: the first frame is an ARP request, sent to every port, the broadcast address ff:ff:ff:ff:ff:ff.",
+    "Select an event on the timeline and open its Frame tab: the Echo Request's Ethernet header names the MAC it goes to.",
+    "Open the Echo Reply that comes back in the Frame tab and read its TTL, then write both answers and press Check."
+  ],
+  "hints": [
+    "PC-A needs PC-B's MAC before it can send the Echo Request: that is what ARP is for.",
+    "The switch's MAC table, in its inspector, fills as frames arrive.",
+    "A TTL goes down by one at each router. Here there is none."
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 1,
+          "kind": "host",
+          "name": "PC-A",
+          "x": 80,
+          "y": 90,
+          "ports": [
+            {
+              "ipv4": "192.168.1.10/24"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "kind": "host",
+          "name": "PC-B",
+          "x": 580,
+          "y": 90,
+          "ports": [
+            {
+              "ipv4": "192.168.1.20/24"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "switch",
+          "name": "Switch",
+          "x": 330,
+          "y": 300
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 1,
+            "port": 1
+          },
+          "b": {
+            "device": 3,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 2,
+            "port": 1
+          },
+          "b": {
+            "device": 3,
+            "port": 2
+          }
+        }
+      ]
+    },
+    "commands": [
+      {
+        "from": "PC-A",
+        "ping": "192.168.1.20"
+      }
+    ],
+    "answers": {
+      "mac": "02:00:00:00:00:02",
+      "ttl": "64"
+    }
+  }
+}

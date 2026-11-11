@@ -37,6 +37,10 @@ public:
     // each at 1×, and nothing moves along the cables.
     static constexpr RealTime reduced_dwell = std::chrono::milliseconds(700);
     static constexpr double min_speed = 0.25, max_speed = 4;
+    // After the last record, the instant shown goes on at the normal pace
+    // for this long before an idle gap is compressed or the playback stops,
+    // so that markers and effects play out (G4).
+    static constexpr netsim::SimTime afterglow = std::chrono::milliseconds(12);
 
     struct InFlight {
         std::size_t transmission;  // index in the trace's transmissions
@@ -61,6 +65,7 @@ public:
     bool tick(RealTime elapsed);
 
     bool playing() const { return mode_ != Mode::Paused; }
+    // Nothing left to process. The afterglow may still be playing.
     bool finished() const { return !timeline_.next_event_time(); }
     netsim::SimTime now() const { return view_; }
     double speed() const { return speed_; }
@@ -74,6 +79,8 @@ private:
     enum class Mode { Paused, Playing, Stepping };
     void show(netsim::SimTime time);
     double rate_until(netsim::SimTime next);
+    // Where the afterglow of the last record ends; nothing before the first.
+    netsim::SimTime calm() const;
     void end_of_step();
 
     // A simulation given on its own is wrapped here.

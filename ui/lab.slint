@@ -1,0 +1,181 @@
+// The lab panel: what to do, how far it is done, and help when stuck.
+import { Theme, Type, Motion } from "theme.slint";
+import { UiSprites } from "sprites.slint";
+import { Action, Caption, Divider, Icon, PixelFrame, Scroll, TextBox } from "widgets.slint";
+import { UiLab } from "state.slint";
+
+component GoalRow inherits Rectangle {
+    in property <int> index;
+    in property <string> text;
+    in property <string> state;
+    in property <string> detail;
+    in property <bool> asks;
+    in property <string> answer;
+    in property <bool> fresh;
+    accessible-role: AccessibleRole.text;
+    accessible-label: root.text;
+    accessible-description: root.state == "met" ? @tr("Met") : root.state == "unmet" ? @tr("Not met yet") : @tr("Not checked");
+    // Just met: a glow that comes at once and fades slowly (G4.3).
+    Rectangle {
+        x: -6px; y: -3px; width: parent.width + 12px; height: parent.height + 6px;
+        background: Theme.ok.chip;
+        opacity: root.fresh && Motion.effects != "off" ? 0.55 : 0;
+        animate opacity { duration: root.fresh ? Motion.quick : Motion.effects == "off" ? 0ms : 900ms; easing: ease-out; }
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            alignment: start;
+            padding-top: 2px;
+            Icon {
+                source: root.state == "met" ? UiSprites.goal-done : UiSprites.goal-open;
+            }
+        }
+        VerticalLayout {
+            spacing: 4px;
+            horizontal-stretch: 1;
+            Text {
+                text: root.text;
+                color: root.state == "met" ? Theme.ok.text : Theme.ink;
+                font-size: Type.small; font-weight: 600; wrap: word-wrap;
+            }
+            if root.detail != "": Text {
+                text: root.detail;
+                color: root.state == "unmet" ? Theme.drop.text : Theme.muted;
+                font-size: Type.small; wrap: word-wrap;
+            }
+            if root.asks: TextBox {
+                label: @tr("Answer to: {0}", root.text);
+                placeholder: @tr("Your answer");
+                text: root.answer;
+                edited(value) => { UiLab.answer(root.index, value); }
+                accepted => { UiLab.check(); }
+            }
+        }
+    }
+}
+
+// The rows of the panel are components of their own, not layouts written
+// under a `for` or an `if`: Slint 1.18 measures a wrapped text written
+// straight under one as a single line, so a lab with long steps or hints
+// came out shorter than what it holds, and its end could not be scrolled to
+// (tests/look_tests.cpp keeps it so).
+component StepRow inherits HorizontalLayout {
+    in property <int> number;
+    in property <string> text;
+    spacing: 8px;
+    Text { text: root.number + "."; width: 18px; color: Theme.accent.text; font-family: Type.mono; font-size: Type.small; font-weight: 700; }
+    Text { text: root.text; color: Theme.ink; font-size: Type.small; wrap: word-wrap; horizontal-stretch: 1; }
+}
+
+component HintRow inherits HorizontalLayout {
+    in property <string> text;
+    spacing: 8px;
+    VerticalLayout { alignment: start; Icon { source: UiSprites.hint; tint: Theme.ask.text; } }
+    Text { text: root.text; color: Theme.ink; font-size: Type.small; wrap: word-wrap; horizontal-stretch: 1; }
+}
+
+component SolutionBanner inherits Rectangle {
+    vertical-stretch: 0;
+    background: Theme.ask.chip;
+    height: banner.preferred-height + 16px;
+    banner := Text {
+        x: 14px; width: parent.width - 28px;
+        text: @tr("This is the solution. Your network is kept: Back to my network returns to it.");
+        color: Theme.ask.chip-ink; font-size: Type.small; font-weight: 600; wrap: word-wrap;
+    }
+}
+
+export component LabPanel inherits PixelFrame {
+    callback fold();
+    fill: Theme.panel;
+    accessible-role: groupbox;
+    accessible-label: @tr("Lab");
+    VerticalLayout {
+        padding-bottom: 8px;
+        // The panel's header, with the library beside the fold button.
+        HorizontalLayout {
+            height: 44px;
+            padding-left: 14px; padding-right: 8px; spacing: 6px;
+            Text { text: @tr("Lab"); color: Theme.ink; font-family: Type.pixel; font-size: Type.pixel-title; font-weight: 600; vertical-alignment: center; }
+            Text { text: UiLab.kind; color: Theme.muted; font-size: Type.small; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+            VerticalLayout {
+                alignment: center;
+                Action { icon: UiSprites.menu; accessible-text: @tr("Labs"); tip: @tr("All the labs"); quiet: true; small: true; width: 30px; clicked => { UiLab.show-library(); } }
+            }
+            VerticalLayout {
+                alignment: center;
+                Action { icon: UiSprites.chevron-left; accessible-text: @tr("Hide the lab"); keys: "G"; quiet: true; small: true; width: 30px; clicked => { root.fold(); } }
+            }
+        }
+        Divider { }
+        if UiLab.showing-solution: SolutionBanner { }
+        Scroll {
+            vertical-stretch: 1;
+            VerticalLayout {
+                padding-left: 14px; padding-right: 16px; padding-top: 12px; padding-bottom: 12px;
+                spacing: 10px;
+                alignment: start;
+                Text {
+                    text: UiLab.title;
+                    color: Theme.ink; font-size: Type.label; font-weight: 600; wrap: word-wrap;
+                    accessible-role: text; accessible-label: self.text;
+                }
+                Text { text: UiLab.brief; color: Theme.ink; font-size: Type.small; wrap: word-wrap; }
+                if UiLab.steps.length > 0: Caption { text: @tr("STEPS"); }
+                for step[i] in UiLab.steps: StepRow { number: i + 1; text: step; }
+                // The goals, and under their title where the learner stands.
+                VerticalLayout {
+                    spacing: 3px;
+                    Caption { text: @tr("GOALS"); }
+                    Text { text: UiLab.progress; color: UiLab.solved ? Theme.ok.text : Theme.muted; font-size: Type.small; wrap: word-wrap; }
+                }
+                for goal[i] in UiLab.goals: GoalRow {
+                    index: i;
+                    text: goal.text; state: goal.state; detail: goal.detail; asks: goal.asks; answer: goal.answer; fresh: goal.fresh;
+                }
+                if UiLab.solved && !UiLab.showing-solution: HorizontalLayout {
+                    alignment: start;
+                    Action {
+                        icon: UiSprites.play; small: true; quiet: true;
+                        text: @tr("Watch it again");
+                        accessible-text: @tr("Play again what the check saw");
+                        clicked => { UiLab.replay(); }
+                    }
+                }
+                if UiLab.hint-count > 0: Caption { text: @tr("HINTS"); }
+                for hint in UiLab.hints: HintRow { text: hint; }
+                if UiLab.hints.length < UiLab.hint-count: HorizontalLayout {
+                    alignment: start;
+                    Action {
+                        icon: UiSprites.hint; small: true; quiet: true;
+                        text: @tr("Show a hint ({0} of {1})", UiLab.hints.length + 1, UiLab.hint-count);
+                        accessible-text: @tr("Show a hint");
+                        clicked => { UiLab.next-hint(); }
+                    }
+                }
+            }
+        }
+        Divider { }
+        HorizontalLayout {
+            vertical-stretch: 0;
+            padding-left: 12px; padding-right: 12px; padding-top: 8px; spacing: 6px;
+            Action {
+                icon: UiSprites.check; text: @tr("Check"); accessible-text: @tr("Check the goals");
+                primary: true; enabled: !UiLab.showing-solution; horizontal-stretch: 1;
+                clicked => { UiLab.check(); }
+            }
+            Action {
+                icon: UiSprites.reset; accessible-text: @tr("Restart the lab"); quiet: true; width: 36px;
+                enabled: !UiLab.showing-solution;
+                clicked => { UiLab.restart(); }
+            }
+            Action {
+                text: UiLab.showing-solution ? @tr("Back to my network") : @tr("Solution");
+                accessible-text: UiLab.showing-solution ? @tr("Back to my network") : @tr("Show the solution");
+                quiet: !UiLab.showing-solution;
+                clicked => { UiLab.toggle-solution(); }
+            }
+        }
+    }
+}

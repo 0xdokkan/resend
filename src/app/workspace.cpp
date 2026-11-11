@@ -1,4 +1,5 @@
 #include "app/workspace.hpp"
+#include "explain/explain.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -27,11 +28,25 @@ void Workspace::rebuild(netsim::Scenario scenario) {
     ++generation_;
 }
 
-netsim::Problem Workspace::check(const std::vector<netsim::Edit>& edits) const {
+std::string why_refused(const Outcome& outcome) {
+    if (outcome.lock) return netsim::explain::lock_text(*outcome.lock);
+    return netsim::explain::describe(outcome.problem);
+}
+
+std::optional<Outcome> Workspace::refused(const netsim::Scenario& before, const netsim::Edit& edit) const {
+    if (!lab_) return std::nullopt;
+    const auto lock = netsim::lab::locked(*lab_, before, edit);
+    if (!lock) return std::nullopt;
+    return Outcome{.problem = netsim::Problem::Locked, .lock = lock};
+}
+
+Outcome Workspace::check(const std::vector<netsim::Edit>& edits) const {
     auto trial = design_;
-    for (const auto& edit : edits)
-        if (const auto problem = netsim::edit::apply(trial, edit); !netsim::ok(problem)) return problem;
-    return netsim::Problem::None;
+    for (const auto& edit : edits) {
+        if (auto outcome = refused(trial, edit)) return *outcome;
+        if (const auto problem = netsim::edit::apply(trial, edit); !netsim::ok(problem)) return {.problem = problem};
+    }
+    return {};
 }
 
 netsim::Problem Workspace::make(const Command& command) {
@@ -98,10 +113,22 @@ Outcome Workspace::change(const std::vector<netsim::Edit>& edits, const std::str
             next_link = item->id->value + 1;
         }
         const auto before = trial;
+        if (auto outcome = refused(before, edit)) return *outcome;
         if (const auto problem = netsim::edit::apply(trial, edit); !netsim::ok(problem)) return {.problem = problem};
         if (trial == before) continue;
         backward.insert(backward.begin(), *netsim::edit::inverse(before, edit));
+        // In a lab, a device added starts as the lab says, in the same step.
+        std::vector<netsim::Edit> more;
+        if (const auto* added = std::get_if<netsim::AddDevice>(&edit); added && lab_)
+            more = netsim::lab::new_device_edits(*lab_, *trial.device(*added->id));
         forward.push_back(std::move(edit));
+        for (auto& extra : more) {
+            const auto prior = trial;
+            if (const auto problem = netsim::edit::apply(trial, extra); !netsim::ok(problem)) return {.problem = problem};
+            if (trial == prior) continue;
+            backward.insert(backward.begin(), *netsim::edit::inverse(prior, extra));
+            forward.push_back(std::move(extra));
+        }
     }
     if (forward.empty()) return {};
     commit(forward);
@@ -113,7 +140,7 @@ Outcome Workspace::undo() {
     if (in_past()) return {.problem = netsim::Problem::None, .in_past = true};
     const auto* step = history_.undoable();
     if (!step) return {};
-    if (const auto problem = check(step->backward); !netsim::ok(problem)) return {.problem = problem};
+    if (auto outcome = check(step->backward); !outcome.ok()) return outcome;
     commit(step->backward);
     history_.undone();
     return {};
@@ -123,7 +150,7 @@ Outcome Workspace::redo() {
     if (in_past()) return {.problem = netsim::Problem::None, .in_past = true};
     const auto* step = history_.redoable();
     if (!step) return {};
-    if (const auto problem = check(step->forward); !netsim::ok(problem)) return {.problem = problem};
+    if (auto outcome = check(step->forward); !outcome.ok()) return outcome;
     commit(step->forward);
     history_.redone();
     return {};

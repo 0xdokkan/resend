@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lab/lab.hpp"
 #include "scenario/scenario.hpp"
 
 #include <cstdint>
@@ -16,6 +17,10 @@ std::optional<netsim::Scenario> read_scenario_file(const std::filesystem::path& 
 // Writes to a temporary file next to `path`, then renames it over `path`,
 // so a crash never leaves half a file.
 bool write_scenario_file(const std::filesystem::path& path, const netsim::Scenario& scenario, std::string& error);
+// Lab files: whether a file is one, by its "format", and reading one, which
+// checks the lab as validate() does. Its id is the file's name.
+bool is_lab_file(const std::filesystem::path& path);
+std::optional<netsim::lab::Lab> read_lab_file(const std::filesystem::path& path, std::string& error);
 // A path as UTF-8 text, for the interface.
 std::string path_text(const std::filesystem::path& path);
 std::filesystem::path path_from_text(const std::string& text);
@@ -28,11 +33,20 @@ std::filesystem::path state_directory();
 // The user's home folder, or the current one.
 std::filesystem::path home_directory();
 
-// What the user chose once and keeps: a language ("" follows the system)
-// and reduced motion. Kept in settings.json in the state directory.
+// What the user chose once and keeps: how much the canvas moves, whether
+// it plays sounds and how loud, a theme ("" is the default one), whether
+// the first-run choice was made and the labs solved. Kept in settings.json
+// in the state directory.
 struct Settings {
-    std::string language;
-    bool reduced_motion = false;
+    // "full", "reduced" or "off" (resend::Intensity).
+    std::string effects = "full";
+    bool sound = true;
+    // "quiet", "medium" or "loud".
+    std::string volume = "medium";
+    std::string theme;
+    bool welcomed = false;
+    // The ids of the labs solved, in the order they were.
+    std::vector<std::string> solved_labs;
     bool operator==(const Settings&) const = default;
 };
 // The defaults if the file is missing or unreadable.

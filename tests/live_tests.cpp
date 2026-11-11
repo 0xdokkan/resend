@@ -384,6 +384,37 @@ void stale_entry_after_address_change() {
     CHECK(simulation.arp_cache(pc2).at(0).mac == scenario.device(pc4)->ports[0].mac);
 }
 
+void hosts_without_address() {
+    // PC-B has no address (scenario format 3): it answers no ARP request and
+    // sends no IPv4, and says why.
+    auto scenario = netsim::sample_lan();
+    scenario.devices[1].ports[0].ipv4.reset();
+    {
+        Simulation simulation(scenario);
+        const auto id = ping(simulation, pc_a, ip("192.168.1.20"));
+        drain(simulation);
+        CHECK(simulation.ping(id)->reason == Reason::ArpUnresolved);
+        CHECK(count(simulation, TraceKind::FrameDropped, pc_b, Reason::ArpForOtherHost) == 3);
+        const auto from_bare = ping(simulation, pc_b, ip("192.168.1.10"));
+        const auto sent = simulation.trace().transmissions().size();
+        drain(simulation);
+        CHECK(simulation.ping(from_bare)->state == PingState::Failed);
+        CHECK(simulation.ping(from_bare)->reason == Reason::NoAddress);
+        CHECK(simulation.trace().transmissions().size() == sent);
+    }
+    {
+        // The address goes while the host is still asking for its next hop:
+        // the waiting request is lost for that reason, and nothing more is sent.
+        Simulation simulation(netsim::sample_lan());
+        const auto id = ping(simulation, pc_a, ip("192.168.1.99"));
+        simulation.run_until(5ms);
+        CHECK(simulation.apply(netsim::SetAddress{PortRef{pc_a, 0}, std::nullopt}) == Problem::None);
+        drain(simulation);
+        CHECK(simulation.ping(id)->reason == Reason::NoAddress);
+        CHECK(records_of(simulation, TraceKind::ArpTimeout).empty());
+    }
+}
+
 void mac_ageing() {
     auto scenario = star(2);
     scenario.devices[0].mac_ageing = 10s;
@@ -800,6 +831,7 @@ int main() {
     entries_expire();
     merge_rule();
     stale_entry_after_address_change();
+    hosts_without_address();
     mac_ageing();
     replies_resolve_the_sender();
     ping_application();

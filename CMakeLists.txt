@@ -27,25 +27,15 @@ if(WIN32)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
 endif()
 
-# Translations, built into the programs.
-set(resend_languages it)
-set(resend_catalogs ${resend_languages})
-list(TRANSFORM resend_catalogs REPLACE "(.+)" "${PROJECT_SOURCE_DIR}/translations/\\1/LC_MESSAGES/resend.po")
-string(REPLACE ";" "," resend_language_list "${resend_languages}")
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/catalogs_data.cpp
-    COMMAND ${CMAKE_COMMAND} -DTRANSLATIONS=${PROJECT_SOURCE_DIR}/translations -DLANGUAGES=${resend_language_list}
-        -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/catalogs_data.cpp -P ${PROJECT_SOURCE_DIR}/cmake/embed_catalogs.cmake
-    DEPENDS ${resend_catalogs} ${PROJECT_SOURCE_DIR}/cmake/embed_catalogs.cmake
-    COMMENT "Embedding the translations")
-
 add_library(resend_core
-    src/core/address.cpp src/core/json.cpp src/core/sim_time.cpp src/core/text.cpp ${CMAKE_CURRENT_BINARY_DIR}/catalogs_data.cpp
+    src/core/address.cpp src/core/json.cpp src/core/sim_time.cpp src/core/text.cpp
     src/scenario/scenario.cpp src/scenario/edit.cpp src/scenario/scenario_json.cpp
     src/sim/simulation.cpp src/sim/medium.cpp src/sim/arp.cpp src/sim/ping_app.cpp
     src/sim/host.cpp src/sim/bridge.cpp src/sim/router.cpp src/sim/routing.cpp
-    src/explain/explain.cpp
-    src/wire/wire.cpp)
+    src/explain/explain.cpp src/explain/lab_explain.cpp
+    src/wire/wire.cpp
+    src/lab/lab.cpp src/lab/check.cpp
+    src/term/terminal.cpp)
 target_include_directories(resend_core PUBLIC src)
 target_compile_options(resend_core PRIVATE ${resend_warnings})
 
@@ -61,11 +51,113 @@ add_custom_command(
     DEPENDS ${resend_example_files} ${PROJECT_SOURCE_DIR}/cmake/embed_examples.cmake
     COMMENT "Embedding the example scenarios")
 
-# App logic without Slint: the workspace, the canvas, playback and files.
-add_library(resend_app src/app/playback.cpp src/app/scene.cpp src/app/history.cpp src/app/workspace.cpp
-    src/app/canvas.cpp src/app/files.cpp src/app/timeline.cpp ${CMAKE_CURRENT_BINARY_DIR}/examples_data.cpp)
+# The labs, built into the app in the order of its library: by topic, the
+# first steps first.
+set(resend_labs first-network.json one-subnet-two-sides.json missing-gateway.json ipv4-basics.json vlsm.json
+    static-routes.json missing-return-route.json routing-loop.json watch-arp-and-ping.json explain-traceroute.json)
+list(TRANSFORM resend_labs PREPEND ${PROJECT_SOURCE_DIR}/labs/ OUTPUT_VARIABLE resend_lab_files)
+string(REPLACE ";" "," resend_lab_list "${resend_labs}")
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/labs_data.cpp
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}/labs -DLABS=${resend_lab_list}
+        -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/labs_data.cpp -P ${PROJECT_SOURCE_DIR}/cmake/embed_labs.cmake
+    DEPENDS ${resend_lab_files} ${PROJECT_SOURCE_DIR}/cmake/embed_labs.cmake
+    COMMENT "Embedding the labs")
+
+# The look: themes and sprite sheets, built into the app.
+set(resend_sheets devices.txt packets.txt icons.txt)
+list(TRANSFORM resend_sheets PREPEND ${PROJECT_SOURCE_DIR}/assets/sprites/ OUTPUT_VARIABLE resend_sheet_files)
+string(REPLACE ";" "," resend_sheet_list "${resend_sheets}")
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/assets_data.cpp
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}/assets -DSHEETS=${resend_sheet_list}
+        -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/assets_data.cpp -P ${PROJECT_SOURCE_DIR}/cmake/embed_assets.cmake
+    DEPENDS ${resend_sheet_files} ${PROJECT_SOURCE_DIR}/assets/palettes.json ${PROJECT_SOURCE_DIR}/assets/sprites/legend.txt
+        ${PROJECT_SOURCE_DIR}/cmake/embed_assets.cmake
+    COMMENT "Embedding the themes and sprites")
+
+# App logic without Slint: the workspace, the canvas, playback, files and the look.
+add_library(resend_app src/app/playback.cpp src/app/scene.cpp src/app/effects.cpp src/app/history.cpp src/app/workspace.cpp
+    src/app/canvas.cpp src/app/files.cpp src/app/timeline.cpp ${CMAKE_CURRENT_BINARY_DIR}/examples_data.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/labs_data.cpp
+    src/look/look.cpp src/look/image_files.cpp ${CMAKE_CURRENT_BINARY_DIR}/assets_data.cpp)
 target_link_libraries(resend_app PUBLIC resend_core)
 target_compile_options(resend_app PRIVATE ${resend_warnings})
+target_sources(resend_app PRIVATE src/app/cues.cpp)
+
+# Sound (G5, docs/decisions/0005-audio-output.md): the synthesizer and its
+# sounds are always built; miniaudio, one header pinned by its hash, takes
+# them to the sound card. Without it, or offline at the first configure,
+# resend is silent and otherwise the same.
+option(RESEND_AUDIO "Play sounds through miniaudio" ON)
+set(RESEND_MINIAUDIO_VERSION 0.11.25)
+set(RESEND_MINIAUDIO_DIR ${PROJECT_SOURCE_DIR}/.deps/miniaudio-${RESEND_MINIAUDIO_VERSION} CACHE PATH
+    "Where miniaudio.h and its LICENSE are, or are downloaded to")
+set(resend_miniaudio_hashes
+    miniaudio.h ac7af4de748b7e26b777f37e01cee313a308a7296a3eb080e2906b320cc55c89
+    LICENSE 457f1b500e0adf6bc059edddfa78a2f62012e7c3bb43476c20e0bd23b25ba0eb)
+set(resend_has_miniaudio OFF)
+if(RESEND_AUDIO)
+    set(resend_has_miniaudio ON)
+    list(LENGTH resend_miniaudio_hashes resend_count)
+    math(EXPR resend_last "${resend_count} - 1")
+    foreach(resend_index RANGE 0 ${resend_last} 2)
+        math(EXPR resend_next "${resend_index} + 1")
+        list(GET resend_miniaudio_hashes ${resend_index} resend_file)
+        list(GET resend_miniaudio_hashes ${resend_next} resend_hash)
+        set(resend_path ${RESEND_MINIAUDIO_DIR}/${resend_file})
+        if(NOT EXISTS ${resend_path})
+            message(STATUS "Downloading miniaudio ${RESEND_MINIAUDIO_VERSION}: ${resend_file}")
+            file(DOWNLOAD https://raw.githubusercontent.com/mackron/miniaudio/${RESEND_MINIAUDIO_VERSION}/${resend_file}
+                ${resend_path}.part STATUS resend_status TLS_VERIFY ON)
+            list(GET resend_status 0 resend_code)
+            if(resend_code EQUAL 0)
+                file(RENAME ${resend_path}.part ${resend_path})
+            else()
+                file(REMOVE ${resend_path}.part)
+                message(WARNING "miniaudio could not be downloaded (${resend_status}): resend will be silent")
+                set(resend_has_miniaudio OFF)
+                break()
+            endif()
+        endif()
+        file(SHA256 ${resend_path} resend_actual)
+        if(NOT resend_actual STREQUAL resend_hash)
+            message(FATAL_ERROR "${resend_path} is not miniaudio ${RESEND_MINIAUDIO_VERSION}: "
+                "its SHA-256 is ${resend_actual}, not ${resend_hash}. Delete it to download it again.")
+        endif()
+    endforeach()
+endif()
+
+add_library(resend_audio src/audio/synth.cpp src/audio/sounds.cpp src/audio/output.cpp)
+target_include_directories(resend_audio PUBLIC src)
+target_compile_options(resend_audio PRIVATE ${resend_warnings})
+find_package(Threads REQUIRED)
+target_link_libraries(resend_audio PRIVATE Threads::Threads)
+if(resend_has_miniaudio)
+    # miniaudio's implementation, built with its own warnings left to it.
+    target_sources(resend_audio PRIVATE src/audio/miniaudio.cpp)
+    set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS $<IF:$<CXX_COMPILER_ID:MSVC>,/W0,-w>)
+    target_include_directories(resend_audio PRIVATE ${RESEND_MINIAUDIO_DIR})
+    target_compile_definitions(resend_audio PRIVATE RESEND_HAS_MINIAUDIO=1)
+    if(NOT WIN32)
+        # It opens ALSA, PulseAudio or JACK at run time: no link to any of them.
+        target_link_libraries(resend_audio PRIVATE ${CMAKE_DL_LIBS} m)
+    endif()
+    install(FILES ${RESEND_MINIAUDIO_DIR}/LICENSE DESTINATION share/doc/resend/miniaudio)
+endif()
+
+# The app icon's files, painted from the sprites at build time: PNGs for
+# the icon theme and an ICO for Windows (src/look/make_icons.cpp).
+add_executable(resend-icons src/look/make_icons.cpp)
+target_link_libraries(resend-icons PRIVATE resend_app)
+target_compile_options(resend-icons PRIVATE ${resend_warnings})
+set(resend_icon_dir ${CMAKE_CURRENT_BINARY_DIR}/icons)
+add_custom_command(
+    OUTPUT ${resend_icon_dir}/resend.ico
+    COMMAND resend-icons ${resend_icon_dir}
+    DEPENDS resend-icons
+    COMMENT "Painting the app icon")
+add_custom_target(resend-icon-files ALL DEPENDS ${resend_icon_dir}/resend.ico)
 
 add_executable(resend-cli src/cli.cpp)
 target_link_libraries(resend-cli PRIVATE resend_core)
@@ -108,6 +200,17 @@ if(BUILD_TESTING)
     target_link_libraries(resend-app-tests PRIVATE resend_app)
     target_compile_options(resend-app-tests PRIVATE ${resend_warnings})
     add_test(NAME app-logic COMMAND resend-app-tests)
+    add_executable(resend-effects-tests tests/effects_tests.cpp)
+    target_link_libraries(resend-effects-tests PRIVATE resend_app)
+    target_compile_options(resend-effects-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-effects-tests PRIVATE RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples")
+    add_test(NAME effects COMMAND resend-effects-tests)
+    add_executable(resend-sound-tests tests/sound_tests.cpp)
+    target_link_libraries(resend-sound-tests PRIVATE resend_app resend_audio)
+    target_compile_options(resend-sound-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-sound-tests PRIVATE RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples"
+        RESEND_GOLDEN_DIR="${PROJECT_SOURCE_DIR}/tests/golden/cues")
+    add_test(NAME sound COMMAND resend-sound-tests)
     add_executable(resend-workspace-tests tests/workspace_tests.cpp)
     target_link_libraries(resend-workspace-tests PRIVATE resend_app)
     target_compile_options(resend-workspace-tests PRIVATE ${resend_warnings})
@@ -121,11 +224,28 @@ if(BUILD_TESTING)
     target_compile_options(resend-files-tests PRIVATE ${resend_warnings})
     target_compile_definitions(resend-files-tests PRIVATE RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples")
     add_test(NAME files COMMAND resend-files-tests)
-    add_executable(resend-translation-tests tests/translation_tests.cpp)
-    target_link_libraries(resend-translation-tests PRIVATE resend_core)
-    target_compile_options(resend-translation-tests PRIVATE ${resend_warnings})
-    target_compile_definitions(resend-translation-tests PRIVATE RESEND_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
-    add_test(NAME translations COMMAND resend-translation-tests)
+    add_executable(resend-look-tests tests/look_tests.cpp)
+    target_link_libraries(resend-look-tests PRIVATE resend_app)
+    target_compile_options(resend-look-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-look-tests PRIVATE RESEND_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME look COMMAND resend-look-tests)
+    add_executable(resend-terminal-tests tests/terminal_tests.cpp)
+    target_link_libraries(resend-terminal-tests PRIVATE resend_app)
+    target_compile_options(resend-terminal-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-terminal-tests PRIVATE RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples"
+        RESEND_LABS_DIR="${PROJECT_SOURCE_DIR}/labs")
+    add_test(NAME terminal COMMAND resend-terminal-tests)
+    add_executable(resend-lab-tests tests/lab_tests.cpp)
+    target_link_libraries(resend-lab-tests PRIVATE resend_app)
+    target_compile_options(resend-lab-tests PRIVATE ${resend_warnings})
+    target_compile_definitions(resend-lab-tests PRIVATE RESEND_LABS_DIR="${PROJECT_SOURCE_DIR}/labs"
+        RESEND_DOCS_DIR="${PROJECT_SOURCE_DIR}/docs")
+    add_test(NAME labs COMMAND resend-lab-tests)
+    # Every lab proves itself: unsolved as given, solved by its solution.
+    foreach(lab IN LISTS resend_labs)
+        string(REPLACE ".json" "" lab_id "${lab}")
+        add_test(NAME labs-verify-${lab_id} COMMAND resend-cli --lab ${PROJECT_SOURCE_DIR}/labs/${lab} --verify)
+    endforeach()
     # The documented exit codes: 0 reachable, 1 unreachable, 2 invalid input.
     add_test(NAME cli-ping-reachable COMMAND resend-cli 192.168.1.20)
     add_test(NAME cli-ping-disconnected COMMAND resend-cli 192.168.1.20 --disconnect)
@@ -218,29 +338,80 @@ if(RESEND_BUILD_GUI)
     endif()
 
     # Window, generated UI code and controller, shared by the app and its tests.
-    add_library(resend_ui STATIC src/app_controller.cpp src/app_inspector.cpp src/app_documents.cpp)
-    target_link_libraries(resend_ui PUBLIC resend_app Slint::Slint)
+    add_library(resend_ui STATIC src/app_controller.cpp src/app_inspector.cpp src/app_documents.cpp src/app_look.cpp src/app_commands.cpp src/app_lab.cpp src/app_sound.cpp src/app_terminal.cpp)
+    target_link_libraries(resend_ui PUBLIC resend_app resend_audio Slint::Slint)
     target_compile_options(resend_ui PRIVATE ${resend_warnings})
-    # The interface's @tr() strings come from the same .po files as the C++
-    # texts (src/core/text.hpp), without a context per component.
-    set_target_properties(resend_ui PROPERTIES
-        SLINT_BUNDLE_TRANSLATIONS "${PROJECT_SOURCE_DIR}/translations"
-        SLINT_TRANSLATION_DOMAIN resend
-        SLINT_NO_DEFAULT_TRANSLATION_CONTEXT ON)
+    # Fonts and images go into the program, so it looks the same on a
+    # machine with none of the fonts installed.
+    set_target_properties(resend_ui PROPERTIES SLINT_EMBED_RESOURCES embed-files)
     slint_target_sources(resend_ui ui/app.slint COMPILATION_UNITS ${RESEND_SLINT_COMPILATION_UNITS})
     target_compile_definitions(resend_ui PRIVATE RESEND_VERSION="${PROJECT_VERSION}")
 
     add_executable(resend src/main.cpp)
     target_link_libraries(resend PRIVATE resend_ui)
+    target_compile_definitions(resend PRIVATE RESEND_FONT_DIR="${PROJECT_SOURCE_DIR}/assets/fonts")
+    if(WIN32)
+        # A windowed program, whose entry point stays main(), with its icon
+        # and version information.
+        set(resend_icon_file ${resend_icon_dir}/resend.ico)
+        configure_file(packaging/windows/resend.rc.in ${CMAKE_CURRENT_BINARY_DIR}/resend.rc @ONLY)
+        target_sources(resend PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/resend.rc)
+        set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/resend.rc PROPERTIES OBJECT_DEPENDS ${resend_icon_file})
+        add_dependencies(resend resend-icon-files)
+        set_target_properties(resend PROPERTIES WIN32_EXECUTABLE ON)
+        if(MSVC)
+            target_link_options(resend PRIVATE /ENTRY:mainCRTStartup)
+        endif()
+        # Slint's DLL beside the programs, so that they run from the build.
+        add_custom_command(TARGET resend POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:resend> $<TARGET_FILE_DIR:resend>
+            COMMAND_EXPAND_LISTS)
+    else()
+        # Installed, the program finds the Slint library in ../lib.
+        set_target_properties(resend PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
+    endif()
+
     install(TARGETS resend RUNTIME DESTINATION bin)
+    # The Slint library goes with the program: into lib/ on Linux, beside the
+    # program on Windows. An SDK provides it as an imported target.
+    if(TARGET slint_cpp-shared)
+        install(IMPORTED_RUNTIME_ARTIFACTS slint_cpp-shared LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
+        # cmake --install --strip (and cpack) strip only what was built here.
+        if(UNIX AND CMAKE_STRIP)
+            install(CODE "if(CMAKE_INSTALL_DO_STRIP)
+                execute_process(COMMAND \"${CMAKE_STRIP}\" --strip-unneeded \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib/libslint_cpp.so\")
+            endif()")
+        endif()
+    endif()
+    # Slint's licence, and those of the code compiled into its library.
+    get_filename_component(resend_slint_licenses "${Slint_DIR}/../../../licenses" ABSOLUTE)
+    if(Slint_DIR AND EXISTS "${resend_slint_licenses}/LICENSE.md")
+        install(DIRECTORY ${resend_slint_licenses}/ DESTINATION share/doc/resend/slint)
+    elseif(DEFINED slint_SOURCE_DIR)
+        install(FILES ${slint_SOURCE_DIR}/LICENSE.md DESTINATION share/doc/resend/slint)
+        install(DIRECTORY ${slint_SOURCE_DIR}/LICENSES/ DESTINATION share/doc/resend/slint/LICENSES)
+    endif()
+    # The fonts are built into the program; installed as well, with their
+    # licences, so that fontconfig always knows one font (src/main.cpp).
+    install(DIRECTORY assets/fonts/ DESTINATION share/resend/fonts)
+    if(UNIX AND NOT APPLE)
+        # How the desktop shows resend: its launcher, its icon at every size
+        # and its AppStream metadata.
+        install(FILES packaging/linux/io.github._0xdokkan.resend.desktop DESTINATION share/applications)
+        install(FILES packaging/linux/io.github._0xdokkan.resend.metainfo.xml DESTINATION share/metainfo)
+        install(DIRECTORY ${resend_icon_dir}/hicolor DESTINATION share/icons)
+    endif()
 
     if(BUILD_TESTING)
         add_executable(resend-gui-tests tests/gui_tests.cpp)
         target_link_libraries(resend-gui-tests PRIVATE resend_ui)
         # slint::testing is still marked experimental in Slint 1.18.
         target_compile_definitions(resend-gui-tests PRIVATE SLINT_FEATURE_EXPERIMENTAL
-            RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples")
+            RESEND_EXAMPLES_DIR="${PROJECT_SOURCE_DIR}/examples" RESEND_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
         add_test(NAME gui-behavior COMMAND resend-gui-tests)
+        if(WIN32)
+            add_dependencies(resend-gui-tests resend)  # which copies Slint's DLL
+        endif()
     endif()
 
     if(RESEND_BUILD_SPIKES)
@@ -249,3 +420,42 @@ if(RESEND_BUILD_GUI)
 endif()
 
 install(TARGETS resend-cli RUNTIME DESTINATION bin)
+install(FILES LICENSE README.md THIRD-PARTY-NOTICES.md DESTINATION share/doc/resend)
+if(WIN32)
+    # The Visual C++ runtime the programs and Slint's DLL need, which a
+    # clean Windows does not have.
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
+    include(InstallRequiredSystemLibraries)
+endif()
+
+# Packages: cpack in the build directory writes a tar.gz on Linux, a zip and
+# an installer on Windows. The AppImage is made by scripts/make-appimage.sh.
+set(CPACK_PACKAGE_NAME resend)
+set(CPACK_PACKAGE_VENDOR resend)
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A desktop networking lab: build networks and see why a packet arrives or stops")
+set(CPACK_PACKAGE_HOMEPAGE_URL https://github.com/0xdokkan/resend)
+set(CPACK_PACKAGE_INSTALL_DIRECTORY resend)
+set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
+set(CPACK_STRIP_FILES ON)
+set(CPACK_PACKAGE_CHECKSUM SHA256)
+set(CPACK_SOURCE_GENERATOR "")
+if(WIN32)
+    set(CPACK_GENERATOR ZIP NSIS)
+    set(CPACK_PACKAGE_FILE_NAME resend-${PROJECT_VERSION}-windows-x64)
+    set(CPACK_PACKAGE_EXECUTABLES resend resend)
+    set(CPACK_CREATE_DESKTOP_LINKS resend)
+    set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
+    set(CPACK_NSIS_DISPLAY_NAME resend)
+    set(CPACK_NSIS_PACKAGE_NAME resend)
+    set(CPACK_NSIS_MUI_ICON ${resend_icon_dir}/resend.ico)
+    set(CPACK_NSIS_MUI_UNIICON ${resend_icon_dir}/resend.ico)
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\resend.exe")
+    set(CPACK_NSIS_URL_INFO_ABOUT https://github.com/0xdokkan/resend)
+    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_MANIFEST_DPI_AWARE ON)
+    set(CPACK_NSIS_BRANDING_TEXT "resend ${PROJECT_VERSION}")
+else()
+    set(CPACK_GENERATOR TGZ)
+    set(CPACK_PACKAGE_FILE_NAME resend-${PROJECT_VERSION}-linux-x86_64)
+endif()
+include(CPack)

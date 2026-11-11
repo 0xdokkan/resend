@@ -1,0 +1,269 @@
+import { Theme, Type, Motion } from "theme.slint";
+import { UiSprites } from "sprites.slint";
+import { Action, PixelFrame, Scroll, ScrollBar } from "widgets.slint";
+
+// One command of a family's menu: run at once when `complete`, written on
+// the line for the learner to finish otherwise.
+export struct TerminalEntryView {
+    command: string,
+    text: string,
+    complete: bool,
+}
+export struct TerminalMenuView {
+    family: string,
+    entries: [TerminalEntryView],
+}
+// A block of the screen: a line typed, after the prompt it was typed at
+// ("command"), what it printed ("output"), why it could not be done
+// ("error"), or a remark of resend's ("note").
+export struct TerminalBlockView {
+    kind: string,
+    prompt: string,
+    text: string,
+}
+
+// The selected device's terminal (M8). C++ (src/app_terminal.cpp) keeps a
+// session for each device and runs what is typed with src/term/.
+export global UiTerminal {
+    // A device is selected and powered: the line takes commands.
+    in property <bool> available;
+    // Why not, when it does not.
+    in property <string> note;
+    in property <string> prompt;
+    // Everything printed since the last clear, commands and their output:
+    // block by block as drawn, and as one text for screen readers.
+    in property <[TerminalBlockView]> blocks;
+    in property <string> screen;
+    in-out property <string> line;
+    // What Tab found when it found more than one, or what to do next.
+    in property <string> candidates;
+    // The blank of a command chosen from a menu, selected to type over.
+    in property <int> blank-start;
+    in property <int> blank-end;
+    in property <[TerminalMenuView]> menus;
+    // Raised to give the line the keyboard, and when leaving it.
+    in-out property <int> focus-serial;
+    in-out property <int> leave-serial;
+    callback run(string);
+    callback complete(string);
+    // -1 for the command before, 1 for the one after.
+    callback history(int);
+    callback choose(string, bool);
+    // Empties the screen and keeps the line being typed, as Ctrl+L does.
+    callback clear();
+    // Ctrl+T: the selected device's terminal, or why there is none.
+    callback open();
+}
+
+component MenuRow inherits Rectangle {
+    in property <TerminalEntryView> entry;
+    callback clicked();
+    height: rows.preferred-height;
+    background: touch.has-hover ? Theme.accent.chip : transparent;
+    accessible-role: button;
+    accessible-label: root.entry.command;
+    accessible-description: root.entry.text;
+    accessible-action-default => { root.clicked(); }
+    rows := VerticalLayout {
+        padding: 6px; padding-left: 10px; padding-right: 10px;
+        spacing: 2px;
+        Text {
+            text: root.entry.command;
+            color: touch.has-hover ? Theme.accent.chip-ink : Theme.ink;
+            font-family: Type.mono; font-size: Type.small; font-weight: 600; wrap: word-wrap;
+        }
+        Text {
+            text: root.entry.text;
+            color: touch.has-hover ? Theme.accent.chip-ink : Theme.muted;
+            font-size: Type.small; wrap: word-wrap;
+        }
+    }
+    touch := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+// A block of the screen. A command stands after its prompt, and wraps
+// beside it.
+component ScreenBlock inherits HorizontalLayout {
+    in property <TerminalBlockView> block;
+    spacing: Type.mono-advance;
+    if root.block.kind == "command": Text {
+        text: root.block.prompt;
+        color: Theme.ok.text;
+        font-family: Type.mono; font-size: Type.small;
+        horizontal-stretch: 0;
+    }
+    Text {
+        text: root.block.text;
+        color: root.block.kind == "error" ? Theme.ask.text : root.block.kind == "note" ? Theme.muted : Theme.ink;
+        font-family: Type.mono; font-size: Type.small;
+        wrap: word-wrap;
+        horizontal-stretch: 1;
+    }
+}
+
+// The Terminal tab of the inspector: the commands by family in a row, and
+// under it the screen, with the line that takes what is typed at its foot.
+export component TerminalTab inherits VerticalLayout {
+    property <int> family: 0;
+    property <length> menu-x;
+    property <int> asked: UiTerminal.focus-serial;
+    // What is printed and the room it has: the screen follows the last line.
+    property <length> printed: log.preferred-height;
+    property <length> room: flick.height;
+    changed asked => { input.focus(); }
+    changed printed => { root.follow(); }
+    changed room => { root.follow(); }
+    function follow() { flick.content-y = min(0px, flick.height - flick.content-height); }
+    init => { if UiTerminal.available { input.focus(); } }
+    padding-left: 12px; padding-right: 12px; padding-top: 10px; padding-bottom: 10px;
+    spacing: 8px;
+
+    families := HorizontalLayout {
+        vertical-stretch: 0;
+        height: 28px;
+        spacing: 6px;
+        for menu[i] in UiTerminal.menus: Action {
+            text: menu.family;
+            trailing: UiSprites.caret;
+            code: true;
+            small: true;
+            horizontal-stretch: 0;
+            enabled: UiTerminal.available;
+            accessible-text: @tr("{0} commands", menu.family);
+            clicked => {
+                root.family = i;
+                root.menu-x = self.absolute-position.x - root.absolute-position.x;
+                popup.show();
+            }
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Action {
+            text: "clear";
+            code: true;
+            small: true;
+            horizontal-stretch: 0;
+            enabled: UiTerminal.available;
+            accessible-text: @tr("Clear the terminal");
+            keys: "Ctrl+L";
+            clicked => { UiTerminal.clear(); input.focus(); }
+        }
+    }
+
+    PixelFrame {
+        vertical-stretch: 1;
+        min-height: 150px;
+        unit: UiSprites.unit;
+        shadow: false;
+        accessible-role: groupbox;
+        accessible-label: @tr("Terminal screen");
+        fill: Theme.sunken;
+        border: input.has-focus ? Theme.accent.base : Theme.line;
+        VerticalLayout {
+            padding: 10px;
+            spacing: 4px;
+            flick := Flickable {
+                vertical-stretch: 1;
+                min-height: 40px;
+                content-width: self.width;
+                content-height: max(self.height, log.preferred-height);
+                // A click anywhere on the screen gives the line the keyboard.
+                TouchArea {
+                    x: 0; y: 0; width: flick.content-width; height: flick.content-height;
+                    mouse-cursor: text;
+                    accessible-role: text;
+                    accessible-label: @tr("Terminal output");
+                    accessible-value: UiTerminal.screen;
+                    clicked => { input.focus(); }
+                }
+                log := VerticalLayout {
+                    x: 0; y: 0; width: flick.width - 8px; height: self.preferred-height;
+                    spacing: 2px;
+                    if UiTerminal.blocks.length == 0: Text {
+                        text: UiTerminal.available ? @tr("Type a command, or pick one from the menus above.") : UiTerminal.note;
+                        color: Theme.muted;
+                        font-family: Type.mono; font-size: Type.small;
+                        wrap: word-wrap;
+                    }
+                    for block in UiTerminal.blocks: ScreenBlock { block: block; }
+                }
+            }
+            if UiTerminal.candidates != "": Text {
+                vertical-stretch: 0;
+                text: UiTerminal.candidates;
+                color: Theme.muted; font-family: Type.mono; font-size: Type.small; wrap: word-wrap;
+            }
+            HorizontalLayout {
+                vertical-stretch: 0;
+                spacing: Type.mono-advance;
+                Text {
+                    text: UiTerminal.prompt;
+                    color: Theme.ok.text; font-family: Type.mono; font-size: Type.small;
+                    vertical-alignment: center;
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                    height: 20px;
+                    clip: true;
+                    input := TextInput {
+                        y: (parent.height - self.height) / 2;
+                        width: max(parent.width, self.preferred-width);
+                        text <=> UiTerminal.line;
+                        enabled: UiTerminal.available;
+                        color: Theme.ink;
+                        selection-background-color: Theme.accent.chip;
+                        selection-foreground-color: Theme.accent.chip-ink;
+                        font-family: Type.mono; font-size: Type.small;
+                        single-line: true;
+                        accessible-role: text-input;
+                        accessible-label: @tr("Command line");
+                        accepted => { UiTerminal.run(self.text); }
+                        key-pressed(e) => {
+                            if e.text == Key.Tab && !e.modifiers.shift { UiTerminal.complete(self.text); self.set-selection-offsets(999999, 999999); return accept; }
+                            if e.text == Key.UpArrow { UiTerminal.history(-1); self.set-selection-offsets(999999, 999999); return accept; }
+                            if e.text == Key.DownArrow { UiTerminal.history(1); self.set-selection-offsets(999999, 999999); return accept; }
+                            if e.text == Key.Escape { UiTerminal.leave-serial += 1; return accept; }
+                            if e.modifiers.control && (e.text == "l" || e.text == "L") { UiTerminal.clear(); return accept; }
+                            return reject;
+                        }
+                    }
+                }
+            }
+        }
+        ScrollBar {
+            x: parent.width - self.width - UiSprites.unit; y: flick.y; height: flick.height;
+            offset <=> flick.content-y;
+            content: flick.content-height;
+            page: flick.height;
+        }
+    }
+
+    popup := PopupWindow {
+        // Under its button, and inside the tab's margins.
+        x: max(12px, min(root.menu-x, root.width - self.width - 12px));
+        y: families.y + families.height + 4px;
+        width: min(330px, root.width - 24px);
+        height: min(menu-list.preferred-height + 12px, 420px);
+        close-policy: close-on-click-outside;
+        PixelFrame {
+            fill: Theme.panel;
+            unit: UiSprites.unit / 2;
+            accessible-role: list;
+            accessible-label: @tr("Commands of {0}", UiTerminal.menus[root.family].family);
+            Scroll {
+                x: 4px; y: 6px; width: parent.width - 8px; height: parent.height - 12px;
+                menu-list := VerticalLayout {
+                    padding-right: 12px;
+                    for entry in UiTerminal.menus[root.family].entries: MenuRow {
+                        entry: entry;
+                        clicked => {
+                            popup.close();
+                            UiTerminal.choose(entry.command, entry.complete);
+                            input.focus();
+                            if !entry.complete { input.set-selection-offsets(UiTerminal.blank-start, UiTerminal.blank-end); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -221,8 +221,10 @@ std::optional<PingId> Simulation::start_ping(DeviceId source, Ipv4Address destin
         : !is_unicast(destination) ? Problem::InvalidDestination
         : Problem::None;
     if (ok(problem)) {
-        const auto& address = *host->ports.front().ipv4;
-        if (address.contains(destination) && !Ipv4Prefix(destination, address.length()).usable_host())
+        // A host without an address may start a ping: every request is lost
+        // for that reason (Reason::NoAddress).
+        const auto address = host->ports.front().ipv4.value_or(Ipv4Prefix{});
+        if (host->ports.front().ipv4 && address.contains(destination) && !Ipv4Prefix(destination, address.length()).usable_host())
             problem = Problem::BroadcastDestination;
         else if (options.count < 1 || options.count > (options.traceroute ? max_hops : max_ping_count) || options.ttl < 1 ||
                  !in_range(options.interval) || !in_range(options.timeout))

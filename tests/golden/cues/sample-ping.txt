@@ -1,0 +1,28 @@
+# a ping on the sample LAN, at 1x, 60 frames a second: the records' cues, then what is heard
+frame 1  0.277 ms
+  ask #1;
+  heard: ask;
+frame 36  10.000 ms
+  hop 0 #2;
+  heard: hop 0;
+frame 72  20.000 ms
+  hop 1 #6; answer #8;
+  heard: hop 1; answer;
+frame 108  30.000 ms
+  hop 2 #9;
+  heard: hop 2;
+frame 144  40.000 ms
+  hop 3 #13;
+  heard: hop 3;
+frame 180  50.000 ms
+  hop 4 #16;
+  heard: hop 4;
+frame 216  60.000 ms
+  hop 5 #19;
+  heard: hop 5;
+frame 252  70.000 ms
+  hop 6 #21;
+  heard: hop 6;
+frame 288  80.000 ms
+  hop 7 #24; resolve #26;
+  heard: hop 7; resolve;

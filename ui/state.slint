@@ -2,8 +2,11 @@
 // (src/app_controller.cpp, src/app_documents.cpp).
 
 export struct ExampleView { title: string, file: string }
-export struct LanguageView { code: string, name: string }
 export struct FileView { name: string, folder: bool }
+export struct ThemeView { id: string, title: string }
+// An action of the command palette: what the menus and the keys do.
+// `group` names the menu it comes from, `keys` its shortcut.
+export struct CommandView { id: string, title: string, group: string, keys: string, enabled: bool }
 
 export global UiApp {
     // The file's name, or "Untitled".
@@ -22,16 +25,26 @@ export global UiApp {
     in property <string> redo-text;
 
     in property <[ExampleView]> examples;
-    in property <[LanguageView]> languages;
-    // The language chosen, or "" to follow the system.
-    in property <string> language;
-    in property <bool> reduced-motion;
+    // The themes of assets/palettes.json and the one chosen.
+    in property <[ThemeView]> themes;
+    in property <string> theme;
+
+    // The HUD hidden with H: only the canvas shows.
+    in-out property <bool> hud-hidden;
+    // The command palette (Ctrl+K): every action, filtered by what is typed.
+    in property <[CommandView]> commands;
+    in-out property <string> command-filter;
+    // A short answer to an action, such as undo or a save; shown for a few
+    // seconds each time `toast-serial` changes.
+    in property <string> toast;
+    in property <int> toast-serial;
 
     in-out property <bool> palette-open: true;
     in-out property <bool> inspector-open: true;
-    in-out property <bool> timeline-open: true;
+    // The timeline is one row until opened into its events, Why and Frame.
+    in-out property <bool> timeline-open: false;
 
-    // "", "open", "save", "confirm", "about"
+    // "", "open", "save", "confirm", "about", "commands", "keys", "welcome", "labs"
     in property <string> dialog;
     in property <string> dialog-title;
     in property <string> dialog-message;
@@ -54,9 +67,14 @@ export global UiApp {
     callback redo();
     callback add-device(string);
     callback delete-selection();
-    callback set-language(string);
-    callback toggle-motion();
+    // "full", "reduced", "off", or "next" for the one after the current.
+    callback set-effects(string);
     callback about();
+    callback set-theme(string);
+    callback run-command(string);
+    callback filter-commands(string);
+    callback show-commands();
+    callback show-keys();
 
     callback browse-enter(string);
     callback browse-up();
@@ -66,6 +84,8 @@ export global UiApp {
     callback browse-confirm();
     callback answer(string);
     callback close-dialog();
+    // Escape in a dialog: its Cancel or Close.
+    callback dismiss-dialog();
 }
 
 export global UiRun {
@@ -76,6 +96,9 @@ export global UiRun {
     in-out property <bool> traceroute;
     in-out property <string> hops: "30";
     in property <bool> can-ping;
+    // The host a ping starts from, the one selected on the canvas; "" when
+    // no host is.
+    in property <string> source;
     // True while the animation plays, including a step in progress.
     in property <bool> running;
     in property <bool> pending;
@@ -89,4 +112,49 @@ export global UiRun {
     callback cycle-speed();
     callback set-speed(float);
     callback latest();
+}
+
+// A goal of the lab, as the last check left it. `state` is "open" before
+// any check or after a change since, "met" or "unmet"; `detail` says why.
+// A goal that `asks` a question has an answer field. A `fresh` goal was met
+// by the last check and not by the one before: it glows for a moment.
+export struct GoalView { text: string, state: string, detail: string, asks: bool, answer: string, fresh: bool }
+// A lab of the library: `first` starts a topic.
+export struct LabEntryView { title: string, topic: string, kind: string, solved: bool, first: bool }
+
+// The lab being done (src/app_lab.cpp): its brief, steps and goals, and the
+// library of the labs built in.
+export global UiLab {
+    in property <bool> active;
+    in property <string> title;
+    // Guided, Challenge or Troubleshooting, in words.
+    in property <string> kind;
+    in property <string> brief;
+    in property <[string]> steps;
+    in property <[GoalView]> goals;
+    // "2 of 5 goals met", or what to do before the first check.
+    in property <string> progress;
+    in property <bool> solved;
+    // The hints shown so far, one more each time, and how many there are.
+    in property <[string]> hints;
+    in property <int> hint-count;
+    // The solution in view instead of the learner's network.
+    in property <bool> showing-solution;
+    in property <[LabEntryView]> library;
+    in-out property <bool> open: true;
+    // The moment the lab is solved, from 0 to 1 while it plays; -1 when
+    // there is none. The serial counts the moments.
+    in property <float> celebration: -1;
+    in property <int> celebration-serial;
+
+    callback check();
+    callback restart();
+    callback next-hint();
+    callback toggle-solution();
+    callback answer(int, string);
+    callback open-lab(int);
+    callback show-library();
+    callback leave();
+    // Plays again what decided the goals.
+    callback replay();
 }

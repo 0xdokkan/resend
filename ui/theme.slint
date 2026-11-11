@@ -1,33 +1,116 @@
-// Colours and sizes shared by every part of the window.
+// The tokens every part of the window is drawn with. Colours come from
+// assets/palettes.json for the theme chosen: C++ sets them at startup and
+// whenever the theme changes (src/app_look.cpp), so no colour is written
+// anywhere in ui/ (tests/look_tests.cpp checks it).
+
+// A family of four tones, darkest to lightest, and what is derived from it:
+// text in its colour on a panel, and a chip, a plate with text on it.
+export struct Tones { dd: color, d: color, base: color, l: color, text: color, chip: color, chip-ink: color }
 
 export global Theme {
-    out property <color> base: #0c111b;
-    out property <color> panel: #111925;
-    out property <color> raised: #182333;
-    out property <color> sunken: #0e1722;
-    out property <color> line: #253244;
-    out property <color> ink: #e6edf6;
-    out property <color> muted: #91a2b8;
-    out property <color> mint: #7ce3c0;
-    out property <color> blue: #82b8fb;
-    out property <color> amber: #f1c47b;
-    out property <color> lime: #c2df7e;
-    out property <color> red: #f58f8f;
-    // The simulator's own interventions, never network behaviour.
-    out property <color> violet: #c6a8f8;
-    out property <color> canvas: #0d1520;
-    out property <color> hover: #253347;
-    out property <color> selection: #243b43;
+    in-out property <bool> dark: true;
+    // Surfaces.
+    in-out property <color> outline;
+    in-out property <color> shade;
+    in-out property <color> base;
+    in-out property <color> canvas;
+    in-out property <color> grid;
+    in-out property <color> panel;
+    in-out property <color> raised;
+    in-out property <color> raised-edge;
+    in-out property <color> hover;
+    in-out property <color> sunken;
+    in-out property <color> edge;
+    in-out property <color> line;
+    in-out property <color> screen;
+    // Inks.
+    in-out property <color> ink;
+    in-out property <color> muted;
+    in-out property <color> on-accent;
+    in-out property <color> screen-ink;
+    // Families: the devices' metal, the interface's accent, and one for each
+    // kind of thing the engine reports.
+    in-out property <Tones> metal;
+    in-out property <Tones> accent;
+    in-out property <Tones> ok;
+    in-out property <Tones> link;
+    in-out property <Tones> ask;
+    in-out property <Tones> route;
+    in-out property <Tones> drop;
+    in-out property <Tones> guard;
 
-    // The colour of a device kind: "host", "switch" or "router".
-    public pure function device-color(kind: string) -> color {
-        return kind == "switch" ? Theme.blue : kind == "router" ? Theme.lime : Theme.mint;
+    // A device kind's family: "host", "switch" or "router".
+    public pure function device(kind: string) -> Tones {
+        return kind == "switch" ? Theme.link : kind == "router" ? Theme.route : Theme.ok;
     }
+    // An event's or a packet's protocol.
+    public pure function protocol(name: string) -> Tones {
+        return name == "ARP" ? Theme.ask : name == "ICMP" ? Theme.ok : name == "SIMULATOR" ? Theme.guard
+            : name == "EDIT" ? Theme.accent : Theme.route;
+    }
+    // A family by its name, as effects name them (src/app/effects.cpp).
+    public pure function family(name: string) -> Tones {
+        return name == "ask" ? Theme.ask : name == "ok" ? Theme.ok : name == "link" ? Theme.link : name == "route" ? Theme.route
+            : name == "drop" ? Theme.drop : name == "guard" ? Theme.guard : name == "accent" ? Theme.accent : Theme.metal;
+    }
+    // A marker's tone, as src/app/scene.hpp names them.
+    public pure function tone(name: string) -> Tones {
+        return name == "learn" ? Theme.link : name == "forward" ? Theme.ok : name == "wait" ? Theme.ask
+            : name == "drop" ? Theme.drop : name == "success" ? Theme.ok : name == "edit" ? Theme.accent
+            : name == "guard" ? Theme.guard : Theme.metal;
+    }
+}
 
-    // The colour of an event's or a packet's protocol.
-    public pure function protocol-color(protocol: string) -> color {
-        return protocol == "ARP" ? Theme.amber : protocol == "ICMP" ? Theme.mint : protocol == "SIMULATOR" ? Theme.violet : Theme.blue;
-    }
+// Type: a pixel font for titles, a smooth font for text and a monospace for
+// data, all shipped in assets/fonts/ under the OFL. Sizes come from one
+// scale; nothing is smaller than 12 px.
+//
+// The pixel font is for titles only, at `pixel-title`: two screen pixels to
+// each pixel of its drawing. Its C reads as an O, its 7 as a 1 and its 2 as
+// an 8 at any size ("Check" as "Oheck", "ICMP" as "IOMP", port 2 as port
+// 8), so whatever is acted on or compared is in a smooth font: buttons,
+// tabs and chips in `ui`, and what the network holds (a device's name, a
+// port's number, an address) in `text` or `mono`.
+export global Type {
+    out property <string> pixel: "Pixelify Sans";
+    out property <string> text: "Inter";
+    out property <string> mono: "JetBrains Mono";
+    // Buttons, tabs, chips and captions, in semibold.
+    out property <string> ui: "Inter";
+    out property <length> small: 12px;
+    out property <length> body: 14px;
+    out property <length> label: 16px;
+    out property <length> title: 20px;
+    out property <length> display: 28px;
+    out property <length> pixel-title: 22px;
+    // The advance of the monospace at `small`: 0.6 em.
+    out property <length> mono-advance: 7.2px;
+}
+
+// How the interface moves: durations, and whether it moves at all. C++
+// sets `effects` from the settings (src/app_controller.cpp).
+export global Motion {
+    // "full", "reduced" or "off" (G4.4); the interface's own motion stops
+    // with "off", and reduced keeps fades but no travel.
+    in-out property <string> effects: "full";
+    out property <bool> moves: Motion.effects == "full";
+    out property <duration> quick: Motion.effects == "off" ? 0ms : 120ms;
+    out property <duration> slide: Motion.effects == "off" ? 0ms : 180ms;
+    // How far a drawer travels as it opens.
+    out property <length> travel: Motion.moves ? 24px : 0px;
+}
+
+// What resend plays (G5): C++ sets `on` and `level` from the settings and
+// plays a click when a button calls click() (src/app_controller.cpp).
+export global UiSound {
+    in-out property <bool> on: true;
+    // "quiet", "medium" or "loud".
+    in-out property <string> level: "medium";
+    // Where the sounds go: a device's name, or why they go nowhere.
+    in-out property <string> device;
+    // "on", "off", "next" to switch, or a level.
+    callback set-sound(string);
+    callback click();
 }
 
 // Device card size in canvas units. C++ owns the values (src/app/scene.hpp)
@@ -35,4 +118,6 @@ export global Theme {
 export global Geometry {
     in-out property <float> card-width: 160;
     in-out property <float> card-height: 94;
+    // The room a card gives its device's sprite, in canvas units (look::icon_room).
+    out property <float> icon-room: 36;
 }

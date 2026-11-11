@@ -68,7 +68,6 @@ Problem apply_one(Scenario& scenario, const SetAddress& edit) {
     if (!device) return Problem::NotAHost;
     if (device->kind == DeviceKind::Switch) return Problem::AddressOnSwitch;
     if (edit.port.port >= device->ports.size()) return Problem::NoSuchPort;
-    if (device->kind == DeviceKind::Host && !edit.address) return Problem::MissingAddress;
     if (const auto problem = check_address(edit.address); !ok(problem)) return problem;
     device->ports[edit.port.port].ipv4 = edit.address;
     return Problem::None;
@@ -332,7 +331,9 @@ Problem remove_link(Scenario& scenario, LinkId id) { return apply(scenario, Disc
 std::optional<SetAddress> host_address(const Scenario& scenario, DeviceId id, std::string_view address, int prefix, Problem& problem) {
     const auto* device = scenario.device(id);
     const auto parsed = Ipv4Address::parse(address);
-    problem = !device || device->kind != DeviceKind::Host ? Problem::NotAHost
+    problem = !device || device->kind != DeviceKind::Host ? Problem::NotAHost : Problem::None;
+    if (ok(problem) && address.empty()) return SetAddress{PortRef{id, 0}, std::nullopt};  // no address at all
+    problem = !ok(problem) ? problem
         : prefix < 1 || prefix > 32 ? Problem::InvalidPrefix
         : !parsed || !Ipv4Prefix(*parsed, prefix).usable_host() ? Problem::InvalidHostAddress
         : Problem::None;

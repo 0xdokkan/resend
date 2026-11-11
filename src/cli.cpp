@@ -1,10 +1,12 @@
 #include "explain/explain.hpp"
+#include "lab/lab.hpp"
 #include "scenario/scenario_json.hpp"
 #include "sim/simulation.hpp"
 #include "wire/wire.hpp"
 
 #include <algorithm>
 #include <charconv>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -49,6 +51,14 @@ constexpr const char* usage =
     "  --pcap-link ID         write only the frames on the cable with this id\n"
     "  --check                only read and validate the scenario\n"
     "  --help                 show this text\n"
+    "\n"
+    "Labs:\n"
+    "  --lab FILE --check [NETWORK]\n"
+    "                         check the goals of a lab on a scenario file (default: the\n"
+    "                         network the lab starts from); 0 when every goal is met\n"
+    "  --lab FILE --verify    check the lab against its own solution: valid, a goal unmet\n"
+    "                         as given, every goal met when solved; 0 when it holds\n"
+    "  --answer ID VALUE      the answer to the lab's goal ID, for --check\n"
     "\n"
     "Exit status: 0 every ping got a reply, 1 a ping got none, 2 invalid input,\n"
     "3 the simulation did not finish.\n"
@@ -168,6 +178,51 @@ void print_traceroute(const netsim::Simulation& simulation, const netsim::PingSt
 }
 } // namespace
 
+std::optional<std::string> read_file(const std::string& path) {
+    std::ifstream input(path, std::ios::binary);
+    if (!input) return std::nullopt;
+    return std::string{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+}
+
+// --lab: a lab's goals on a network, or the lab against its solution.
+int run_lab(const std::string& path, const std::string& network_file, bool verify, const netsim::lab::Answers& answers) {
+    namespace lab = netsim::lab;
+    const auto text = read_file(path);
+    if (!text) return invalid(path + ": cannot open the file");
+    std::string error;
+    auto loaded = lab::lab_from_json(*text, error);
+    if (!loaded) return invalid(path + ": " + error);
+    loaded->id = std::filesystem::path(path).stem().string();
+    const auto& subject = *loaded;
+    if (verify) {
+        const auto issues = lab::verify(subject);
+        for (const auto& issue : issues) std::cout << path << ": " << issue << '\n';
+        if (issues.empty()) std::cout << subject.id << ": verified, " << subject.goals.size() << " goals\n";
+        return issues.empty() ? 0 : 1;
+    }
+    for (const auto& issue : lab::validate(subject)) return invalid(path + ": " + issue);
+    netsim::Scenario network = subject.network;
+    if (!network_file.empty()) {
+        const auto content = read_file(network_file);
+        if (!content) return invalid(network_file + ": cannot open the file");
+        auto scenario = netsim::scenario_from_json(*content, error);
+        if (!scenario) return invalid(network_file + ": " + error);
+        const auto issues = netsim::validate(*scenario);
+        for (const auto& issue : issues) return invalid(network_file + ": " + issue.subject + ": " + netsim::explain::describe(issue.problem));
+        network = std::move(*scenario);
+    }
+    std::cout << subject.title << '\n';
+    const auto verdicts = lab::check(subject, network, nullptr, answers);
+    for (const auto& verdict : verdicts) {
+        const auto& goal = subject.goals[verdict.goal];
+        std::cout << (verdict.met ? "  [met]  " : "  [ -- ] ") << goal.id << ": " << goal.text << '\n'
+                  << "         " << netsim::explain::verdict_text(subject, verdict, network) << '\n';
+    }
+    const auto met = std::count_if(verdicts.begin(), verdicts.end(), [](const auto& verdict) { return verdict.met; });
+    std::cout << met << " of " << verdicts.size() << " goals met\n";
+    return lab::all_met(verdicts) ? 0 : 1;
+}
+
 int main(int argc, char** argv) {
     std::string file, destination, pcap;
     std::optional<netsim::LinkId> pcap_link;
@@ -175,7 +230,9 @@ int main(int argc, char** argv) {
     netsim::PingOptions options;
     std::uint16_t max_hops = netsim::default_max_hops;
     std::optional<netsim::SimTime> at;
-    bool disconnect = false, trace = false, check = false;
+    bool disconnect = false, trace = false, check = false, verify = false;
+    std::string lab_file;
+    netsim::lab::Answers answers;
     const auto duration = [](const char* text, netsim::SimTime& out) {
         const auto parsed = netsim::parse_duration(text);
         if (parsed) out = *parsed;
@@ -230,6 +287,13 @@ int main(int argc, char** argv) {
             pcap_link = netsim::LinkId{*id};
         } else if (arg == "--check") {
             check = true;
+        } else if (arg == "--lab" && has(1)) {
+            lab_file = argv[++index];
+        } else if (arg == "--verify") {
+            verify = true;
+        } else if (arg == "--answer" && has(2)) {
+            answers[argv[index + 1]] = argv[index + 2];
+            index += 2;
         } else if (!arg.starts_with("--") && destination.empty()) {
             destination = arg;
         } else {
@@ -237,16 +301,21 @@ int main(int argc, char** argv) {
             return 2;
         }
     }
+    if (!lab_file.empty()) {
+        // An "observed" goal needs the learner's own run, which the CLI does not have.
+        if (!commands.empty() || verify == check) return invalid("--lab needs either --check [NETWORK] or --verify, and no pings or changes.");
+        return run_lab(lab_file, file.empty() ? destination : file, verify, answers);
+    }
+    if (verify || !answers.empty()) return invalid("--verify and --answer go with --lab FILE.");
     if (at) return invalid("--at must come before a --ping or a change.");
     if (pcap_link && pcap.empty()) return invalid("--pcap-link needs --pcap FILE.");
 
     netsim::Scenario scenario = netsim::sample_lan();
     if (!file.empty()) {
-        std::ifstream input(file, std::ios::binary);
-        if (!input) return invalid(file + ": cannot open the file");
-        const std::string text{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+        const auto text = read_file(file);
+        if (!text) return invalid(file + ": cannot open the file");
         std::string error;
-        auto loaded = netsim::scenario_from_json(text, error);
+        auto loaded = netsim::scenario_from_json(*text, error);
         if (!loaded) return invalid(file + ": " + error);
         scenario = std::move(*loaded);
     }

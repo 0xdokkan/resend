@@ -1,28 +1,49 @@
-import { AboutSlint, LineEdit, ListView } from "std-widgets.slint";
-import { Theme } from "theme.slint";
-import { Action, Caption } from "widgets.slint";
-import { UiApp } from "state.slint";
+import { AboutSlint, ListView } from "std-widgets.slint";
+import { Theme, Type, UiSound } from "theme.slint";
+import { UiSprites } from "sprites.slint";
+import { Action, Caption, Icon, PixelFrame, Plate, ScrollBar, TextBox } from "widgets.slint";
+import { UiApp, UiLab } from "state.slint";
 
-// A card in the middle of a dimmed window. Clicks outside do nothing:
-// every dialog has its own way out.
+// A frame in the middle of a dimmed window. Clicks outside do nothing:
+// every dialog has its own way out, and Escape takes it.
 component DialogFrame inherits Rectangle {
     in property <string> label;
     in property <length> card-width: 420px;
     in property <length> card-height: 200px;
-    background: #000000b0;
+    // The dialog opens on a field that takes the keyboard by itself.
+    in property <bool> field: false;
+    // The dialog has the keyboard from the moment it opens, so no key
+    // reaches the network under it and Tab starts from its own controls.
+    // Not when a field asks for it: this `init` runs after the field's,
+    // and would take the keyboard back from it.
+    init => { if !root.field { keys.focus(); } }
+    // The window dimmed under the dialog, in the theme's darkest surface.
+    Rectangle { background: Theme.shade; opacity: 0.72; }
     TouchArea { }
-    Rectangle {
+    PixelFrame {
         width: min(root.card-width, root.width - 32px);
         height: min(root.card-height, root.height - 32px);
-        border-radius: 12px;
-        border-width: 1px;
-        border-color: Theme.line;
-        background: Theme.panel;
+        fill: Theme.panel;
+        highlight: Theme.raised-edge;
         accessible-role: groupbox;
         accessible-label: root.label;
         TouchArea { }
-        @children
+        keys := FocusScope {
+            key-pressed(e) => {
+                if e.text == Key.Escape { UiApp.dismiss-dialog(); return accept; }
+                return reject;
+            }
+            @children
+        }
     }
+}
+
+component DialogTitle inherits Text {
+    color: Theme.ink;
+    font-family: Type.pixel;
+    font-size: Type.pixel-title;
+    font-weight: 600;
+    wrap: word-wrap;
 }
 
 // Open and Save as: Slint has no file dialog, so the app has its own.
@@ -30,33 +51,36 @@ export component FileDialog inherits DialogFrame {
     in property <bool> saving;
     label: root.saving ? @tr("Save the network") : @tr("Open a network");
     card-width: 560px;
-    card-height: 470px;
+    card-height: 480px;
+    field: root.saving;
     VerticalLayout {
         padding: 20px;
         spacing: 10px;
-        Text { text: root.label; color: Theme.ink; font-size: 17px; font-weight: 700; }
+        DialogTitle { text: root.label; }
         HorizontalLayout {
             spacing: 6px;
-            Action { text: "↑"; accessible-text: @tr("Parent folder"); small: true; width: 30px; clicked => { UiApp.browse-up(); } }
-            Action { text: "⌂"; accessible-text: @tr("Home folder"); small: true; width: 30px; clicked => { UiApp.browse-home(); } }
-            Text { text: UiApp.folder; color: Theme.muted; font-size: 11px; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
+            Action { icon: UiSprites.chevron-up; accessible-text: @tr("Parent folder"); small: true; width: 32px; clicked => { UiApp.browse-up(); } }
+            Action { icon: UiSprites.home; accessible-text: @tr("Home folder"); small: true; width: 32px; clicked => { UiApp.browse-home(); } }
+            Text { text: UiApp.folder; color: Theme.muted; font-family: Type.mono; font-size: Type.small; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
         }
         Rectangle {
             vertical-stretch: 1;
-            border-radius: 6px;
-            border-width: 1px;
-            border-color: Theme.line;
-            background: Theme.sunken;
             accessible-role: list;
             accessible-label: @tr("Files");
-            ListView {
+            PixelFrame { width: 100%; height: 100%; unit: UiSprites.unit / 2; shadow: false; fill: Theme.sunken; border: Theme.edge; }
+            files-list := ListView {
+                x: 2px; y: 2px; width: parent.width - 14px; height: parent.height - 4px;
+                vertical-scrollbar-policy: always-off;
                 for entry in UiApp.entries: Rectangle {
-                    height: 28px;
+                    height: 30px;
                     background: entry-touch.has-hover ? Theme.hover : transparent;
                     HorizontalLayout {
                         padding-left: 10px; padding-right: 10px; spacing: 8px;
-                        Text { text: entry.folder ? "▸" : "·"; color: entry.folder ? Theme.blue : Theme.muted; width: 12px; vertical-alignment: center; }
-                        Text { text: entry.name; color: entry.folder ? Theme.ink : Theme.mint; font-size: 12px; overflow: elide; vertical-alignment: center; }
+                        VerticalLayout {
+                            alignment: center;
+                            Icon { source: entry.folder ? UiSprites.chevron-right : UiSprites.table; tint: entry.folder ? Theme.link.text : Theme.ok.text; }
+                        }
+                        Text { text: entry.name; color: entry.folder ? Theme.ink : Theme.ok.text; font-size: Type.small; overflow: elide; vertical-alignment: center; }
                     }
                     accessible-role: button;
                     accessible-label: entry.name;
@@ -67,23 +91,29 @@ export component FileDialog inherits DialogFrame {
                     }
                 }
             }
+            ScrollBar {
+                x: parent.width - self.width - 2px; y: 2px; height: parent.height - 4px;
+                offset <=> files-list.content-y;
+                content: files-list.content-height;
+                page: files-list.visible-height;
+            }
             if UiApp.entries.length == 0: Text {
                 text: root.saving ? @tr("No networks in this folder yet.") : @tr("No networks in this folder.");
-                color: Theme.muted; font-size: 12px;
+                color: Theme.muted; font-size: Type.small;
                 horizontal-alignment: center; vertical-alignment: center;
             }
         }
-        if UiApp.browser-error != "": Text { text: UiApp.browser-error; color: Theme.red; font-size: 11px; wrap: word-wrap; }
+        if UiApp.browser-error != "": Text { text: UiApp.browser-error; color: Theme.drop.text; font-size: Type.small; wrap: word-wrap; }
         if root.saving: HorizontalLayout {
             spacing: 8px;
-            Text { text: @tr("File name"); color: Theme.muted; font-size: 11px; vertical-alignment: center; }
-            name-field := LineEdit {
+            Text { text: @tr("File name"); color: Theme.muted; font-size: Type.small; vertical-alignment: center; }
+            name-field := TextBox {
                 horizontal-stretch: 1;
                 text <=> UiApp.file-name;
-                placeholder-text: "network.json";
-                accessible-label: @tr("File name");
+                placeholder: "network.json";
+                label: @tr("File name");
                 accepted => { UiApp.browse-confirm(); }
-                init => { self.focus(); }
+                init => { self.focus-input(); }
             }
         }
         HorizontalLayout {
@@ -98,13 +128,13 @@ export component FileDialog inherits DialogFrame {
 // A question with a few answers, such as Save, Discard and Cancel.
 export component ConfirmDialog inherits DialogFrame {
     label: UiApp.dialog-title;
-    card-width: 460px;
+    card-width: 470px;
     card-height: confirm-layout.preferred-height;
     confirm-layout := VerticalLayout {
         padding: 22px;
         spacing: 12px;
-        Text { text: UiApp.dialog-title; color: Theme.ink; font-size: 16px; font-weight: 700; wrap: word-wrap; }
-        Text { text: UiApp.dialog-message; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+        DialogTitle { text: UiApp.dialog-title; }
+        Text { text: UiApp.dialog-message; color: Theme.ink; font-size: Type.small; wrap: word-wrap; }
         HorizontalLayout {
             alignment: end;
             spacing: 8px;
@@ -122,21 +152,308 @@ export component ConfirmDialog inherits DialogFrame {
 // "About" screen reachable from the main window.
 export component AboutDialog inherits DialogFrame {
     label: @tr("About resend");
-    card-width: 400px;
+    card-width: 440px;
     card-height: about-layout.preferred-height;
     about-layout := VerticalLayout {
         padding: 24px;
         spacing: 10px;
-        Text { text: "resend"; color: Theme.ink; font-size: 22px; font-weight: 700; }
-        Text {
-            text: @tr("Version {0} · a local network sandbox with Ethernet, ARP, IPv4 and ICMP.", UiApp.version);
-            color: Theme.muted; font-size: 12px; wrap: word-wrap;
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: start;
+            Icon { source: UiSprites.logo; unit: UiSprites.unit * 1.5; }
+            DialogTitle { text: "resend"; font-size: Type.display; vertical-alignment: center; }
         }
-        Text { text: "© 2026 Zayd Soulmani · MIT License"; color: Theme.ink; font-size: 12px; }
-        Text { text: @tr("The interface uses Slint under the Royalty-free License 2.0."); color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+        Text {
+            text: @tr("Version {0} · a local network sandbox with Ethernet, ARP, IPv4 and ICMP, and guided labs whose goals are checked on the simulation.", UiApp.version);
+            color: Theme.ink; font-size: Type.small; wrap: word-wrap;
+        }
+        Text { text: "© 2026 Zayd Soulmani · MIT License"; color: Theme.ink; font-size: Type.small; }
+        Text {
+            text: @tr("Fonts: Pixelify Sans, Inter and JetBrains Mono, under the SIL Open Font License 1.1. The Blueberry theme is based on Sweetie 16 by GrafxKid.");
+            color: Theme.muted; font-size: Type.small; wrap: word-wrap;
+        }
+        Text { text: @tr("The interface uses Slint under the Royalty-free License 2.0. Sounds play through miniaudio by David Reid, under the Unlicense."); color: Theme.muted; font-size: Type.small; wrap: word-wrap; }
+        Text { text: @tr("Sound output: {0}", UiSound.device); color: Theme.muted; font-size: Type.small; wrap: word-wrap; }
         AboutSlint { }
         HorizontalLayout {
             alignment: end;
+            Action { text: @tr("Close"); clicked => { UiApp.close-dialog(); } }
+        }
+    }
+}
+
+// Every action with its key, found by typing part of its name.
+export component CommandPalette inherits DialogFrame {
+    label: @tr("Command palette");
+    card-width: 560px;
+    card-height: 460px;
+    field: true;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 10px;
+        DialogTitle { text: root.label; }
+        search := TextBox {
+            mono: false;
+            text <=> UiApp.command-filter;
+            label: @tr("Search the actions");
+            placeholder: @tr("Type to search, Enter to run the first one");
+            edited(value) => { UiApp.filter-commands(value); }
+            accepted => { if UiApp.commands.length > 0 && UiApp.commands[0].enabled { UiApp.run-command(UiApp.commands[0].id); } }
+            init => { self.focus-input(); }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            accessible-role: list;
+            accessible-label: @tr("Matching actions");
+            PixelFrame { width: 100%; height: 100%; unit: UiSprites.unit / 2; shadow: false; fill: Theme.sunken; border: Theme.edge; }
+            commands-list := ListView {
+                x: 2px; y: 2px; width: parent.width - 14px; height: parent.height - 4px;
+                vertical-scrollbar-policy: always-off;
+                for command in UiApp.commands: Rectangle {
+                    height: 32px;
+                    background: command-touch.has-hover && command.enabled ? Theme.hover : transparent;
+                    opacity: command.enabled ? 1 : 0.5;
+                    HorizontalLayout {
+                        padding-left: 12px; padding-right: 12px; spacing: 10px;
+                        Text { text: command.title; color: Theme.ink; font-size: Type.small; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+                        Text { text: command.group; color: Theme.muted; font-size: Type.small; vertical-alignment: center; }
+                        if command.keys != "": Text { text: command.keys; color: Theme.accent.text; font-family: Type.mono; font-size: Type.small; vertical-alignment: center; }
+                    }
+                    accessible-role: button;
+                    accessible-label: command.title;
+                    accessible-enabled: command.enabled;
+                    accessible-action-default => { if command.enabled { UiApp.run-command(command.id); } }
+                    command-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { if command.enabled { UiApp.run-command(command.id); } }
+                    }
+                }
+            }
+            ScrollBar {
+                x: parent.width - self.width - 2px; y: 2px; height: parent.height - 4px;
+                offset <=> commands-list.content-y;
+                content: commands-list.content-height;
+                page: commands-list.visible-height;
+            }
+            if UiApp.commands.length == 0: Text {
+                text: @tr("No action has that name.");
+                color: Theme.muted; font-size: Type.small;
+                horizontal-alignment: center; vertical-alignment: center;
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            Action { text: @tr("Close"); quiet: true; clicked => { UiApp.close-dialog(); } }
+        }
+    }
+}
+
+component KeyRow inherits HorizontalLayout {
+    in property <string> keys;
+    in property <string> text;
+    spacing: 12px;
+    Text { text: root.keys; width: 130px; color: Theme.accent.text; font-family: Type.mono; font-size: Type.small; }
+    Text { text: root.text; color: Theme.ink; font-size: Type.small; wrap: word-wrap; horizontal-stretch: 1; }
+}
+
+// Every key of the window, on ?.
+export component KeyMap inherits DialogFrame {
+    label: @tr("Keyboard shortcuts");
+    card-width: 620px;
+    card-height: 560px;
+    VerticalLayout {
+        padding: 20px;
+        spacing: 8px;
+        DialogTitle { text: root.label; }
+        HorizontalLayout {
+            spacing: 24px;
+            vertical-stretch: 1;
+            VerticalLayout {
+                spacing: 6px;
+                alignment: start;
+                Caption { text: @tr("BUILD"); }
+                KeyRow { keys: "1 · 2 · 3"; text: @tr("Add a host, a switch, a router"); }
+                KeyRow { keys: @tr("Arrows"); text: @tr("Move the selected card; with Shift, by one unit"); }
+                KeyRow { keys: @tr("Enter"); text: @tr("Start or end a cable on the selected card"); }
+                KeyRow { keys: @tr("Delete"); text: @tr("Delete the selection"); }
+                KeyRow { keys: "Esc"; text: @tr("Cancel the cable being drawn; close a dialog or a menu"); }
+                KeyRow { keys: "+ · − · 0"; text: @tr("Zoom in, zoom out, fit the network"); }
+                Caption { text: @tr("RUN"); }
+                KeyRow { keys: "P"; text: @tr("Type the destination of a ping"); }
+                KeyRow { keys: "T"; text: @tr("Switch between ping and traceroute"); }
+                KeyRow { keys: @tr("Space"); text: @tr("Run or pause"); }
+                KeyRow { keys: "."; text: @tr("Step to the next event"); }
+                KeyRow { keys: "]"; text: @tr("Change the speed"); }
+                KeyRow { keys: "R"; text: @tr("Reset the simulation"); }
+                KeyRow { keys: @tr("End"); text: @tr("Go to the latest instant"); }
+            }
+            VerticalLayout {
+                spacing: 6px;
+                alignment: start;
+                Caption { text: @tr("VIEW"); }
+                KeyRow { keys: "B · I · L"; text: @tr("Show or hide the palette, the inspector, the timeline"); }
+                KeyRow { keys: "H"; text: @tr("Hide the HUD"); }
+                KeyRow { keys: "G"; text: @tr("Show or hide the lab, or choose one"); }
+                KeyRow { keys: "E"; text: @tr("Effects: full, reduced or off"); }
+                KeyRow { keys: "M"; text: @tr("Sound on or off"); }
+                KeyRow { keys: "?"; text: @tr("This list"); }
+                Caption { text: @tr("DOCUMENT"); }
+                KeyRow { keys: "Ctrl+K"; text: @tr("Command palette"); }
+                KeyRow { keys: "Ctrl+Z · Ctrl+Y"; text: @tr("Undo, redo"); }
+                KeyRow { keys: "Ctrl+S"; text: @tr("Save; with Shift, save as"); }
+                KeyRow { keys: "Ctrl+O · Ctrl+N"; text: @tr("Open, new"); }
+                KeyRow { keys: "Ctrl+Q"; text: @tr("Quit"); }
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            Action { text: @tr("Close"); clicked => { UiApp.close-dialog(); } }
+        }
+    }
+}
+
+component WelcomeChoice inherits Rectangle {
+    in property <string> title;
+    in property <string> text;
+    in property <image> icon;
+    callback clicked();
+    height: 72px;
+    accessible-role: button;
+    accessible-label: root.title;
+    accessible-description: root.text;
+    accessible-action-default => { root.clicked(); }
+    forward-focus: focus;
+    PixelFrame {
+        width: 100%; height: 100%;
+        unit: UiSprites.unit / 2;
+        sink: touch.pressed ? self.unit : 0px;
+        fill: touch.has-hover ? Theme.hover : Theme.raised;
+        border: focus.has-focus ? Theme.accent.base : Theme.outline;
+        highlight: Theme.raised-edge;
+        HorizontalLayout {
+            y: parent.sink;
+            padding: 12px; spacing: 14px;
+            VerticalLayout { alignment: center; Icon { source: root.icon; unit: UiSprites.unit; tint: Theme.accent.text; } }
+            VerticalLayout {
+                alignment: center; spacing: 2px;
+                Text { text: root.title; color: Theme.ink; font-family: Type.ui; font-size: Type.label; font-weight: 600; }
+                Text { text: root.text; color: Theme.muted; font-size: Type.small; wrap: word-wrap; }
+            }
+        }
+    }
+    focus := FocusScope {
+        focus-on-tab-navigation: true;
+        key-pressed(e) => { if e.text == " " || e.text == "\n" { root.clicked(); return accept; } return reject; }
+    }
+    touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
+}
+
+// The first run: where to start.
+export component Welcome inherits DialogFrame {
+    label: @tr("Welcome to resend");
+    card-width: 520px;
+    card-height: welcome-layout.preferred-height;
+    welcome-layout := VerticalLayout {
+        padding: 24px;
+        spacing: 12px;
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: start;
+            Icon { source: UiSprites.logo; unit: UiSprites.unit * 1.5; }
+            DialogTitle { text: root.label; vertical-alignment: center; }
+        }
+        Text {
+            text: @tr("A network you build yourself, where every frame can be followed and explained. Where do you want to start?");
+            color: Theme.ink; font-size: Type.small; wrap: word-wrap;
+        }
+        WelcomeChoice {
+            icon: UiSprites.lab;
+            title: @tr("Do the first lab");
+            text: @tr("Build two LANs and a router step by step, as in a first networks course; resend checks each goal.");
+            clicked => { UiApp.run-command("welcome-lab"); }
+        }
+        WelcomeChoice {
+            icon: UiSprites.play;
+            title: @tr("Send a first ping");
+            text: @tr("The sample network is ready: press Send, then Run, and watch ARP and ICMP at work.");
+            clicked => { UiApp.run-command("welcome-ping"); }
+        }
+        WelcomeChoice {
+            icon: UiSprites.menu;
+            title: @tr("Open an example");
+            text: @tr("Networks with a lesson each: two switches, routers, a wrong gateway, a loop.");
+            clicked => { UiApp.run-command("welcome-examples"); }
+        }
+        WelcomeChoice {
+            icon: UiSprites.plus;
+            title: @tr("Start from an empty network");
+            text: @tr("Add hosts, switches and routers with 1, 2 and 3, then plug the cables.");
+            clicked => { UiApp.run-command("welcome-empty"); }
+        }
+        Text {
+            text: @tr("Press ? at any time for the keys, Ctrl+K for every action. The buttons beside the clock turn the effects and the sound down or off.");
+            color: Theme.muted; font-size: Type.small; wrap: word-wrap;
+        }
+    }
+}
+
+// The labs built in, by topic, the ones solved ticked.
+export component LabLibrary inherits DialogFrame {
+    label: @tr("Labs");
+    card-width: 560px;
+    card-height: 560px;
+    VerticalLayout {
+        padding: 20px;
+        spacing: 10px;
+        DialogTitle { text: root.label; }
+        Text {
+            text: @tr("Guided labs walk through each step; a challenge gives the goal only; in troubleshooting the network is broken and you find why.");
+            color: Theme.muted; font-size: Type.small; wrap: word-wrap;
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            accessible-role: list;
+            accessible-label: @tr("Labs");
+            PixelFrame { width: 100%; height: 100%; unit: UiSprites.unit / 2; shadow: false; fill: Theme.sunken; border: Theme.edge; }
+            labs-list := ListView {
+                x: 2px; y: 2px; width: parent.width - 14px; height: parent.height - 4px;
+                vertical-scrollbar-policy: always-off;
+                for entry[i] in UiLab.library: VerticalLayout {
+                    if entry.first: Rectangle {
+                        height: 30px;
+                        Caption { x: 12px; y: 12px; text: entry.topic; }
+                    }
+                    Rectangle {
+                        height: 38px;
+                        background: entry-touch.has-hover ? Theme.hover : transparent;
+                        accessible-role: button;
+                        accessible-label: entry.title;
+                        accessible-description: entry.solved ? @tr("{0}, solved", entry.kind) : entry.kind;
+                        accessible-action-default => { UiLab.open-lab(i); }
+                        HorizontalLayout {
+                            padding-left: 12px; padding-right: 12px; spacing: 10px;
+                            VerticalLayout {
+                                alignment: center;
+                                Icon { source: entry.solved ? UiSprites.goal-done : UiSprites.goal-open; }
+                            }
+                            Text { text: entry.title; color: Theme.ink; font-size: Type.small; font-weight: 600; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
+                            VerticalLayout { alignment: center; Plate { text: entry.kind; } }
+                        }
+                        entry-touch := TouchArea { mouse-cursor: pointer; clicked => { UiLab.open-lab(i); } }
+                    }
+                }
+            }
+            ScrollBar {
+                x: parent.width - self.width - 2px; y: 2px; height: parent.height - 4px;
+                offset <=> labs-list.content-y;
+                content: labs-list.content-height;
+                page: labs-list.visible-height;
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            spacing: 8px;
+            if UiLab.active: Action { text: @tr("Leave the lab"); accessible-text: @tr("Leave the lab, keeping the network"); quiet: true; clicked => { UiApp.close-dialog(); UiLab.leave(); } }
             Action { text: @tr("Close"); clicked => { UiApp.close-dialog(); } }
         }
     }

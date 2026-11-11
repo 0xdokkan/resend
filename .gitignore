@@ -2,3 +2,4 @@
 /.deps/
 /dist/
 *.log
+__pycache__/

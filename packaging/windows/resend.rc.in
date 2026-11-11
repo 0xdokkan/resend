@@ -1,0 +1,34 @@
+// The icon and the version information of resend.exe; CMake fills in the
+// values (CMakeLists.txt). The icon is painted from the sprites at build time.
+#include <winver.h>
+
+1 ICON "@resend_icon_file@"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+ PRODUCTVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+ FILEFLAGS 0x0L
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "resend"
+            VALUE "FileDescription", "resend network sandbox"
+            VALUE "FileVersion", "@PROJECT_VERSION@"
+            VALUE "InternalName", "resend"
+            VALUE "LegalCopyright", "Copyright (c) 2026 Zayd Soulmani, MIT License"
+            VALUE "OriginalFilename", "resend.exe"
+            VALUE "ProductName", "resend"
+            VALUE "ProductVersion", "@PROJECT_VERSION@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

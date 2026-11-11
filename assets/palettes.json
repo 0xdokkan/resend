@@ -1,0 +1,116 @@
+{
+  "format": "resend-palettes",
+  "version": 1,
+  "default": "blueberry",
+  "themes": [
+    {
+      "id": "blueberry",
+      "title": "Blueberry",
+      "dark": true,
+      "credit": "Based on Sweetie 16 by GrafxKid",
+      "surfaces": {
+        "outline": "#1a1c2c",
+        "shade": "#10111c",
+        "base": "#1a1c2c",
+        "canvas": "#1a1c2c",
+        "grid": "#29304a",
+        "panel": "#333c57",
+        "raised": "#29366f",
+        "raised-edge": "#3b5dc9",
+        "hover": "#3b4f99",
+        "sunken": "#1a1c2c",
+        "edge": "#566c86",
+        "line": "#566c86",
+        "screen": "#1a1c2c"
+      },
+      "inks": {
+        "ink": "#f4f4f4",
+        "muted": "#94b0c2",
+        "on-accent": "#1a1c2c",
+        "screen-ink": "#f4f4f4"
+      },
+      "families": {
+        "metal": ["#29366f", "#333c57", "#566c86", "#94b0c2"],
+        "accent": ["#257179", "#41a6f6", "#73eff7", "#f4f4f4"],
+        "ok": ["#257179", "#41a6f6", "#73eff7", "#f4f4f4"],
+        "link": ["#29366f", "#3b5dc9", "#62b3ff", "#c9e6ff"],
+        "ask": ["#b13e53", "#ef7d57", "#ffcd75", "#f4f4f4"],
+        "route": ["#257179", "#38b764", "#a7f070", "#f4f4f4"],
+        "drop": ["#5d275d", "#b13e53", "#ff8f99", "#ffe0e3"],
+        "guard": ["#5d275d", "#8e4fb8", "#d6a6ff", "#f3e6ff"]
+      }
+    },
+    {
+      "id": "bubblegum",
+      "title": "Bubblegum",
+      "dark": true,
+      "surfaces": {
+        "outline": "#140c1f",
+        "shade": "#0d0814",
+        "base": "#160e24",
+        "canvas": "#1e1430",
+        "grid": "#2b2150",
+        "panel": "#2a1d45",
+        "raised": "#3a2a63",
+        "raised-edge": "#5a4391",
+        "hover": "#4a3778",
+        "sunken": "#160e24",
+        "edge": "#5a4391",
+        "line": "#4a3a7a",
+        "screen": "#160e24"
+      },
+      "inks": {
+        "ink": "#f8f0ff",
+        "muted": "#b9a6dd",
+        "on-accent": "#140c1f",
+        "screen-ink": "#f8f0ff"
+      },
+      "families": {
+        "metal": ["#33295c", "#4a3f80", "#7166b0", "#aba3e6"],
+        "accent": ["#6b1d52", "#d14a93", "#ff8ac4", "#ffd9ee"],
+        "ok": ["#12565c", "#25a79b", "#6ff2de", "#d6fff6"],
+        "link": ["#22408a", "#4277dd", "#79b7ff", "#d4e8ff"],
+        "ask": ["#7d4a14", "#e89a2c", "#ffd65c", "#fff4c7"],
+        "route": ["#3d6117", "#7fb62f", "#c1f06a", "#efffc9"],
+        "drop": ["#6e1a1a", "#d43d3d", "#ff8a7a", "#ffdcd6"],
+        "guard": ["#3f2170", "#8551dc", "#c99bff", "#efe3ff"]
+      }
+    },
+    {
+      "id": "picnic",
+      "title": "Picnic",
+      "dark": false,
+      "surfaces": {
+        "outline": "#33263d",
+        "shade": "#b8996a",
+        "base": "#e8dcc2",
+        "canvas": "#f2e8d0",
+        "grid": "#e2d4b4",
+        "panel": "#fffaf0",
+        "raised": "#f3e3c3",
+        "raised-edge": "#ffffff",
+        "hover": "#ead3a6",
+        "sunken": "#ffffff",
+        "edge": "#b8996a",
+        "line": "#d9c9a6",
+        "screen": "#2b2137"
+      },
+      "inks": {
+        "ink": "#33263d",
+        "muted": "#6b5a63",
+        "on-accent": "#33263d",
+        "screen-ink": "#f2e8d0"
+      },
+      "families": {
+        "metal": ["#5d6385", "#7e86a8", "#a5adc9", "#d5dbec"],
+        "accent": ["#0e5a56", "#1f9a8c", "#55d6bd", "#cdf5ea"],
+        "ok": ["#0e5a56", "#1f9a8c", "#55d6bd", "#cdf5ea"],
+        "link": ["#22408a", "#3d73d9", "#7db0ff", "#dbe8ff"],
+        "ask": ["#7a4a08", "#dc8f1e", "#ffc54d", "#ffefc2"],
+        "route": ["#33611a", "#63a82e", "#a4dc5a", "#e6f8c9"],
+        "drop": ["#8a1f2c", "#c8414f", "#f07a84", "#fbdde0"],
+        "guard": ["#4b2a85", "#7d55c7", "#b495f0", "#ebe1fb"]
+      }
+    }
+  ]
+}

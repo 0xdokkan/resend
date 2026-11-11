@@ -120,7 +120,6 @@ std::vector<Issue> validate(const Scenario& scenario) {
             report(Problem::InvalidAgeing, who);
         for (const auto& port : device.ports) {
             if (device.kind == DeviceKind::Switch && port.ipv4) report(Problem::AddressOnSwitch, who);
-            if (device.kind == DeviceKind::Host && !port.ipv4) report(Problem::MissingAddress, who);
             if (device.kind != DeviceKind::Switch && port.ipv4 && !port.ipv4->usable_host())
                 report(Problem::InvalidHostAddress, who + " " + port.ipv4->to_string());
         }

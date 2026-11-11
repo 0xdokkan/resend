@@ -1,8 +1,10 @@
 #include "scenario/scenario_json.hpp"
 
 #include "core/json.hpp"
+#include "core/json_reader.hpp"
 #include "core/text.hpp"
 
+#include <algorithm>
 #include <initializer_list>
 #include <limits>
 #include <utility>
@@ -33,77 +35,30 @@ bool default_port(const DeviceConfig& device, std::size_t index) {
     return port.mac == default_mac(device.kind, device.id, static_cast<int>(index)) && port.admin_up && !port.ipv4;
 }
 
-// Reads members with the path of each one, so errors say where they are.
-class Reader {
-public:
-    std::string error;
-
-    bool fail(const std::string& path, const std::string& message) {
-        if (error.empty()) error = path + ": " + message;
+// A port as files write it: {"device": 3, "port": 1}.
+bool read_port_ref(json::Reader& read, const Value& value, const std::string& path, PortRef& out) {
+    if (!read.object(value, path) || !read.only(value, path, {"device", "port"})) return false;
+    std::int64_t device = 0, port = 0;
+    if (!read.number(value, "device", path, 1, std::numeric_limits<std::uint32_t>::max(), device) ||
+        !read.number(value, "port", path, 1, 64, port))
         return false;
-    }
-    // Every member of `object` must be one of `known`.
-    bool only(const Value& object, const std::string& path, std::initializer_list<std::string_view> known) {
-        for (const auto& [key, value] : *object.members()) {
-            bool listed = false;
-            for (const auto name : known) listed = listed || name == key;
-            if (!listed) return fail(path, tr("unknown member \"{0}\"", {key}));
-        }
-        return true;
-    }
-    const Value* object(const Value& value, const std::string& path) {
-        if (!value.members()) {
-            fail(path, tr("expected an object"));
-            return nullptr;
-        }
-        return &value;
-    }
-    const Value* member(const Value& object, std::string_view key, const std::string& path) {
-        const auto* value = object.find(key);
-        if (!value) fail(path, tr("missing member \"{0}\"", {key}));
-        return value;
-    }
-    bool text(const Value& object, std::string_view key, const std::string& path, std::string& out, bool required = true) {
-        const auto* value = object.find(key);
-        if (!value) return !required || fail(path, tr("missing member \"{0}\"", {key}));
-        if (!value->string()) return fail(path + "." + std::string(key), tr("expected a string"));
-        out = *value->string();
-        return true;
-    }
-    bool flag(const Value& object, std::string_view key, const std::string& path, bool& out) {
-        const auto* value = object.find(key);
-        if (!value) return true;  // optional, keeps the default
-        if (!value->boolean()) return fail(path + "." + std::string(key), tr("expected true or false"));
-        out = *value->boolean();
-        return true;
-    }
-    bool number(const Value& object, std::string_view key, const std::string& path, std::int64_t low, std::int64_t high,
-                std::int64_t& out, bool required = true) {
-        const auto* value = object.find(key);
-        if (!value) return !required || fail(path, tr("missing member \"{0}\"", {key}));
-        if (!value->integer() || *value->integer() < low || *value->integer() > high)
-            return fail(path + "." + std::string(key), tr("expected a whole number from {0} to {1}", {std::to_string(low), std::to_string(high)}));
-        out = *value->integer();
-        return true;
-    }
-    bool port_ref(const Value& value, const std::string& path, PortRef& out) {
-        if (!object(value, path) || !only(value, path, {"device", "port"})) return false;
-        std::int64_t device = 0, port = 0;
-        if (!number(value, "device", path, 1, std::numeric_limits<std::uint32_t>::max(), device) ||
-            !number(value, "port", path, 1, 64, port))
-            return false;
-        out = {DeviceId{static_cast<std::uint32_t>(device)}, static_cast<std::uint8_t>(port - 1)};
-        return true;
-    }
-};
+    out = {DeviceId{static_cast<std::uint32_t>(device)}, static_cast<std::uint8_t>(port - 1)};
+    return true;
+}
+std::optional<Scenario> read_members(json::Reader& read, const Value& object, const std::string& where, const std::string& prefix, int version);
 } // namespace
 
-std::string scenario_to_json(const Scenario& scenario) {
+json::Value scenario_to_value(const Scenario& scenario, bool with_header) {
     Value root = Value::object();
-    root.set("format", "resend-scenario");
-    root.set("version", scenario_format_version);
-    root.set("title", scenario.title);
-    root.set("notes", scenario.notes);
+    const bool bare_host = std::any_of(scenario.devices.begin(), scenario.devices.end(), [](const DeviceConfig& device) {
+        return device.kind == DeviceKind::Host && !device.ports.empty() && !device.ports.front().ipv4;
+    });
+    if (with_header) {
+        root.set("format", "resend-scenario");
+        root.set("version", bare_host ? 3 : 2);
+        root.set("title", scenario.title);
+        root.set("notes", scenario.notes);
+    }
     root.set("seed", scenario.seed);
     auto& devices = root.set("devices", Value::array());
     for (const auto& device : scenario.devices) {
@@ -150,8 +105,10 @@ std::string scenario_to_json(const Scenario& scenario) {
         item.set("up", cable.up);
         links.push(std::move(item));
     }
-    return json::write(root);
+    return root;
 }
+
+std::string scenario_to_json(const Scenario& scenario) { return json::write(scenario_to_value(scenario, true)); }
 
 std::optional<Scenario> scenario_from_json(std::string_view text, std::string& error) {
     json::Error syntax;
@@ -160,7 +117,7 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
         error = tr("line {0}, column {1}", {std::to_string(syntax.line), std::to_string(syntax.column)}) + ": " + syntax.message;
         return std::nullopt;
     }
-    Reader read;
+    json::Reader read;
     const auto finish = [&]() -> std::optional<Scenario> {
         error = read.error;
         return std::nullopt;
@@ -179,24 +136,44 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
         return finish();
     }
     if (!read.only(*document, "file", {"format", "version", "title", "notes", "seed", "devices", "links"})) return finish();
+    auto scenario = read_members(read, *document, "file", "", static_cast<int>(version));
+    if (!scenario) return finish();
+    return scenario;
+}
 
+std::optional<Scenario> scenario_from_value(const json::Value& object, int version, const std::string& path, std::string& error) {
+    json::Reader read;
+    if (!read.object(object, path) || !read.only(object, path, {"title", "notes", "seed", "devices", "links"})) {
+        error = read.error;
+        return std::nullopt;
+    }
+    auto scenario = read_members(read, object, path, path + ".", version);
+    if (!scenario) error = read.error;
+    return scenario;
+}
+
+namespace {
+// The members of a scenario in `object`, whose path is `where`; the paths
+// of its members start with `prefix`.
+std::optional<Scenario> read_members(json::Reader& read, const Value& object, const std::string& where, const std::string& prefix, int version) {
+    const auto finish = [] { return std::optional<Scenario>(); };
     Scenario scenario;
     std::int64_t seed = 1;
-    if (!read.text(*document, "title", "file", scenario.title, false) ||
-        !read.text(*document, "notes", "file", scenario.notes, false) ||
-        !read.number(*document, "seed", "file", 0, std::numeric_limits<std::uint32_t>::max(), seed, false))
+    if (!read.text(object, "title", where, scenario.title, false) ||
+        !read.text(object, "notes", where, scenario.notes, false) ||
+        !read.number(object, "seed", where, 0, std::numeric_limits<std::uint32_t>::max(), seed, false))
         return finish();
     scenario.seed = static_cast<std::uint32_t>(seed);
 
-    const auto* devices = read.member(*document, "devices", "file");
+    const auto* devices = read.member(object, "devices", where);
     if (!devices) return finish();
     if (!devices->array_items()) {
-        read.fail("devices", tr("expected an array"));
+        read.fail(prefix + "devices", tr("expected an array"));
         return finish();
     }
     for (std::size_t index = 0; index < devices->array_items()->size(); ++index) {
         const auto& item = (*devices->array_items())[index];
-        const auto path = "devices[" + std::to_string(index) + "]";
+        const auto path = prefix + "devices[" + std::to_string(index) + "]";
         if (!read.object(item, path) ||
             !read.only(item, path, {"id", "kind", "name", "powered", "x", "y", "ageing", "gateway", "ports", "routes"}))
             return finish();
@@ -310,18 +287,22 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
                 device.routes.push_back({*network, *next_hop});
             }
         }
+        if (version < 3 && device.kind == DeviceKind::Host && !device.ports.front().ipv4) {
+            read.fail(path + ".ports[0]", tr("a host needs an IPv4 address in files before format version 3"));
+            return finish();
+        }
         scenario.devices.push_back(std::move(device));
     }
 
-    const auto* links = read.member(*document, "links", "file");
+    const auto* links = read.member(object, "links", where);
     if (!links) return finish();
     if (!links->array_items()) {
-        read.fail("links", tr("expected an array"));
+        read.fail(prefix + "links", tr("expected an array"));
         return finish();
     }
     for (std::size_t index = 0; index < links->array_items()->size(); ++index) {
         const auto& item = (*links->array_items())[index];
-        const auto path = "links[" + std::to_string(index) + "]";
+        const auto path = prefix + "links[" + std::to_string(index) + "]";
         if (!read.object(item, path) || !read.only(item, path, {"id", "a", "b", "delay", "up"})) return finish();
         LinkConfig cable;
         std::int64_t id = 0;
@@ -329,7 +310,7 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
         const auto* a = read.member(item, "a", path);
         const auto* b = a ? read.member(item, "b", path) : nullptr;
         if (!read.number(item, "id", path, 1, std::numeric_limits<std::uint32_t>::max(), id) || !a || !b ||
-            !read.port_ref(*a, path + ".a", cable.a) || !read.port_ref(*b, path + ".b", cable.b) ||
+            !read_port_ref(read, *a, path + ".a", cable.a) || !read_port_ref(read, *b, path + ".b", cable.b) ||
             !read.text(item, "delay", path, delay, false) || !read.flag(item, "up", path, cable.up))
             return finish();
         cable.id = LinkId{static_cast<std::uint32_t>(id)};
@@ -345,5 +326,6 @@ std::optional<Scenario> scenario_from_json(std::string_view text, std::string& e
     }
     return scenario;
 }
+} // namespace
 
 } // namespace netsim

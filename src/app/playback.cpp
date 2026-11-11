@@ -25,7 +25,12 @@ PlaybackController::PlaybackController(netsim::Simulation& simulation)
 
 void PlaybackController::play() {
     dwell_ = {};
-    mode_ = finished() ? Mode::Paused : Mode::Playing;
+    mode_ = finished() && view_ >= calm() ? Mode::Paused : Mode::Playing;
+}
+
+netsim::SimTime PlaybackController::calm() const {
+    const auto& records = timeline_.simulation().trace().records();
+    return records.empty() ? netsim::SimTime{} : records.back().time + afterglow;
 }
 
 void PlaybackController::pause() { mode_ = Mode::Paused; }
@@ -77,7 +82,7 @@ void PlaybackController::end_of_step() {
 
 double PlaybackController::rate_until(netsim::SimTime next) {
     const double rate = base_rate * speed_;
-    if (!in_flight().empty()) {
+    if (!in_flight().empty() || view_ < calm()) {
         gap_end_.reset();
         return rate;
     }
@@ -95,7 +100,27 @@ bool PlaybackController::tick(RealTime elapsed) {
     while (mode_ != Mode::Paused) {
         const auto next = timeline_.next_event_time();
         if (!next) {
-            mode_ = Mode::Paused;
+            // Nothing left: the afterglow, then a pause.
+            const auto end = calm();
+            if (view_ >= end) {
+                mode_ = Mode::Paused;
+                break;
+            }
+            if (reduced_motion_) {
+                // The last instant stays as long as any other.
+                dwell_ += RealTime{static_cast<std::int64_t>(budget)};
+                if (static_cast<double>(dwell_.count()) < static_cast<double>(reduced_dwell.count()) / speed_) break;
+                dwell_ = {};
+                show(end);
+            } else {
+                const double move = budget * base_rate * speed_ + carry_;
+                const auto whole = static_cast<std::int64_t>(move);
+                const double rest = move - static_cast<double>(whole);
+                show(std::min(end, view_ + netsim::SimTime{whole}));
+                carry_ = rest;
+            }
+            changed = true;
+            if (view_ >= end) mode_ = Mode::Paused;
             break;
         }
         if (*next <= view_) {
@@ -116,8 +141,20 @@ bool PlaybackController::tick(RealTime elapsed) {
             continue;
         }
         const double rate = rate_until(*next);
-        const double distance = static_cast<double>((*next - view_).count());
+        // The afterglow ends before the gap is compressed: stop there and
+        // spend the rest of the tick at the faster pace.
+        const auto end = calm();
+        const bool glowing = view_ < end && end < *next && in_flight().empty();
+        const double distance = static_cast<double>(((glowing ? end : *next) - view_).count());
         const double move = budget * rate + carry_;
+        if (glowing && move >= distance) {
+            budget = std::max(0.0, budget - (distance - carry_) / rate);
+            view_ = end;
+            carry_ = 0;
+            timeline_.run_until(view_);
+            changed = true;
+            continue;
+        }
         if (move >= distance) {
             // The next event is reached within this tick: process it and
             // spend what is left of the tick on what follows.

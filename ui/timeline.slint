@@ -1,6 +1,8 @@
-import { ListView, ScrollView, Slider, TabWidget } from "std-widgets.slint";
-import { Theme } from "theme.slint";
-import { Action, Caption, Chip, PanelHeader } from "widgets.slint";
+import { ListView } from "std-widgets.slint";
+import { Theme, Tones, Type } from "theme.slint";
+import { UiSprites } from "sprites.slint";
+import { Action, Caption, Chip, PixelFrame, Scroll, ScrollBar, Scrubber, Tabs } from "widgets.slint";
+import { UiApp, UiRun } from "state.slint";
 import { FrameView } from "frame.slint";
 
 // An event the filters let through; `index` is its place among all events.
@@ -49,9 +51,128 @@ export global UiTimeline {
     callback latest();
 }
 
-export component TimelinePanel inherits Rectangle {
-    callback fold();
+// The timeline folded to one row: the playback, the instant shown, and what
+// happened last.
+export component TimelineBar inherits PixelFrame {
+    // Where there is little room, the buttons keep their icons only.
+    property <bool> compact: root.width < 1000px;
+    fill: Theme.panel;
+    accessible-role: groupbox;
+    accessible-label: @tr("Timeline");
+    HorizontalLayout {
+        padding-left: 14px; padding-right: 8px; spacing: 8px;
+        Text { text: @tr("Timeline"); color: Theme.ink; font-family: Type.pixel; font-size: Type.pixel-title; font-weight: 600; vertical-alignment: center; }
+        // The playback: it lights up when something waits to be played.
+        VerticalLayout {
+            alignment: center;
+            Action {
+                icon: UiRun.running ? UiSprites.pause : UiSprites.play;
+                text: root.compact ? "" : UiRun.running ? @tr("Pause") : @tr("Run");
+                accessible-text: UiRun.running ? @tr("Pause") : @tr("Run");
+                tip: UiRun.pending ? "" : @tr("Run: nothing to play yet, send a ping first");
+                keys: "Space";
+                small: true; primary: UiRun.pending && !UiRun.running; enabled: UiRun.pending;
+                min-width: 36px;
+                clicked => { UiRun.run-toggle(); }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Action {
+                icon: UiSprites.step; text: root.compact ? "" : @tr("Step"); accessible-text: @tr("Step");
+                tip: @tr("Step: play one event");
+                keys: ".";
+                small: true; enabled: UiRun.pending && !UiRun.running;
+                min-width: 36px;
+                clicked => { UiRun.step(); }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Action { text: UiRun.speed-label; accessible-text: @tr("Playback speed"); keys: "]"; small: true; width: 48px; clicked => { UiRun.cycle-speed(); } }
+        }
+        VerticalLayout {
+            alignment: center;
+            Action { icon: UiSprites.reset; accessible-text: @tr("Reset the simulation"); keys: "R"; quiet: true; small: true; width: 32px; clicked => { UiRun.reset(); } }
+        }
+        VerticalLayout { alignment: center; Rectangle { width: 1px; height: 22px; background: Theme.line; } }
+        Scrubber {
+            horizontal-stretch: 2;
+            min-width: 120px;
+            y: (parent.height - self.height) / 2;
+            minimum: 0;
+            maximum: max(UiTimeline.end-ms, 0.001);
+            value <=> UiTimeline.now-ms;
+            enabled: UiTimeline.end-ms > 0;
+            label: @tr("Instant shown");
+            changed(value) => { UiTimeline.scrub(value); }
+        }
+        VerticalLayout {
+            alignment: center;
+            Action {
+                text: @tr("Latest");
+                accessible-text: @tr("Go to the latest instant");
+                keys: "End";
+                small: true;
+                enabled: UiTimeline.now-ms < UiTimeline.end-ms;
+                clicked => { UiTimeline.latest(); }
+            }
+        }
+        // What is shown: the past, or the newest event.
+        Text {
+            horizontal-stretch: 3;
+            min-width: 40px;
+            text: UiTimeline.locked ? @tr("You are looking at the past: later changes lie ahead. Go to the latest instant to change the network.")
+                : UiTimeline.title;
+            color: UiTimeline.locked ? Theme.ask.text : Theme.muted;
+            font-size: Type.small; overflow: elide; vertical-alignment: center;
+        }
+        VerticalLayout {
+            alignment: center;
+            Action {
+                icon: UiApp.timeline-open ? UiSprites.chevron-down : UiSprites.chevron-up;
+                text: root.compact ? "" : UiApp.timeline-open ? @tr("Hide events") : @tr("Events");
+                accessible-text: UiApp.timeline-open ? @tr("Hide the timeline") : @tr("Show the timeline");
+                keys: "L";
+                quiet: true; small: true; min-width: 32px;
+                clicked => { UiApp.timeline-open = !UiApp.timeline-open; }
+            }
+        }
+    }
+}
+
+// Why the selected event happened, in words. A component of its own, not a
+// box written under the `if` of its tab: Slint 1.18 measures a wrapped text
+// written straight under an `if` as one line, and a long explanation could
+// not be scrolled to its end.
+component WhyView inherits Rectangle {
+    clip: true;
+    PixelFrame { width: 100%; height: 100%; unit: UiSprites.unit / 2; shadow: false; fill: Theme.sunken; border: Theme.edge; }
+    VerticalLayout {
+        padding: 12px; spacing: 6px;
+        Caption {
+            text: UiTimeline.protocol == "" ? @tr("SEE WHY") : UiTimeline.protocol == "EDIT" ? @tr("A CHANGE TO THE NETWORK")
+                : UiTimeline.protocol == "SIMULATOR" ? @tr("THE SIMULATOR STEPPED IN") : @tr("INSIDE THE PACKET  /  {0}", UiTimeline.protocol);
+            color: UiTimeline.protocol == "" ? Theme.muted : Theme.protocol(UiTimeline.protocol).text;
+        }
+        Text { text: UiTimeline.title; color: Theme.ink; font-size: Type.label; font-weight: 600; wrap: word-wrap; }
+        Scroll {
+            vertical-stretch: 1;
+            VerticalLayout {
+                alignment: start;
+                padding-right: 14px;
+                Text { text: UiTimeline.detail; color: Theme.ink; font-size: Type.small; wrap: word-wrap; }
+            }
+        }
+    }
+}
+
+// The timeline opened: filters, the events, and why the selected one happened.
+export component TimelinePanel inherits PixelFrame {
     property <length> row-height: 30px;
+    // The events take a share of the panel that does not move as they
+    // arrive; Why and Frame take the rest, however narrow the panel is.
+    property <length> list-width: max(200px, min(440px, (root.width - 24px) * 0.44));
     property <int> reveal-serial: UiTimeline.reveal-serial;
     changed reveal-serial => { root.reveal(UiTimeline.reveal-row); }
 
@@ -66,165 +187,122 @@ export component TimelinePanel inherits Rectangle {
         }
     }
 
-    background: Theme.panel;
+    fill: Theme.panel;
+    accessible-role: groupbox;
+    accessible-label: @tr("Events");
     VerticalLayout {
-        // The scrubber: drag it back to replay the run up to that instant.
-        Rectangle {
-            height: 44px;
-            background: #15202d;
-            HorizontalLayout {
-                padding-left: 16px; padding-right: 8px; spacing: 10px;
-                Text { text: @tr("Timeline"); color: Theme.ink; font-weight: 600; font-size: 12px; vertical-alignment: center; }
-                Slider {
-                    horizontal-stretch: 1;
-                    minimum: 0;
-                    maximum: max(UiTimeline.end-ms, 0.001);
-                    value <=> UiTimeline.now-ms;
-                    enabled: UiTimeline.end-ms > 0;
-                    accessible-label: @tr("Instant shown");
-                    changed(value) => { UiTimeline.scrub(value); }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    Action {
-                        text: @tr("Latest");
-                        accessible-text: @tr("Go to the latest instant");
-                        small: true;
-                        enabled: UiTimeline.now-ms < UiTimeline.end-ms;
-                        clicked => { UiTimeline.latest(); }
-                    }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    Action { text: "⌄"; accessible-text: @tr("Hide the timeline"); quiet: true; small: true; width: 28px; clicked => { root.fold(); } }
-                }
-            }
-        }
-        if UiTimeline.locked: Rectangle {
-            height: 26px;
-            background: #2a2416;
-            Text {
-                x: 16px;
-                width: parent.width - 32px;
-                text: @tr("You are looking at the past: later changes lie ahead. Go to the latest instant to change the network.");
-                color: Theme.amber; font-size: 10px; vertical-alignment: center; overflow: elide;
-            }
-        }
-        HorizontalLayout {
-            vertical-stretch: 1;
-            VerticalLayout {
-                horizontal-stretch: 50;
-                min-width: 340px;
-                preferred-width: 340px;
+    padding: 8px;
+    spacing: 4px;
                 // Filters.
                 Rectangle {
-                    height: 36px;
+                    height: 34px;
                     clip: true;
                     HorizontalLayout {
-                        padding-left: 12px; padding-right: 12px; spacing: 5px;
+                        padding-left: 4px; padding-right: 4px; spacing: 5px;
                         alignment: start;
-                        VerticalLayout { alignment: center; Chip { text: "ARP"; tint: Theme.amber; checked: UiTimeline.arp; clicked => { UiTimeline.toggle-filter("arp"); } } }
-                        VerticalLayout { alignment: center; Chip { text: "ICMP"; tint: Theme.mint; checked: UiTimeline.icmp; clicked => { UiTimeline.toggle-filter("icmp"); } } }
-                        VerticalLayout { alignment: center; Chip { text: "IPv4"; checked: UiTimeline.ipv4; clicked => { UiTimeline.toggle-filter("ipv4"); } } }
-                        VerticalLayout { alignment: center; Chip { text: @tr("Changes"); checked: UiTimeline.edits; clicked => { UiTimeline.toggle-filter("edits"); } } }
-                        VerticalLayout { alignment: center; Chip { text: @tr("Simulator"); tint: Theme.violet; checked: UiTimeline.simulator; clicked => { UiTimeline.toggle-filter("simulator"); } } }
-                        VerticalLayout { alignment: center; Chip { text: @tr("Problems"); tint: Theme.red; checked: UiTimeline.problems; clicked => { UiTimeline.toggle-filter("problems"); } } }
+                        VerticalLayout { alignment: center; Chip { text: "ARP"; tint: Theme.ask; checked: UiTimeline.arp; clicked => { UiTimeline.toggle-filter("arp"); } } }
+                        VerticalLayout { alignment: center; Chip { text: "ICMP"; tint: Theme.ok; checked: UiTimeline.icmp; clicked => { UiTimeline.toggle-filter("icmp"); } } }
+                        VerticalLayout { alignment: center; Chip { text: "IPv4"; tint: Theme.route; checked: UiTimeline.ipv4; clicked => { UiTimeline.toggle-filter("ipv4"); } } }
+                        VerticalLayout { alignment: center; Chip { text: @tr("Changes"); tint: Theme.accent; checked: UiTimeline.edits; clicked => { UiTimeline.toggle-filter("edits"); } } }
+                        VerticalLayout { alignment: center; Chip { text: @tr("Simulator"); tint: Theme.guard; checked: UiTimeline.simulator; clicked => { UiTimeline.toggle-filter("simulator"); } } }
+                        VerticalLayout { alignment: center; Chip { text: @tr("Problems"); tint: Theme.drop; checked: UiTimeline.problems; clicked => { UiTimeline.toggle-filter("problems"); } } }
                         VerticalLayout {
                             alignment: center;
                             Chip {
                                 text: UiTimeline.device-name == "" ? @tr("Selected device") : UiTimeline.device-name;
+                                tint: Theme.link;
                                 checked: UiTimeline.device-only;
                                 clicked => { UiTimeline.toggle-filter("device"); }
                             }
                         }
                     }
                 }
-                Rectangle {
-                    vertical-stretch: 1;
-                    accessible-role: list;
-                    accessible-label: @tr("Event list");
-                    // ListView only instantiates the visible rows.
-                    event-list := ListView {
-                        // The virtualized content height settles only after layout,
-                        // so a new last row can be revealed only once it has grown.
-                        changed content-height => { if UiTimeline.follow { root.reveal(UiTimeline.reveal-row); } }
-                        for event[row] in UiTimeline.events: Rectangle {
-                            height: root.row-height;
-                            Rectangle {
-                                x: 6px; y: 1px; width: parent.width - 12px; height: parent.height - 2px;
-                                border-radius: 5px;
-                                background: UiTimeline.selected == event.index ? Theme.selection : event-touch.has-hover ? #1c2a3b : transparent;
-                                HorizontalLayout {
-                                    padding-left: 10px; padding-right: 10px; spacing: 10px;
-                                    Text { text: event.time; color: Theme.muted; font-size: 10px; width: 70px; vertical-alignment: center; }
-                                    Text {
-                                        text: event.protocol == "EDIT" ? @tr("CHANGE") : event.protocol;
-                                        color: Theme.protocol-color(event.protocol);
-                                        font-size: 10px; font-weight: 600; width: 64px; vertical-alignment: center;
-                                    }
-                                    Text { text: event.summary; color: event.problem ? Theme.red : Theme.ink; font-size: 11px; overflow: elide; vertical-alignment: center; }
+    HorizontalLayout {
+        vertical-stretch: 1;
+        spacing: 8px;
+        VerticalLayout {
+            horizontal-stretch: 0;
+            width: root.list-width;
+            spacing: 4px;
+            Rectangle {
+                vertical-stretch: 1;
+                accessible-role: list;
+                accessible-label: @tr("Event list");
+                PixelFrame { width: 100%; height: 100%; unit: UiSprites.unit / 2; shadow: false; fill: Theme.sunken; border: Theme.edge; }
+                // ListView only instantiates the visible rows.
+                event-list := ListView {
+                    x: 2px; y: 2px; width: parent.width - 14px; height: parent.height - 4px;
+                    vertical-scrollbar-policy: always-off;
+                    // The virtualized content height settles only after layout,
+                    // so a new last row can be revealed only once it has grown.
+                    changed content-height => { if UiTimeline.follow { root.reveal(UiTimeline.reveal-row); } }
+                    for event[row] in UiTimeline.events: Rectangle {
+                        height: root.row-height;
+                        Rectangle {
+                            x: 4px; y: 1px; width: parent.width - 8px; height: parent.height - 2px;
+                            background: UiTimeline.selected == event.index ? Theme.accent.chip : event-touch.has-hover ? Theme.hover : transparent;
+                            HorizontalLayout {
+                                padding-left: 8px; padding-right: 8px; spacing: 10px;
+                                Text {
+                                    text: event.time; width: 76px; vertical-alignment: center;
+                                    color: UiTimeline.selected == event.index ? Theme.accent.chip-ink : Theme.muted;
+                                    font-family: Type.mono; font-size: Type.small;
+                                }
+                                // A narrow list keeps the time and what happened.
+                                if root.list-width >= 300px: Text {
+                                    text: event.protocol == "EDIT" ? @tr("CHANGE") : event.protocol;
+                                    color: UiTimeline.selected == event.index ? Theme.accent.chip-ink : Theme.protocol(event.protocol).text;
+                                    font-family: Type.ui; font-size: Type.small; font-weight: 600; width: 72px; vertical-alignment: center;
+                                }
+                                Text {
+                                    text: event.summary;
+                                    color: UiTimeline.selected == event.index ? Theme.accent.chip-ink : event.problem ? Theme.drop.text : Theme.ink;
+                                    font-size: Type.small; overflow: elide; vertical-alignment: center;
                                 }
                             }
-                            accessible-role: button;
-                            accessible-label: event.protocol + ": " + event.summary;
-                            accessible-action-default => { UiTimeline.select(event.index); }
-                            forward-focus: event-focus;
-                            event-focus := FocusScope {
-                                focus-on-tab-navigation: true;
-                                key-pressed(e) => {
-                                    if e.text == " " || e.text == "\n" { UiTimeline.select(event.index); return accept; }
-                                    return reject;
-                                }
-                            }
-                            event-touch := TouchArea { mouse-cursor: pointer; clicked => { event-focus.focus(); UiTimeline.select(event.index); } }
                         }
-                    }
-                    if UiTimeline.events.length == 0: Text {
-                        width: parent.width - 32px;
-                        text: UiTimeline.total == 0 ? @tr("The next experiment starts with a ping. Events will appear here.")
-                            : @tr("No event matches the filters.");
-                        color: Theme.muted; font-size: 12px; wrap: word-wrap;
-                        horizontal-alignment: center; vertical-alignment: center;
+                        accessible-role: button;
+                        accessible-label: event.protocol + ": " + event.summary;
+                        accessible-action-default => { UiTimeline.select(event.index); }
+                        forward-focus: event-focus;
+                        event-focus := FocusScope {
+                            focus-on-tab-navigation: true;
+                            key-pressed(e) => {
+                                if e.text == " " || e.text == "\n" { UiTimeline.select(event.index); return accept; }
+                                return reject;
+                            }
+                        }
+                        event-touch := TouchArea { mouse-cursor: pointer; clicked => { event-focus.focus(); UiTimeline.select(event.index); } }
                     }
                 }
-            }
-            Rectangle { width: 1px; background: Theme.line; }
-            // Explicit sizes on both sides: the split must not move as events arrive.
-            Rectangle {
-                horizontal-stretch: 50;
-                min-width: 420px;
-                preferred-width: 420px;
-                TabWidget {
-                    current-index <=> UiTimeline.tab;
-                    Tab {
-                        title: @tr("Why");
-                        VerticalLayout {
-                            padding: 14px; spacing: 8px;
-                            Caption {
-                                text: UiTimeline.protocol == "" ? @tr("SEE WHY") : UiTimeline.protocol == "EDIT" ? @tr("A CHANGE TO THE NETWORK")
-                                    : UiTimeline.protocol == "SIMULATOR" ? @tr("THE SIMULATOR STEPPED IN") : @tr("INSIDE THE PACKET  /  {0}", UiTimeline.protocol);
-                            }
-                            Text { text: UiTimeline.title; color: Theme.ink; font-size: 15px; font-weight: 600; wrap: word-wrap; }
-                            ScrollView {
-                                vertical-stretch: 1;
-                                content-width: self.visible-width;
-                                horizontal-scrollbar-policy: always-off;
-                                VerticalLayout {
-                                    alignment: start;
-                                    Text { text: UiTimeline.detail; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
-                                }
-                            }
-                        }
-                    }
-                    Tab {
-                        title: @tr("Frame");
-                        VerticalLayout {
-                            padding: 12px;
-                            FrameView { }
-                        }
-                    }
+                ScrollBar {
+                    x: parent.width - self.width - 2px; y: 2px; height: parent.height - 4px;
+                    offset <=> event-list.content-y;
+                    content: event-list.content-height;
+                    page: event-list.visible-height;
+                }
+                if UiTimeline.events.length == 0: Text {
+                    width: parent.width - 32px;
+                    text: UiTimeline.total == 0 ? @tr("The next experiment starts with a ping. Events will appear here.")
+                        : @tr("No event matches the filters.");
+                    color: Theme.muted; font-size: Type.small; wrap: word-wrap;
+                    horizontal-alignment: center; vertical-alignment: center;
                 }
             }
         }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 0px;
+            spacing: 6px;
+            Tabs { titles: [@tr("Why"), @tr("Frame")]; current <=> UiTimeline.tab; }
+            if UiTimeline.tab == 0: WhyView { vertical-stretch: 1; }
+            if UiTimeline.tab == 1: Rectangle {
+                vertical-stretch: 1;
+                clip: true;
+                PixelFrame { width: 100%; height: 100%; unit: UiSprites.unit / 2; shadow: false; fill: Theme.sunken; border: Theme.edge; }
+                FrameView { x: 10px; y: 8px; width: parent.width - 20px; height: parent.height - 16px; }
+            }
+        }
     }
+}
 }

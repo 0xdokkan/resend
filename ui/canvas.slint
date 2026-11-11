@@ -1,5 +1,7 @@
-import { Theme, Geometry } from "theme.slint";
-import { Action, DeviceIcon } from "widgets.slint";
+import { Theme, Tones, Type, Geometry } from "theme.slint";
+import { UiSprites } from "sprites.slint";
+import { Icon, PixelFrame } from "widgets.slint";
+import { UiApp } from "state.slint";
 
 // A device card. Positions are canvas units; port bit masks have bit i for
 // port i + 1.
@@ -7,6 +9,14 @@ export struct NodeView {
     id: int, title: string, kind: string, address: string,
     x: float, y: float, selected: bool, powered: bool,
     port-count: int, connected-ports: int, down-ports: int, active-ports: int,
+    // What its sprite shows: 0 off, 1 on, 2 selected, 3 sending,
+    // 4 receiving, 5 error (look::DeviceState).
+    state: int,
+    // The addresses without their prefix lengths, for a small card.
+    brief: string,
+    // How far its sprite is moved off its place, in canvas units: a hop
+    // when a frame arrives, a shake when a ping fails (full effects).
+    nudge-x: float, nudge-y: float,
 }
 // A cable, for its port numbers and for screen readers; the window draws
 // cables from the paths of UiCanvas. Ends are on the card borders.
@@ -18,10 +28,18 @@ export struct LinkView {
 export struct PacketView {
     pdu: int, x: float, y: float, tail-x: float, tail-y: float,
     protocol: string, label: string, broadcast: bool, selected: bool, description: string,
+    // Its sprite in UiSprites.packets (netsim::PduKind).
+    kind: int,
 }
+// What an effect draws (src/app/effects.cpp): a square "ring" or "dot" of
+// half width `size` centred on x, y, in canvas units, or a "flash" over the
+// whole canvas; `tone` names a family of the theme.
+export struct ShapeView { form: string, x: float, y: float, size: float, tone: string, opacity: float }
 // A device decision; x, y is the top centre of its card, stack counts upwards.
 export struct MarkerView {
     x: float, y: float, stack: int, text: string, tone: string, opacity: float,
+    // A symbol before the text: "power", "warning" or "".
+    icon: string,
 }
 
 // The canvas, drawn from what C++ computes (src/app/canvas.hpp). Pointer and
@@ -31,6 +49,7 @@ export global UiCanvas {
     in property <[LinkView]> links;
     in property <[PacketView]> packets;
     in property <[MarkerView]> markers;
+    in property <[ShapeView]> shapes;
     // screen = canvas × zoom + pan
     in property <float> zoom: 1;
     in property <float> pan-x: 40;
@@ -42,6 +61,8 @@ export global UiCanvas {
     in property <string> cables-down;
     in property <string> cables-highlight;
     in property <string> cable-selected;
+    // Dashes on the cables a frame is on, moving with simulated time.
+    in property <string> cables-busy;
     in property <string> rubber-band;
     // What lies under the pointer: a device, and its port (-1 for the
     // connector, -2 for the card itself).
@@ -54,8 +75,21 @@ export global UiCanvas {
     in property <bool> running;
     in property <string> speed-label;
     in property <bool> panning;
+    // The selection, for the context menu: "host", "switch", "router",
+    // "cable" or "".
+    in property <string> selected-kind;
+    in property <int> selected-device: -1;
+    in property <bool> selected-powered: true;
+    in property <bool> selected-cable-up: true;
 
     callback resized(float, float);
+    // The menu of a right click, drawn over the HUD (ContextMenu).
+    in-out property <bool> menu-open;
+    in-out property <length> menu-x;
+    in-out property <length> menu-y;
+    in-out property <string> menu-kind;
+    // The part of the canvas the HUD leaves free: x, y, width, height.
+    callback free-area(float, float, float, float);
     // Buttons: 0 left, 1 middle, 2 right.
     callback press(float, float, int);
     callback moved(float, float);
@@ -79,10 +113,16 @@ component PortLight inherits Rectangle {
     in property <bool> down;
     in property <bool> active;
     in property <bool> hovered;
-    border-radius: 2px * UiCanvas.zoom;
-    background: self.active ? Theme.mint : !self.connected ? #0d1520 : self.down ? #4a3b2a : #2f5f7f;
-    border-width: self.hovered ? 2px : 1px;
-    border-color: self.hovered ? Theme.ink : self.active ? #d8fff1 : !self.connected ? #3a4d60 : self.down ? Theme.amber : #5d9cc4;
+    // look::PortState: free, connected, down, active.
+    property <int> state: self.active ? 3 : !self.connected ? 0 : self.down ? 2 : 1;
+    property <length> size: 8 * UiSprites.port-unit;
+    Image {
+        x: (parent.width - parent.size) / 2; y: (parent.height - parent.size) / 2;
+        width: parent.size; height: parent.size;
+        source: UiSprites.ports[root.state];
+        image-rendering: pixelated;
+    }
+    if root.hovered: Rectangle { border-width: 1px; border-color: Theme.accent.base; }
 }
 
 component Card inherits Rectangle {
@@ -94,13 +134,6 @@ component Card inherits Rectangle {
     y: (root.node.y * root.zoom + UiCanvas.pan-y) * 1px;
     width: Geometry.card-width * 1px * root.zoom;
     height: Geometry.card-height * 1px * root.zoom;
-    border-radius: 10px * root.zoom;
-    background: root.node.selected ? #1d3440 : UiCanvas.hover-device == root.node.id && UiCanvas.hover-port == -2 ? #1b2c3c : #172534;
-    border-width: root.node.selected || UiCanvas.source-device == root.node.id ? 2px : 1px;
-    border-color: root.node.selected ? Theme.mint : UiCanvas.source-device == root.node.id ? Theme.amber : #365068;
-    drop-shadow-blur: 12px;
-    drop-shadow-offset-y: 4px;
-    drop-shadow-color: #00000055;
     opacity: root.node.powered ? 1 : 0.55;
     accessible-role: button;
     accessible-label: root.node.title + ", " + root.node.address;
@@ -108,30 +141,58 @@ component Card inherits Rectangle {
     accessible-action-default => { UiCanvas.select-device(root.node.id); }
     forward-focus: card-focus;
 
-    DeviceIcon {
-        x: 12px * root.zoom; y: (UiCanvas.compact ? 16px : 13px) * root.zoom;
-        width: 27px * root.zoom; height: 25px * root.zoom;
-        kind: root.node.kind;
+    PixelFrame {
+        width: 100%; height: 100%;
+        unit: max(UiSprites.canvas-unit, 1px);
+        fill: root.node.selected ? Theme.raised : UiCanvas.hover-device == root.node.id && UiCanvas.hover-port == -2 ? Theme.hover : Theme.panel;
+        border: root.node.selected ? Theme.accent.base : UiCanvas.source-device == root.node.id ? Theme.ask.base : Theme.outline;
+        highlight: root.node.selected ? Theme.accent.d : Theme.raised-edge;
     }
-    // Small cards keep a readable name, under the icon across the card.
+    // The device's sprite, at a whole number of physical pixels per art pixel.
+    icon := Image {
+        property <length> size: (UiSprites.canvas-small ? 16 : 32) * UiSprites.canvas-unit;
+        property <int> index: (root.node.kind == "switch" ? 1 : root.node.kind == "router" ? 2 : 0) * 6 + root.node.state;
+        x: 12px * root.zoom + (Geometry.icon-room * 1px * root.zoom - self.size) / 2 + root.node.nudge-x * 1px * root.zoom;
+        y: (UiCanvas.compact ? 10px : 8px) * root.zoom + root.node.nudge-y * 1px * root.zoom;
+        width: self.size; height: self.size;
+        source: UiSprites.canvas-small ? UiSprites.devices-small[self.index] : UiSprites.devices[self.index];
+        image-rendering: pixelated;
+    }
+    // The name, never below 12 px; small cards put it under the icon,
+    // across the card.
+    // Right of the icon, which may be a little larger than its room.
+    property <length> text-x: 11px * root.zoom + max(Geometry.icon-room * 1px * root.zoom, icon.size);
     Text {
-        x: (UiCanvas.compact ? 12px : 47px) * root.zoom; y: (UiCanvas.compact ? 50px : 14px) * root.zoom;
-        width: (UiCanvas.compact ? 136px : 105px) * root.zoom;
+        x: UiCanvas.compact ? 12px * root.zoom : root.text-x; y: (UiCanvas.compact ? 50px : 12px) * root.zoom;
+        width: UiCanvas.compact ? 136px * root.zoom : root.width - root.text-x - 4px * root.zoom;
         text: root.node.title;
         overflow: elide;
-        font-size: (UiCanvas.compact ? 18px : 13px) * root.zoom;
+        font-family: Type.text;
+        font-size: max(Type.small, (UiCanvas.compact ? Type.title : Type.body) * root.zoom);
         font-weight: 600;
         color: Theme.ink;
     }
-    if !UiCanvas.compact: Text {
-        x: 47px * root.zoom; y: 33px * root.zoom;
-        text: root.node.kind == "switch" ? @tr("SWITCH L2") : root.node.kind == "router" ? @tr("ROUTER L3") : @tr("HOST");
-        font-size: 8px * root.zoom; font-weight: 600; color: Theme.muted; letter-spacing: 1px * root.zoom;
+    // Under it, the addresses; when they do not fit, without their prefix
+    // lengths (the inspector has them all).
+    if !UiCanvas.compact: Rectangle {
+        x: root.text-x; y: 32px * root.zoom;
+        width: root.width - root.text-x - 4px * root.zoom; height: max(Type.small, Type.small * root.zoom) * 1.4;
+        full := Text {
+            width: 100%;
+            visible: self.preferred-width <= self.width;
+            text: root.node.address; color: Theme.muted;
+            font-family: Type.text; font-size: max(Type.small, Type.small * root.zoom);
+        }
+        if !full.visible: Text {
+            width: 100%;
+            text: root.node.brief; overflow: elide; color: Theme.muted;
+            font-family: Type.text; font-size: max(Type.small, Type.small * root.zoom);
+        }
     }
-    if !UiCanvas.compact: Rectangle { x: 12px * root.zoom; y: 53px * root.zoom; width: 136px * root.zoom; height: 1px; background: #2b4153; }
-    if !UiCanvas.compact && !root.port-row: Text {
-        x: 12px * root.zoom; y: 66px * root.zoom; width: 94px * root.zoom;
-        text: root.node.address; overflow: elide; color: Theme.muted; font-size: 10px * root.zoom;
+    // Under the addresses, which keep 12 px when the card is smaller.
+    if !UiCanvas.compact: Rectangle {
+        x: 12px * root.zoom; y: max(53px * root.zoom, 32px * root.zoom + max(Type.small, Type.small * root.zoom) * 1.3 + 1px);
+        width: 136px * root.zoom; height: max(1px, UiSprites.canvas-unit); background: Theme.line;
     }
     // Front panel: one light per port, lit while a frame passes. A cable
     // starts from a light; C++ hit-tests the same boxes (scene.cpp).
@@ -150,17 +211,17 @@ component Card inherits Rectangle {
     Rectangle {
         x: 128px * root.zoom; y: 62px * root.zoom;
         width: 23px * root.zoom; height: 23px * root.zoom;
-        border-radius: 6px * root.zoom;
         opacity: UiCanvas.compact ? 0 : 1;
-        background: UiCanvas.source-device == root.node.id ? Theme.mint
-            : UiCanvas.hover-device == root.node.id && UiCanvas.hover-port == -1 ? #305747 : #253f40;
-        border-color: Theme.mint;
+        background: UiCanvas.source-device == root.node.id ? Theme.ask.base
+            : UiCanvas.hover-device == root.node.id && UiCanvas.hover-port == -1 ? Theme.accent.d : Theme.accent.chip;
+        border-color: UiCanvas.source-device == root.node.id ? Theme.ask.l : Theme.accent.base;
         border-width: 1px;
-        Text {
-            text: "+";
-            color: UiCanvas.source-device == root.node.id ? #16382a : Theme.mint;
-            font-size: 17px * root.zoom;
-            horizontal-alignment: center; vertical-alignment: center;
+        Image {
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            width: 16 * UiSprites.icon-unit; height: 16 * UiSprites.icon-unit;
+            source: UiSprites.plus;
+            image-rendering: pixelated;
+            colorize: UiCanvas.source-device == root.node.id ? Theme.outline : Theme.accent.chip-ink;
         }
         accessible-role: button;
         accessible-label: @tr("Connect {0}", root.node.title);
@@ -185,9 +246,39 @@ component Card inherits Rectangle {
     }
 }
 
+// A line of the context menu.
+component MenuLine inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> danger;
+    callback clicked();
+    height: 30px;
+    background: touch.has-hover ? Theme.hover : transparent;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-action-default => { root.clicked(); }
+    HorizontalLayout {
+        padding-left: 10px; padding-right: 14px; spacing: 10px;
+        VerticalLayout { alignment: center; Icon { source: root.icon; tint: root.danger ? Theme.drop.text : Theme.ink; } }
+        Text { text: root.text; color: root.danger ? Theme.drop.text : Theme.ink; font-size: Type.small; vertical-alignment: center; }
+    }
+    touch := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+// What an empty canvas says. A component of its own: Slint 1.18 measures a
+// wrapped text written straight under an `if` as one line.
+component EmptyCanvas inherits VerticalLayout {
+    padding: 60px; alignment: center; spacing: 12px;
+    Text { text: @tr("A network starts\nwith a connection."); color: Theme.ink; font-family: Type.pixel; font-size: Type.pixel-title; font-weight: 600; horizontal-alignment: center; }
+    Text { text: @tr("Add a host, a switch or a router from the build bar on the left, or press 1, 2 or 3."); color: Theme.muted; font-size: Type.body; wrap: word-wrap; horizontal-alignment: center; }
+}
+
 export component Canvas inherits Rectangle {
     // Gives the keyboard to the canvas, e.g. after a click on it.
     public function take-focus() { canvas-focus.focus(); }
+    // Says how large the canvas is. C++ asks (AppWindow.report-geometry): a
+    // window that opens at the very size it asked for changes nothing here.
+    public function report-size() { UiCanvas.resized(self.width / 1px, self.height / 1px); }
 
     background: Theme.canvas;
     clip: true;
@@ -197,51 +288,70 @@ export component Canvas inherits Rectangle {
     changed height => { UiCanvas.resized(self.width / 1px, self.height / 1px); }
     init => { UiCanvas.resized(self.width / 1px, self.height / 1px); }
 
-    property <length> grid: 28px * UiCanvas.zoom;
-    for gx in Math.ceil(root.width / root.grid) + 1: Rectangle {
-        x: Math.mod(gx * root.grid + UiCanvas.pan-x * 1px, root.width + root.grid) - root.grid;
-        width: 1px; height: root.height; background: #192535; opacity: 0.55;
-    }
-    for gy in Math.ceil(root.height / root.grid) + 1: Rectangle {
-        y: Math.mod(gy * root.grid + UiCanvas.pan-y * 1px, root.height + root.grid) - root.grid;
-        width: root.width; height: 1px; background: #192535; opacity: 0.55;
+    // The grid: one tile, repeated, moved with the view.
+    property <length> grid: UiSprites.grid-size;
+    Image {
+        x: Math.mod(Math.mod(UiCanvas.pan-x * 1px, root.grid) + root.grid, root.grid) - root.grid;
+        y: Math.mod(Math.mod(UiCanvas.pan-y * 1px, root.grid) + root.grid, root.grid) - root.grid;
+        width: root.width + 2 * root.grid; height: root.height + 2 * root.grid;
+        source: UiSprites.grid-tile;
+        horizontal-tiling: repeat; vertical-tiling: repeat;
+        horizontal-alignment: left; vertical-alignment: top;
+        image-rendering: pixelated;
     }
 
-    // Cables, in one path per kind.
+    // Cables, in one path per kind, each on a dark edge so it reads as a
+    // thick line on any grid.
+    Path {
+        width: root.width; height: root.height;
+        viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
+        commands: UiCanvas.cables-up + UiCanvas.cables-down + UiCanvas.cables-highlight + UiCanvas.cable-selected;
+        stroke: Theme.outline; stroke-width: 7px;
+    }
     Path {
         width: root.width; height: root.height;
         viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
         commands: UiCanvas.cables-up;
-        stroke: #4f7493; stroke-width: 2px;
+        stroke: Theme.link.d; stroke-width: 3px;
     }
     Path {
         width: root.width; height: root.height;
         viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
         commands: UiCanvas.cables-down;
-        stroke: #586473; stroke-width: 2px;
+        stroke: Theme.metal.d; stroke-width: 3px;
     }
     Path {
         width: root.width; height: root.height;
         viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
         commands: UiCanvas.cables-highlight;
-        stroke: Theme.mint; stroke-width: 3px;
+        stroke: Theme.ok.base; stroke-width: 4px;
     }
     Path {
         width: root.width; height: root.height;
         viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
         commands: UiCanvas.cable-selected;
-        stroke: #ffffff; stroke-width: 4px; opacity: 0.85;
+        stroke: Theme.ink; stroke-width: 5px; opacity: 0.85;
+    }
+    // A frame is on these: dashes run towards its receiver.
+    Path {
+        width: root.width; height: root.height;
+        viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
+        commands: UiCanvas.cables-busy;
+        stroke: Theme.outline; stroke-width: 3px;
     }
     // A disabled cable carries a cross in its middle; every cable has an
     // element there for screen readers.
     for link in UiCanvas.links: Rectangle {
         x: ((link.ax + link.bx) / 2 * UiCanvas.zoom + UiCanvas.pan-x) * 1px - 9px;
         y: ((link.ay + link.by) / 2 * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 9px;
-        width: 18px; height: 18px; border-radius: 9px;
-        background: link.up ? transparent : #2a2320;
+        width: 18px; height: 18px;
+        background: link.up ? transparent : Theme.drop.chip;
         border-width: link.up ? 0px : 1px;
-        border-color: Theme.amber;
-        if !link.up: Text { text: "×"; color: Theme.amber; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+        border-color: Theme.drop.base;
+        if !link.up: Image {
+            x: 1px; y: 1px; width: 16px; height: 16px;
+            source: UiSprites.close; image-rendering: pixelated; colorize: Theme.drop.chip-ink;
+        }
         accessible-role: button;
         accessible-label: @tr("Cable {0}", link.label);
         accessible-action-default => { UiCanvas.select-cable(link.id); }
@@ -255,17 +365,17 @@ export component Canvas inherits Rectangle {
             visible: link.a-port != "";
             x: (link.ax * UiCanvas.zoom + UiCanvas.pan-x) * 1px - 8px;
             y: (link.ay * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 8px;
-            width: 16px; height: 16px; border-radius: 8px;
-            background: #101a26; border-width: 1px; border-color: #5d9cc4;
-            Text { text: link.a-port; color: Theme.ink; font-size: 9px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+            width: 18px; height: 18px;
+            PixelFrame { width: 100%; height: 100%; unit: UiSprites.icon-unit; shadow: false; fill: Theme.link.chip; border: Theme.link.base; }
+            Text { text: link.a-port; color: Theme.link.chip-ink; font-family: Type.mono; font-size: Type.small; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
         }
         for link in UiCanvas.links: Rectangle {
             visible: link.b-port != "";
             x: (link.bx * UiCanvas.zoom + UiCanvas.pan-x) * 1px - 8px;
             y: (link.by * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 8px;
-            width: 16px; height: 16px; border-radius: 8px;
-            background: #101a26; border-width: 1px; border-color: #5d9cc4;
-            Text { text: link.b-port; color: Theme.ink; font-size: 9px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+            width: 18px; height: 18px;
+            PixelFrame { width: 100%; height: 100%; unit: UiSprites.icon-unit; shadow: false; fill: Theme.link.chip; border: Theme.link.base; }
+            Text { text: link.b-port; color: Theme.link.chip-ink; font-family: Type.mono; font-size: Type.small; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
         }
     }
 
@@ -273,50 +383,93 @@ export component Canvas inherits Rectangle {
     for packet in UiCanvas.packets: Path {
         width: root.width; height: root.height;
         viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
-        stroke: packet.protocol == "ARP" ? #f1c47b99 : #7ce3c099;
+        stroke: Theme.protocol(packet.protocol).d;
         stroke-width: 4px;
+        opacity: 0.7;
         MoveTo { x: packet.tail-x * UiCanvas.zoom + UiCanvas.pan-x; y: packet.tail-y * UiCanvas.zoom + UiCanvas.pan-y; }
         LineTo { x: packet.x * UiCanvas.zoom + UiCanvas.pan-x; y: packet.y * UiCanvas.zoom + UiCanvas.pan-y; }
     }
+    // Frames: a sprite for each kind (docs/sprites.md), at the canvas's art
+    // pixel but never smaller than 16 px; broadcast copies carry a ring, and
+    // the selected one its label.
     for packet in UiCanvas.packets: Rectangle {
-        property <color> tint: packet.protocol == "ARP" ? Theme.amber : Theme.mint;
-        x: (packet.x * UiCanvas.zoom + UiCanvas.pan-x) * 1px - self.width / 2;
-        y: (packet.y * UiCanvas.zoom + UiCanvas.pan-y) * 1px - self.height / 2;
-        width: packet-label.preferred-width + 14px; height: 18px;
-        border-radius: 9px;
-        background: self.tint;
-        border-width: packet.selected ? 2px : 0px;
-        border-color: #ffffff;
-        drop-shadow-blur: 6px;
-        drop-shadow-color: #00000088;
-        // Broadcast frames carry a ring.
+        property <color> tint: Theme.protocol(packet.protocol).base;
+        property <length> size: 16 * UiSprites.packet-unit;
+        x: (packet.x * UiCanvas.zoom + UiCanvas.pan-x) * 1px - self.size / 2;
+        y: (packet.y * UiCanvas.zoom + UiCanvas.pan-y) * 1px - self.size / 2;
+        width: self.size; height: self.size;
         if packet.broadcast: Rectangle {
             x: -4px; y: -4px; width: parent.width + 8px; height: parent.height + 8px;
-            border-radius: 13px; border-width: 1.5px; border-color: parent.tint; background: transparent;
+            border-width: 2px; border-color: parent.tint; background: transparent;
         }
-        packet-label := Text { text: packet.label; color: #10231e; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+        if packet.selected: Rectangle {
+            x: -2px; y: -2px; width: parent.width + 4px; height: parent.height + 4px;
+            border-width: 2px; border-color: Theme.ink; background: transparent;
+        }
+        Image {
+            width: 100%; height: 100%;
+            source: UiSprites.packets[packet.kind];
+            image-rendering: pixelated;
+        }
+        if packet.selected: PixelFrame {
+            x: (parent.width - self.width) / 2; y: -self.height - 8px;
+            width: packet-label.preferred-width + 16px; height: 22px;
+            unit: UiSprites.icon-unit * 2;
+            fill: parent.tint;
+            border: Theme.outline;
+            packet-label := Text {
+                width: 100%; height: 100%;
+                text: packet.label; color: Theme.outline; font-family: Type.text; font-size: Type.small; font-weight: 600;
+                horizontal-alignment: center; vertical-alignment: center;
+            }
+        }
         accessible-role: button;
         accessible-label: @tr("Packet: {0}", packet.description);
         accessible-action-default => { UiCanvas.select-frame(packet.pdu); }
     }
+    // The reactions to what happens: rings, particles and flashes.
+    for shape in UiCanvas.shapes: Rectangle {
+        property <Tones> family: Theme.family(shape.tone);
+        property <length> half: max(1px, shape.size * UiCanvas.zoom * 1px);
+        property <bool> flash: shape.form == "flash";
+        x: self.flash ? 0px : (shape.x * UiCanvas.zoom + UiCanvas.pan-x) * 1px - self.half;
+        y: self.flash ? 0px : (shape.y * UiCanvas.zoom + UiCanvas.pan-y) * 1px - self.half;
+        width: self.flash ? root.width : 2 * self.half;
+        height: self.flash ? root.height : 2 * self.half;
+        opacity: shape.opacity;
+        background: shape.form == "ring" ? transparent : self.flash ? self.family.base : self.family.l;
+        border-width: shape.form == "ring" ? max(2px, 2 * UiSprites.canvas-unit) : 0px;
+        border-color: self.family.base;
+    }
     for marker in UiCanvas.markers: Rectangle {
-        property <color> tint: marker.tone == "learn" ? Theme.blue : marker.tone == "forward" ? Theme.mint
-            : marker.tone == "wait" ? Theme.amber : marker.tone == "drop" ? Theme.red
-            : marker.tone == "success" ? Theme.mint : marker.tone == "edit" ? Theme.blue
-            : marker.tone == "guard" ? Theme.violet : Theme.muted;
+        property <Tones> tone: Theme.tone(marker.tone);
         x: (marker.x * UiCanvas.zoom + UiCanvas.pan-x) * 1px - self.width / 2;
-        y: (marker.y * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 24px - marker.stack * 22px;
-        width: marker-text.preferred-width + 14px; height: 19px;
-        border-radius: 5px;
+        y: (marker.y * UiCanvas.zoom + UiCanvas.pan-y) * 1px - 28px - marker.stack * 26px;
+        property <length> icon-room: marker.icon != "" ? 16 * UiSprites.icon-unit + 4px : 0px;
+        property <color> ink: marker.tone == "muted" ? Theme.muted : self.tone.chip-ink;
+        width: marker-text.preferred-width + self.icon-room + 16px; height: 24px;
         opacity: marker.opacity;
-        background: marker.tone == "success" ? #1d4a3c : marker.tone == "drop" ? #4a2228 : marker.tone == "guard" ? #2f2346 : #142131;
-        border-width: 1px;
-        border-color: self.tint;
+        accessible-role: text;
+        accessible-label: marker.text;
+        PixelFrame {
+            width: 100%; height: 100%;
+            unit: UiSprites.icon-unit * 2;
+            fill: marker.tone == "muted" ? Theme.panel : parent.tone.chip;
+            border: marker.tone == "muted" ? Theme.outline : parent.tone.base;
+        }
+        if marker.icon != "": Image {
+            x: 8px; y: (parent.height - self.height) / 2;
+            width: 16 * UiSprites.icon-unit; height: 16 * UiSprites.icon-unit;
+            source: marker.icon == "power" ? UiSprites.power : UiSprites.warning;
+            image-rendering: pixelated;
+            colorize: parent.ink;
+        }
         marker-text := Text {
+            x: 8px + parent.icon-room; height: parent.height;
             text: marker.text;
-            color: marker.tone == "muted" ? Theme.muted : Theme.ink;
-            font-size: 10px; font-weight: 600;
-            horizontal-alignment: center; vertical-alignment: center;
+            color: parent.ink;
+            font-family: Type.text; font-size: Type.small; font-weight: 600;
+            vertical-alignment: center;
         }
     }
     // The cable being drawn.
@@ -324,14 +477,10 @@ export component Canvas inherits Rectangle {
         width: root.width; height: root.height;
         viewbox-width: root.width / 1px; viewbox-height: root.height / 1px;
         commands: UiCanvas.rubber-band;
-        stroke: Theme.amber; stroke-width: 2px;
+        stroke: Theme.ask.base; stroke-width: 3px;
     }
 
-    if UiCanvas.nodes.length == 0: VerticalLayout {
-        padding: 60px; alignment: center; spacing: 12px;
-        Text { text: @tr("A network starts\nwith a connection."); color: Theme.ink; font-size: 28px; font-weight: 600; horizontal-alignment: center; }
-        Text { text: @tr("Add a host, a switch or a router from the panel on the left."); color: Theme.muted; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; }
-    }
+    if UiCanvas.nodes.length == 0: EmptyCanvas { }
 
     // Keys, once a press on the canvas gave it the focus. Under the touch
     // area: a focus scope on top would take the first press for itself.
@@ -362,6 +511,13 @@ export component Canvas inherits Rectangle {
                 canvas-focus.focus();
                 UiCanvas.press(self.mouse-x / 1px, self.mouse-y / 1px,
                     e.button == PointerEventButton.right ? 2 : e.button == PointerEventButton.middle ? 1 : 0);
+                // The press selected what lies under the pointer: its menu.
+                if e.button == PointerEventButton.right {
+                    UiCanvas.menu-x = self.mouse-x;
+                    UiCanvas.menu-y = self.mouse-y;
+                    UiCanvas.menu-kind = UiCanvas.selected-kind;
+                    UiCanvas.menu-open = true;
+                }
             } else if e.kind == PointerEventKind.up {
                 UiCanvas.release(self.mouse-x / 1px, self.mouse-y / 1px);
             }
@@ -372,47 +528,54 @@ export component Canvas inherits Rectangle {
             return accept;
         }
     }
-    // What the pointer can do, or what it is doing.
-    Rectangle {
-        x: 14px; y: 12px;
-        width: min(hint.preferred-width + 24px, root.width - clock-box.width - 44px);
-        height: 26px;
-        background: UiCanvas.source-device >= 0 ? #234438 : #121e2bdd;
-        border-radius: 6px;
-        hint := Text {
-            width: parent.width - 24px;
-            text: UiCanvas.hint;
-            color: UiCanvas.source-device >= 0 ? Theme.mint : Theme.muted;
-            font-size: 10px; overflow: elide;
-            horizontal-alignment: center; vertical-alignment: center;
+}
+
+// The menu of a right click on the canvas: what can be done to what is under
+// the pointer. It lies over the whole window, which closes it when clicked.
+export component ContextMenu inherits Rectangle {
+    property <string> kind: UiCanvas.menu-kind;
+    property <bool> device: self.kind == "host" || self.kind == "switch" || self.kind == "router";
+    function close() { UiCanvas.menu-open = false; }
+    TouchArea {
+        pointer-event(e) => { if e.kind == PointerEventKind.down { root.close(); } }
+    }
+    FocusScope {
+        init => { self.focus(); }
+        key-pressed(e) => {
+            if e.text == Key.Escape { root.close(); return accept; }
+            return reject;
         }
     }
-    // Simulated clock: the instant the canvas shows.
-    clock-box := Rectangle {
-        x: parent.width - self.width - 14px; y: 12px;
-        width: clock.preferred-width + 24px; height: 26px;
-        background: #121e2bdd; border-radius: 6px;
-        border-width: 1px; border-color: UiCanvas.running ? #42655e : transparent;
-        clock := Text {
-            text: "t = " + UiCanvas.clock + (UiCanvas.running ? "  ▷ " + UiCanvas.speed-label : "");
-            color: UiCanvas.running ? Theme.mint : Theme.muted;
-            font-size: 11px; font-weight: 600;
-            horizontal-alignment: center; vertical-alignment: center;
-        }
-        accessible-role: text;
-        accessible-label: @tr("Simulated time {0}", UiCanvas.clock);
-    }
-    // Zoom controls.
-    Rectangle {
-        x: parent.width - self.width - 14px; y: parent.height - self.height - 12px;
-        width: zoom-row.preferred-width; height: 30px;
-        background: #121e2bdd; border-radius: 7px;
-        zoom-row := HorizontalLayout {
-            padding: 2px; spacing: 2px;
-            Action { text: "−"; accessible-text: @tr("Zoom out"); quiet: true; small: true; width: 28px; clicked => { UiCanvas.zoom-by(1 / 1.15); } }
-            Action { text: Math.round(UiCanvas.zoom * 100) + "%"; accessible-text: @tr("Actual size"); quiet: true; small: true; width: 52px; clicked => { UiCanvas.reset-zoom(); } }
-            Action { text: "+"; accessible-text: @tr("Zoom in"); quiet: true; small: true; width: 28px; clicked => { UiCanvas.zoom-by(1.15); } }
-            Action { text: @tr("Fit"); accessible-text: @tr("Fit the network in view"); quiet: true; small: true; clicked => { UiCanvas.fit(); } }
+    menu-frame := PixelFrame {
+        x: max(0px, min(UiCanvas.menu-x, root.width - self.width - 8px));
+        y: max(0px, min(UiCanvas.menu-y, root.height - self.height - 8px));
+        width: 220px;
+        height: menu-lines.preferred-height + 12px;
+        fill: Theme.panel;
+        unit: UiSprites.unit / 2;
+        accessible-role: list;
+        accessible-label: @tr("Context menu");
+        TouchArea {}  // a click between the lines keeps the menu open
+        menu-lines := VerticalLayout {
+            y: 6px; height: self.preferred-height;
+            padding-left: 4px; padding-right: 4px;
+            if root.kind == "host": MenuLine { icon: UiSprites.arrow-right; text: @tr("Ping from here"); clicked => { root.close(); UiApp.run-command("ping-from-here"); } }
+            if root.kind == "host" || root.kind == "router": MenuLine {
+                icon: UiSprites.arrow-left; text: @tr("Ping this device"); clicked => { root.close(); UiApp.run-command("ping-to-here"); }
+            }
+            if root.device: MenuLine { icon: UiSprites.plus; text: @tr("Connect a cable"); clicked => { root.close(); UiCanvas.connector(UiCanvas.selected-device); } }
+            if root.device: MenuLine {
+                icon: UiSprites.power; text: UiCanvas.selected-powered ? @tr("Power off") : @tr("Power on"); clicked => { root.close(); UiApp.run-command("power"); }
+            }
+            if root.device: MenuLine { icon: UiSprites.trash; text: @tr("Delete device"); danger: true; clicked => { root.close(); UiApp.delete-selection(); } }
+            if root.kind == "cable": MenuLine {
+                icon: UiSprites.power; text: UiCanvas.selected-cable-up ? @tr("Disable cable") : @tr("Enable cable"); clicked => { root.close(); UiApp.run-command("toggle-cable"); }
+            }
+            if root.kind == "cable": MenuLine { icon: UiSprites.close; text: @tr("Unplug cable"); danger: true; clicked => { root.close(); UiApp.delete-selection(); } }
+            if root.kind == "": MenuLine { icon: UiSprites.plus; text: @tr("Add host"); clicked => { root.close(); UiApp.add-device("host"); } }
+            if root.kind == "": MenuLine { icon: UiSprites.plus; text: @tr("Add switch"); clicked => { root.close(); UiApp.add-device("switch"); } }
+            if root.kind == "": MenuLine { icon: UiSprites.plus; text: @tr("Add router"); clicked => { root.close(); UiApp.add-device("router"); } }
+            if root.kind == "": MenuLine { icon: UiSprites.fit; text: @tr("Fit the network"); clicked => { root.close(); UiCanvas.fit(); } }
         }
     }
 }

@@ -1,0 +1,290 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "guided",
+  "topic": "Observing",
+  "title": "Read a traceroute",
+  "brief": "PC-A and PC-C are two routers apart. Run a traceroute from PC-A and explain what it shows.",
+  "network": {
+    "devices": [
+      {
+        "id": 1,
+        "kind": "host",
+        "name": "PC-A",
+        "x": 80,
+        "y": 90,
+        "gateway": "10.1.0.1",
+        "ports": [
+          {
+            "ipv4": "10.1.0.10/24"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "router",
+        "name": "R1",
+        "x": 80,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "10.1.0.1/24"
+          },
+          {
+            "ipv4": "10.12.0.1/30"
+          }
+        ],
+        "routes": [
+          {
+            "destination": "10.3.0.0/24",
+            "via": "10.12.0.2"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "router",
+        "name": "R2",
+        "x": 580,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "10.12.0.2/30"
+          },
+          {
+            "ipv4": "10.3.0.1/24"
+          }
+        ],
+        "routes": [
+          {
+            "destination": "10.1.0.0/24",
+            "via": "10.12.0.1"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "kind": "host",
+        "name": "PC-C",
+        "x": 580,
+        "y": 90,
+        "gateway": "10.3.0.1",
+        "ports": [
+          {
+            "ipv4": "10.3.0.10/24"
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "a": {
+          "device": 1,
+          "port": 1
+        },
+        "b": {
+          "device": 2,
+          "port": 1
+        }
+      },
+      {
+        "id": 2,
+        "a": {
+          "device": 2,
+          "port": 2
+        },
+        "b": {
+          "device": 3,
+          "port": 1
+        }
+      },
+      {
+        "id": 3,
+        "a": {
+          "device": 3,
+          "port": 2
+        },
+        "b": {
+          "device": 4,
+          "port": 1
+        }
+      }
+    ]
+  },
+  "locks": [
+    {
+      "device": "PC-A"
+    },
+    {
+      "device": "PC-C"
+    },
+    {
+      "device": "R1"
+    },
+    {
+      "device": "R2"
+    }
+  ],
+  "goals": [
+    {
+      "id": "routed",
+      "kind": "observed",
+      "text": "R2 routes a datagram from PC-A",
+      "device": "R2",
+      "record": "routed"
+    },
+    {
+      "id": "replied",
+      "kind": "observed",
+      "text": "PC-C answers PC-A",
+      "device": "PC-A",
+      "record": "echo-reply"
+    },
+    {
+      "id": "hops",
+      "kind": "answer",
+      "text": "How many hops does the traceroute count, PC-C included?",
+      "from": "PC-A",
+      "to": "10.3.0.10",
+      "quantity": "hops"
+    },
+    {
+      "id": "ttl",
+      "kind": "answer",
+      "text": "What is the TTL of PC-C's Echo Reply when it reaches PC-A?",
+      "from": "PC-A",
+      "to": "10.3.0.10",
+      "quantity": "reply-ttl"
+    }
+  ],
+  "steps": [
+    "Select PC-A, turn on Traceroute in the action bar, write 10.3.0.10, press Trace, then Run.",
+    "The first request has TTL 1: R1 discards it and sends back a Time Exceeded. Watch it in the timeline.",
+    "Each next request lives one hop longer, until PC-C itself answers with an Echo Reply.",
+    "Count the hops, read the TTL of PC-C's reply in the Frame tab, write both answers and press Check."
+  ],
+  "hints": [
+    "Every router a datagram crosses lowers its TTL by one.",
+    "PC-C sends its reply with TTL 64."
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 1,
+          "kind": "host",
+          "name": "PC-A",
+          "x": 80,
+          "y": 90,
+          "gateway": "10.1.0.1",
+          "ports": [
+            {
+              "ipv4": "10.1.0.10/24"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "kind": "router",
+          "name": "R1",
+          "x": 80,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "10.1.0.1/24"
+            },
+            {
+              "ipv4": "10.12.0.1/30"
+            }
+          ],
+          "routes": [
+            {
+              "destination": "10.3.0.0/24",
+              "via": "10.12.0.2"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "router",
+          "name": "R2",
+          "x": 580,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "10.12.0.2/30"
+            },
+            {
+              "ipv4": "10.3.0.1/24"
+            }
+          ],
+          "routes": [
+            {
+              "destination": "10.1.0.0/24",
+              "via": "10.12.0.1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "kind": "host",
+          "name": "PC-C",
+          "x": 580,
+          "y": 90,
+          "gateway": "10.3.0.1",
+          "ports": [
+            {
+              "ipv4": "10.3.0.10/24"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 1,
+            "port": 1
+          },
+          "b": {
+            "device": 2,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 2,
+            "port": 2
+          },
+          "b": {
+            "device": 3,
+            "port": 1
+          }
+        },
+        {
+          "id": 3,
+          "a": {
+            "device": 3,
+            "port": 2
+          },
+          "b": {
+            "device": 4,
+            "port": 1
+          }
+        }
+      ]
+    },
+    "commands": [
+      {
+        "from": "PC-A",
+        "traceroute": "10.3.0.10"
+      }
+    ],
+    "answers": {
+      "hops": "3",
+      "ttl": "62"
+    }
+  }
+}

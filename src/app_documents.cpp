@@ -1,5 +1,5 @@
 // Files and the dialogs around them, the examples, autosave and recovery,
-// the language and the other settings.
+// the look and the other settings.
 #include "app_controller.hpp"
 
 #include "app/examples.hpp"
@@ -17,13 +17,6 @@ namespace fs = std::filesystem;
 
 namespace {
 using netsim::text::tr;
-
-// Each language by its own name.
-std::string language_name(std::string_view code) {
-    if (code == "en") return "English";
-    if (code == "it") return "Italiano";
-    return std::string(code);
-}
 
 // A file name from a title: "Office floor" gives "office-floor.json".
 std::string file_name_for(const std::string& title) {
@@ -43,7 +36,7 @@ void AppController::bind_documents() {
     app.on_new_document([this] {
         unless_unsaved([this] {
             open(netsim::Scenario{});
-            status(tr("A new network: add hosts and switches from the palette."));
+            note(tr("A new network: add hosts and switches from the palette."));
         });
     });
     app.on_open_document([this] { unless_unsaved([this] { show_file_dialog(false); }); });
@@ -54,7 +47,6 @@ void AppController::bind_documents() {
         show_file_dialog(true);
     });
     app.on_quit([this] { quit(); });
-    app.on_set_language([this](slint::SharedString code) { set_language(std::string(code)); });
     app.on_about([this] { ui_->global<UiApp>().set_dialog("about"); });
 
     app.on_browse_enter([this](slint::SharedString name) {
@@ -78,6 +70,16 @@ void AppController::bind_documents() {
         if (!browser_) return;
         const auto path = browser_->folder() / path_from_text(name);
         std::string error;
+        if (is_lab_file(path)) {
+            auto lab = read_lab_file(path, error);
+            if (!lab) {
+                ui_->global<UiApp>().set_browser_error(tr("{0} cannot be opened: {1}", {name, error}).c_str());
+                return;
+            }
+            close_dialog();
+            open_lab(std::move(*lab));
+            return;
+        }
         auto scenario = read_scenario_file(path, error);
         if (!scenario) {
             ui_->global<UiApp>().set_browser_error(tr("{0} cannot be opened: {1}", {name, error}).c_str());
@@ -93,8 +95,10 @@ void AppController::bind_documents() {
         ui_->global<UiApp>().set_dialog("");
         const auto found = std::find_if(answers.begin(), answers.end(), [&](const Answer& answer) { return answer.id == chosen; });
         if (found != answers.end() && found->action) found->action();
+        dialog_left();
     });
     app.on_close_dialog([this] { close_dialog(); });
+    app.on_dismiss_dialog([this] { dismiss_dialog(); });
 }
 
 void AppController::refresh_examples() {
@@ -102,18 +106,15 @@ void AppController::refresh_examples() {
     for (const auto& example : examples()) {
         std::string error;
         const auto scenario = netsim::scenario_from_json(example.text, error);
-        // The catalogs translate the titles and notes of the examples too.
-        const auto title = scenario && !scenario->title.empty() ? tr(scenario->title) : std::string(example.file);
+        const auto title = scenario && !scenario->title.empty() ? scenario->title : std::string(example.file);
         rows.push_back({title.c_str(), std::string(example.file).c_str()});
     }
     ui_->global<UiApp>().set_examples(std::make_shared<slint::VectorModel<ExampleView>>(rows));
-    std::vector<LanguageView> languages;
-    for (const auto& code : netsim::text::languages()) languages.push_back({code.c_str(), language_name(code).c_str()});
-    ui_->global<UiApp>().set_languages(std::make_shared<slint::VectorModel<LanguageView>>(languages));
 }
 
 void AppController::open(netsim::Scenario scenario, std::optional<fs::path> file, std::string name) {
     playback_.pause();
+    leave_lab();
     const auto title = scenario.title;
     workspace_.replace(std::move(scenario));
     document_ = std::move(file);
@@ -121,6 +122,14 @@ void AppController::open(netsim::Scenario scenario, std::optional<fs::path> file
     document_title_ = name.empty() ? title : std::move(name);
     autosaved_.reset();
     recovery_.clear();
+    terminals_.clear();
+    show_workspace();
+    note(tr("{0} opened.", {document_name()}));
+}
+
+void AppController::show_workspace() {
+    // Another workspace may have the generation the views were made for.
+    generation_ = ~std::uint64_t{0};
     filter_ = {};
     events_->set_vector({});
     shown_events_.clear();
@@ -136,15 +145,24 @@ void AppController::open(netsim::Scenario scenario, std::optional<fs::path> file
         : std::find_if(std::next(host), devices.end(), [](const auto& device) { return device.kind == netsim::DeviceKind::Host; });
     canvas_.select(host != devices.end() ? Selection{Selection::Kind::Device, host->id.value} : Selection{});
     canvas_.validate();
-    if (other != devices.end()) ui_->global<UiRun>().set_target(other->ports.front().ipv4->address().to_string().c_str());
+    if (other != devices.end() && other->ports.front().ipv4)
+        ui_->global<UiRun>().set_target(other->ports.front().ipv4->address().to_string().c_str());
     canvas_.fit();
     refresh_all();
     sync_playback();
-    status(tr("{0} opened.", {document_name()}));
 }
 
 bool AppController::open_file(const fs::path& path) {
     std::string error;
+    if (is_lab_file(path)) {
+        auto lab = read_lab_file(path, error);
+        if (!lab) {
+            status(tr("{0} cannot be opened: {1}", {path_text(path.filename()), error}));
+            return false;
+        }
+        open_lab(std::move(*lab));
+        return true;
+    }
     auto scenario = read_scenario_file(path, error);
     if (!scenario) {
         status(tr("{0} cannot be opened: {1}", {path_text(path.filename()), error}));
@@ -166,7 +184,7 @@ void AppController::open_example(int index) {
 
 std::string AppController::document_name() const {
     if (document_) return path_text(document_->filename());
-    return document_title_.empty() ? tr("Untitled") : tr(document_title_);
+    return document_title_.empty() ? tr("Untitled") : document_title_;
 }
 
 void AppController::refresh_document() {
@@ -174,14 +192,15 @@ void AppController::refresh_document() {
     app.set_document(document_name().c_str());
     app.set_modified(workspace_.modified());
     const auto& design = workspace_.design();
-    app.set_title(tr(design.title).c_str());
-    app.set_notes(tr(design.notes).c_str());
+    app.set_title((lab_ ? lab_->title : design.title).c_str());
+    app.set_notes(lab_ ? tr("The brief, the steps and the goals are in the lab panel: G shows or hides it.").c_str() : design.notes.c_str());
     const auto* undo = workspace_.history().undoable();
     const auto* redo = workspace_.history().redoable();
     app.set_can_undo(undo != nullptr);
     app.set_can_redo(redo != nullptr);
     app.set_undo_text((undo ? tr("Undo {0}", {undo->label}) : tr("Undo")).c_str());
     app.set_redo_text((redo ? tr("Redo {0}", {redo->label}) : tr("Redo")).c_str());
+    refresh_lab();
 }
 
 void AppController::ask(const std::string& title, const std::string& message, std::vector<Answer> answers) {
@@ -203,9 +222,33 @@ void AppController::close_dialog() {
     answers_.clear();
     after_save_ = {};
     ui_->global<UiApp>().set_dialog("");
+    dialog_left();
+}
+
+void AppController::dialog_left() {
+    // A dialog has the keyboard while it is open. The window gives it back
+    // to the canvas when it sees the dialog go, but it looks once per turn
+    // of the event loop: said here, it does not depend on that.
+    if (ui_->global<UiApp>().get_dialog().empty()) ui_->invoke_focus_canvas();
+}
+
+void AppController::dismiss_dialog() {
+    const auto& app = ui_->global<UiApp>();
+    if (app.get_dialog() != "confirm") {
+        // The first run's choices stay for the next start: none was made.
+        close_dialog();
+        return;
+    }
+    // A question is left by its Cancel, or by its one answer when it only
+    // tells something. One that offers no way back waits for an answer.
+    const auto cancel = std::find_if(answers_.begin(), answers_.end(), [](const Answer& answer) { return answer.id == "cancel"; });
+    if (cancel != answers_.end()) app.invoke_answer("cancel");
+    else if (answers_.size() == 1) app.invoke_answer(answers_.front().id.c_str());
 }
 
 void AppController::unless_unsaved(std::function<void()> action) {
+    // The learner's network is the one to keep, not a solution in view.
+    back_to_mine();
     if (!workspace_.modified()) {
         action();
         return;
@@ -217,6 +260,7 @@ void AppController::unless_unsaved(std::function<void()> action) {
 }
 
 void AppController::save(std::function<void()> then) {
+    back_to_mine();
     if (!document_) {
         after_save_ = std::move(then);
         show_file_dialog(true);
@@ -258,6 +302,7 @@ void AppController::confirm_save_as() {
         auto then = std::exchange(after_save_, {});
         ui_->global<UiApp>().set_dialog("");
         if (then) then();
+        dialog_left();
     };
     std::error_code ignored;
     if (!fs::exists(*target, ignored)) {
@@ -298,6 +343,7 @@ void AppController::quit() {
 }
 
 bool AppController::close_requested() {
+    back_to_mine();
     if (!workspace_.modified()) return true;
     quit();
     return false;
@@ -323,6 +369,8 @@ bool AppController::offer_recovery() {
 }
 
 void AppController::autosave() {
+    // While the solution is in view, the learner's network waits unchanged.
+    if (parked_) return;
     if (!workspace_.modified()) {
         if (autosaved_) {
             recovery_.clear();
@@ -335,29 +383,11 @@ void AppController::autosave() {
     if (recovery_.save(workspace_.design(), document_)) autosaved_ = state;
 }
 
-void AppController::set_language(const std::string& code) {
-    settings_.language = code;
-    session_language_.reset();
-    save_settings();
-    apply_language();
-    status(tr("Language changed."));
-}
-
-void AppController::apply_language() {
-    const auto code = session_language_ ? *session_language_ : settings_.language.empty() ? netsim::text::system_language() : settings_.language;
-    if (!netsim::text::set_language(code)) netsim::text::set_language("en");
-    const auto& chosen = netsim::text::language();
-    slint::select_bundled_translation(chosen == "en" ? "" : chosen);
-    const auto& app = ui_->global<UiApp>();
-    app.set_language(settings_.language.c_str());
-    app.set_reduced_motion(settings_.reduced_motion);
-    // Every text made in C++ is made again in the new language.
-    explainer_.clear();
-    events_->set_vector({});
-    shown_events_.clear();
-    listed_ = 0;
-    shown_table_.clear();
+void AppController::apply_settings() {
+    ui_->global<Motion>().set_effects(settings_.effects.c_str());
+    apply_sound();
     refresh_examples();
+    refresh_library();
     refresh_all();
 }
 

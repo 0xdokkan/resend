@@ -1,0 +1,247 @@
+# a ping into a loop of switches, at 1x, 60 frames a second: the records' cues, then what is heard
+frame 1  0.277 ms
+  ask #1;
+  heard: ask;
+frame 36  10.000 ms
+  hop 0 #2;
+  heard: hop 0;
+frame 44  12.222 ms
+  hop 1 #7; hop 2 #12;
+  heard: hop 1+2;
+frame 51  14.166 ms
+  hop 3 #16; hop 4 #20;
+  heard: hop 3+4;
+frame 58  16.111 ms
+  hop 5 #25; hop 6 #30;
+  heard: hop 5+6;
+frame 65  18.055 ms
+  hop 7 #35; hop 0 #40;
+  heard: hop 7+0;
+frame 72  20.000 ms
+  hop 1 #44; hop 2 #48;
+  heard: hop 1+2;
+frame 80  22.222 ms
+  hop 3 #53; answer #55; hop 4 #56; hop 5 #61;
+  heard: hop 3+4+5; answer;
+frame 87  24.166 ms
+  hop 6 #66; answer #68; hop 7 #69; hop 0 #74;
+  heard: hop 6+7+0; answer;
+frame 94  26.111 ms
+  hop 1 #78; hop 2 #80; hop 3 #82; hop 4 #86;
+  heard: hop 1+2+3;
+frame 101  28.055 ms
+  hop 5 #91; answer #93; hop 6 #94; hop 7 #99;
+  heard: hop 5+6+7; answer;
+frame 108  30.000 ms
+  hop 0 #104; answer #106; hop 1 #107; hop 2 #112;
+  heard: hop 0+1+2; answer;
+frame 116  32.222 ms
+  hop 3 #116; hop 4 #120; hop 5 #122; hop 6 #124; hop 7 #128;
+  heard: hop 3+4+5;
+frame 123  34.166 ms
+  hop 0 #133; hop 1 #136; answer #138; hop 2 #139; hop 3 #142; hop 4 #147;
+  heard: hop 0+1+2; answer;
+frame 130  36.111 ms
+  hop 5 #152; answer #154; hop 6 #155; hop 7 #158; hop 0 #163;
+  heard: hop 5+6+7; answer;
+frame 137  38.055 ms
+  hop 1 #167; hop 2 #170; hop 3 #172; hop 4 #174; hop 5 #178;
+  heard: hop 1+2+3;
+frame 144  40.000 ms
+  hop 6 #183; hop 7 #186; answer #188; hop 0 #189; hop 1 #191; hop 2 #196;
+  heard: hop 6+7+0; answer;
+frame 152  42.222 ms
+  hop 3 #201; answer #203; hop 4 #204; hop 5 #206; hop 6 #211;
+  heard: hop 3+4+5; answer;
+frame 159  44.166 ms
+  hop 7 #215; hop 0 #218; hop 1 #220; hop 2 #222; hop 3 #226;
+  heard: hop 7+0+1;
+frame 166  46.111 ms
+  hop 4 #231; hop 5 #234; answer #236; hop 6 #237; hop 7 #239; hop 0 #244;
+  heard: hop 4+5+6; answer;
+frame 173  48.055 ms
+  hop 1 #249; answer #251; hop 2 #252; hop 3 #254; alarm #258;
+  heard: hop 1+2+3; answer; alarm;
+frame 180  50.000 ms
+  hop 4 #259;
+  heard: hop 4;
+frame 188  52.222 ms
+  hop 5 #262; hop 6 #265;
+  heard: hop 5+6;
+frame 195  54.166 ms
+  hop 7 #267;
+  heard: hop 7;
+frame 202  56.111 ms
+  hop 0 #269;
+  heard: hop 0;
+frame 209  58.055 ms
+  hop 1 #272; hop 2 #275;
+  heard: hop 1+2;
+frame 216  60.000 ms
+  hop 3 #277;
+  heard: hop 3;
+frame 308  1000.222 ms
+  ask #280;
+  heard: ask;
+frame 344  1010.222 ms
+  hop 4 #281;
+  heard: hop 4;
+frame 351  1012.166 ms
+  hop 5 #286; hop 6 #290;
+  heard: hop 5+6;
+frame 358  1014.111 ms
+  hop 7 #294; hop 0 #298;
+  heard: hop 7+0;
+frame 365  1016.055 ms
+  hop 1 #303; hop 2 #308;
+  heard: hop 1+2;
+frame 372  1018.000 ms
+  hop 3 #313; hop 4 #318;
+  heard: hop 3+4;
+frame 380  1020.222 ms
+  hop 5 #322; hop 6 #326;
+  heard: hop 5+6;
+frame 387  1022.166 ms
+  hop 7 #331; answer #333; hop 0 #334; hop 1 #339;
+  heard: hop 7+0+1; answer;
+frame 394  1024.111 ms
+  hop 2 #344; answer #346; hop 3 #347; hop 4 #352;
+  heard: hop 2+3+4; answer;
+frame 401  1026.055 ms
+  hop 5 #356; hop 6 #358; hop 7 #360; hop 0 #364;
+  heard: hop 5+6+7;
+frame 408  1028.000 ms
+  hop 1 #369; answer #371; hop 2 #372; hop 3 #377;
+  heard: hop 1+2+3; answer;
+frame 416  1030.222 ms
+  hop 4 #382; answer #384; hop 5 #385; hop 6 #390;
+  heard: hop 4+5+6; answer;
+frame 423  1032.166 ms
+  hop 7 #394; hop 0 #397; hop 1 #399; hop 2 #401; hop 3 #405;
+  heard: hop 7+0+1;
+frame 430  1034.111 ms
+  hop 4 #410; hop 5 #413; answer #415; hop 6 #416; hop 7 #418; hop 0 #423;
+  heard: hop 4+5+6; answer;
+frame 437  1036.055 ms
+  hop 1 #428; answer #430; hop 2 #431; hop 3 #433; hop 4 #438;
+  heard: hop 1+2+3; answer;
+frame 444  1038.000 ms
+  hop 5 #442; hop 6 #445; hop 7 #447; hop 0 #449; hop 1 #453;
+  heard: hop 5+6+7;
+frame 452  1040.222 ms
+  hop 2 #458; hop 3 #461; answer #463; hop 4 #464; hop 5 #466; hop 6 #471;
+  heard: hop 2+3+4; answer;
+frame 459  1042.166 ms
+  hop 7 #476; answer #478; hop 0 #479; hop 1 #481; hop 2 #486;
+  heard: hop 7+0+1; answer;
+frame 466  1044.111 ms
+  hop 3 #490; hop 4 #493; hop 5 #495; hop 6 #497; hop 7 #501;
+  heard: hop 3+4+5;
+frame 473  1046.055 ms
+  hop 0 #506; hop 1 #509; answer #511; hop 2 #512; hop 3 #514; hop 4 #519;
+  heard: hop 0+1+2; answer;
+frame 480  1048.000 ms
+  hop 5 #524; answer #526; hop 6 #527; hop 7 #529; alarm #533;
+  heard: hop 5+6+7; answer; alarm;
+frame 488  1050.222 ms
+  hop 0 #534;
+  heard: hop 0;
+frame 495  1052.166 ms
+  hop 1 #537; hop 2 #540;
+  heard: hop 1+2;
+frame 502  1054.111 ms
+  hop 3 #542;
+  heard: hop 3;
+frame 509  1056.055 ms
+  hop 4 #544;
+  heard: hop 4;
+frame 516  1058.000 ms
+  hop 5 #547; hop 6 #550;
+  heard: hop 5+6;
+frame 524  1060.222 ms
+  hop 7 #552;
+  heard: hop 7;
+frame 615  2000.166 ms
+  ask #555;
+  heard: ask;
+frame 651  2010.166 ms
+  hop 0 #556;
+  heard: hop 0;
+frame 658  2012.111 ms
+  hop 1 #561; hop 2 #565;
+  heard: hop 1+2;
+frame 665  2014.055 ms
+  hop 3 #569; hop 4 #573;
+  heard: hop 3+4;
+frame 672  2016.000 ms
+  hop 5 #578; hop 6 #583;
+  heard: hop 5+6;
+frame 680  2018.222 ms
+  hop 7 #588; hop 0 #593;
+  heard: hop 7+0;
+frame 687  2020.166 ms
+  hop 1 #597; hop 2 #601;
+  heard: hop 1+2;
+frame 694  2022.111 ms
+  hop 3 #606; answer #608; hop 4 #609; hop 5 #614;
+  heard: hop 3+4+5; answer;
+frame 701  2024.055 ms
+  hop 6 #619; answer #621; hop 7 #622; hop 0 #627;
+  heard: hop 6+7+0; answer;
+frame 708  2026.000 ms
+  hop 1 #631; hop 2 #633; hop 3 #635; hop 4 #639;
+  heard: hop 1+2+3;
+frame 716  2028.222 ms
+  hop 5 #644; answer #646; hop 6 #647; hop 7 #652;
+  heard: hop 5+6+7; answer;
+frame 723  2030.166 ms
+  hop 0 #657; answer #659; hop 1 #660; hop 2 #665;
+  heard: hop 0+1+2; answer;
+frame 730  2032.111 ms
+  hop 3 #669; hop 4 #672; hop 5 #674; hop 6 #676; hop 7 #680;
+  heard: hop 3+4+5;
+frame 737  2034.055 ms
+  hop 0 #685; hop 1 #688; answer #690; hop 2 #691; hop 3 #693; hop 4 #698;
+  heard: hop 0+1+2; answer;
+frame 744  2036.000 ms
+  hop 5 #703; answer #705; hop 6 #706; hop 7 #708; hop 0 #713;
+  heard: hop 5+6+7; answer;
+frame 752  2038.222 ms
+  hop 1 #717; hop 2 #720; hop 3 #722; hop 4 #724; hop 5 #728;
+  heard: hop 1+2+3;
+frame 759  2040.166 ms
+  hop 6 #733; hop 7 #736; answer #738; hop 0 #739; hop 1 #741; hop 2 #746;
+  heard: hop 6+7+0; answer;
+frame 766  2042.111 ms
+  hop 3 #751; answer #753; hop 4 #754; hop 5 #756; hop 6 #761;
+  heard: hop 3+4+5; answer;
+frame 773  2044.055 ms
+  hop 7 #765; hop 0 #768; hop 1 #770; hop 2 #772; hop 3 #776;
+  heard: hop 7+0+1;
+frame 780  2046.000 ms
+  hop 4 #781; hop 5 #784; answer #786; hop 6 #787; hop 7 #789; hop 0 #794;
+  heard: hop 4+5+6; answer;
+frame 788  2048.222 ms
+  hop 1 #799; answer #801; hop 2 #802; hop 3 #804; alarm #808;
+  heard: hop 1+2+3; answer; alarm;
+frame 795  2050.166 ms
+  hop 4 #809;
+  heard: hop 4;
+frame 802  2052.111 ms
+  hop 5 #812; hop 6 #815;
+  heard: hop 5+6;
+frame 809  2054.055 ms
+  hop 7 #817;
+  heard: hop 7;
+frame 816  2056.000 ms
+  hop 0 #819;
+  heard: hop 0;
+frame 824  2058.222 ms
+  hop 1 #822; hop 2 #825;
+  heard: hop 1+2;
+frame 831  2060.166 ms
+  hop 3 #827;
+  heard: hop 3;
+frame 922  3000.111 ms
+  fail #831;
+  heard: fail;

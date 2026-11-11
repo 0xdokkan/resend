@@ -53,7 +53,7 @@ enum class Reason : std::uint8_t {
     NetUnreachable,   // a Destination Unreachable (network) came back: a router had no route
     HostUnreachable,  // a Destination Unreachable (host) came back: a router could not resolve the next hop
     GatewayOffLink,   // the host's default gateway is outside its subnet, so it cannot be reached
-    NoAddress,        // the router port has no IPv4 address
+    NoAddress,        // the host, or the router port, has no IPv4 address
     UnmatchedError,   // an ICMP error about a datagram no ping is waiting for
     DirectedBroadcast, // to the broadcast address of a router's network: not forwarded (RFC 2644)
 };

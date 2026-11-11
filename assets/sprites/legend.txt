@@ -1,0 +1,21 @@
+# The roles a sprite is drawn with, one character each. A sheet holds no
+# colours: every theme in assets/palettes.json gives each role its colour,
+# so one drawing serves all of them. '.' is transparent.
+#
+# char  role         colour in a theme
+#       surfaces and inks
+#   #   outline      surfaces.outline
+#   :   screen       surfaces.screen
+#   ,   well         surfaces.sunken
+#   *   ink          inks.ink (icons drawn in ink are tinted by the interface)
+#   o   status       a status light: the colour of the device's or the port's
+#                    state (docs/sprites.md); ok d when drawn without one
+#       families, darkest to lightest: dd, d, base, l
+#   1 2 3 4   metal  the devices' bodies
+#   a b c d   ok     ICMP, a ping that works
+#   e f g h   link   Ethernet, switches, cables
+#   i j k l   ask    ARP
+#   m n p q   route  IPv4, routers
+#   r s t u   accent the interface's own colour
+#   v w x y   drop   a frame stopped, an error
+#   A B C D   guard  the simulator stepping in

@@ -1,0 +1,1073 @@
+<title>resend motion prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@400;600&display=swap">
+<style>
+:root{
+  /* Layout: the network is the stage; goals, inspector and timeline stand around it as a HUD; the palettes sit on a band above. */
+/*ROOT_TOKENS*/
+  --tile:none;
+  --f-pixel:'Pixelify Sans','Courier New',monospace;
+  --f-text:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-data:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--edge) transparent}
+body{background:var(--bg);color:var(--ink);font:400 14px/1.45 var(--f-text)}
+h1,h2,h3,p,dl{margin:0}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+canvas.spr{display:block;flex:none;image-rendering:pixelated}
+.eyebrow{font:400 14px/18px var(--f-pixel);letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+
+.top{background:var(--panel);border-bottom:3px solid var(--edge)}
+.top-in{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding-block:8px}
+.brand{font:600 28px/32px var(--f-pixel)}
+.sep{width:3px;height:28px;background:var(--line)}
+.sub{color:var(--muted)}
+.top-right{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.status{font:400 14px/1 var(--f-pixel);letter-spacing:1px;color:var(--ask-text)}
+.status.run{color:var(--ok-text)}
+.clock{min-width:15ch;padding:8px 12px;text-align:right;background:var(--well);font:400 14px/1 var(--f-data);font-variant-numeric:tabular-nums;box-shadow:0 -3px 0 0 var(--line),0 3px 0 0 var(--line),-3px 0 0 0 var(--line),3px 0 0 0 var(--line)}
+
+.pals{background:var(--bg);border-bottom:3px solid var(--line)}
+.pals-in{display:flex;flex-direction:column;gap:12px;padding-block:12px 20px}
+.pals-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.pals-head p{color:var(--muted);font-size:13px}
+.pal-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px 22px}
+.pal{font:inherit;text-align:left;border:0;cursor:pointer;padding:8px 12px;display:flex;flex-direction:column;gap:4px;min-width:0;background:var(--p-panel);color:var(--p-ink);transition:transform .08s;
+  box-shadow:0 -3px 0 0 var(--p-edge),0 3px 0 0 var(--p-edge),-3px 0 0 0 var(--p-edge),3px 0 0 0 var(--p-edge),0 -6px 0 0 var(--p-out),0 6px 0 0 var(--p-out),-6px 0 0 0 var(--p-out),6px 0 0 0 var(--p-out)}
+.pal:hover{transform:translateY(-2px)}
+.pal:active{transform:translateY(2px)}
+.pal:focus-visible{outline:3px solid var(--ink);outline-offset:8px}
+.pal[aria-pressed="true"]{--p-edge:var(--p-acc)}
+.pal-name{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font:600 18px/22px var(--f-pixel)}
+.pal-on{visibility:hidden;padding:1px 6px;font:400 12px/16px var(--f-pixel);letter-spacing:1px;background:var(--p-acc);color:var(--p-on)}
+.pal[aria-pressed="true"] .pal-on{visibility:visible}
+.pal-note{font-size:12px;line-height:16px;color:var(--p-muted)}
+.pal-sw{display:flex;gap:3px;margin-left:auto}
+.pal-sw i{width:14px;height:14px;flex:none}
+
+.world{background-color:var(--canvas);background-image:var(--tile);background-size:48px 48px;image-rendering:pixelated}
+.hud{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"c" "l" "r";gap:28px 26px;align-items:start;padding-block:22px 28px}
+.left{grid-area:l;display:flex;flex-direction:column;gap:28px 26px;min-width:0}
+.centre{grid-area:c;display:flex;flex-direction:column;gap:18px;min-width:0}
+.inspector{grid-area:r}
+@media(min-width:720px){.left{flex-direction:row}.left>*{flex:1 1 0}}
+@media(min-width:1180px){.hud{grid-template-columns:minmax(0,1fr) 360px;grid-template-areas:"c r" "l r"}}
+@media(min-width:1424px){.hud{grid-template-columns:220px minmax(0,1fr) 360px;grid-template-areas:"l c r"}.left{flex-direction:column}.left>*{flex:none}}
+
+.panel{background:var(--panel);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0;
+  box-shadow:0 -3px 0 0 var(--edge),0 3px 0 0 var(--edge),-3px 0 0 0 var(--edge),3px 0 0 0 var(--edge),0 -6px 0 0 var(--out),0 6px 0 0 var(--out),-6px 0 0 0 var(--out),6px 0 0 0 var(--out)}
+#goals{transition:box-shadow .4s}
+.panel.won{--edge:var(--ok-line)}
+.title{font:600 22px/26px var(--f-pixel)}
+.row{display:flex;align-items:center;gap:10px}
+.chip{padding:2px 8px;font:400 14px/18px var(--f-pixel);letter-spacing:1px;background:var(--acc-chip);color:var(--acc-chip-ink)}
+.count{margin-left:auto;font:400 16px/1 var(--f-pixel);color:var(--muted)}
+.count.bump{animation:bump .45s}
+@keyframes bump{40%{transform:translateY(-6px);color:var(--ok-text)}}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.goal{display:flex;align-items:center;gap:10px;line-height:20px;color:var(--muted)}
+.goal.open{color:var(--ink);font-weight:600}
+.goal.stamp canvas{animation:stamp .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes stamp{0%{transform:scale(3.2) rotate(-18deg);opacity:0}55%{transform:scale(.85) rotate(5deg);opacity:1}100%{transform:none}}
+.frames li{display:flex;align-items:center;gap:10px;font-size:13px;line-height:18px;color:var(--muted)}
+.frames b{display:block;font:400 16px/18px var(--f-pixel);color:var(--ink)}
+
+.say{display:flex;gap:12px;align-items:baseline;min-height:60px;padding:10px 14px;background:var(--panel);line-height:20px;
+  box-shadow:0 -3px 0 0 var(--edge),0 3px 0 0 var(--edge),-3px 0 0 0 var(--edge),3px 0 0 0 var(--edge)}
+.when{flex:none;font:400 13px/20px var(--f-data);font-variant-numeric:tabular-nums;color:var(--ask-text)}
+.when.ok{color:var(--ok-text)}
+#say-text.in{animation:said .28s ease-out}
+@keyframes said{from{opacity:0;transform:translateY(5px)}}
+.stagewrap{overflow-x:auto;padding:4px 0}
+#stage{display:block;margin:0 auto;width:760px;height:408px;max-width:none;touch-action:manipulation}
+.transport{gap:16px;padding:16px 16px 20px}
+.tl{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px}
+.buttons{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:16px 12px}
+.bar-sep{width:3px;height:36px;background:var(--line)}
+
+.btn{font:400 16px/1 var(--f-pixel);color:var(--ink);background:var(--btn);border:0;min-height:44px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;
+  transition:transform .06s,box-shadow .06s,filter .12s;
+  box-shadow:0 -3px 0 0 var(--btn-edge),0 3px 0 0 var(--btn-edge),-3px 0 0 0 var(--btn-edge),3px 0 0 0 var(--btn-edge),0 6px 0 0 var(--shade)}
+.btn:hover{filter:brightness(1.1)}
+.btn:active,.btn[aria-pressed="true"]{transform:translateY(3px);box-shadow:0 -3px 0 0 var(--btn-edge),0 3px 0 0 var(--btn-edge),-3px 0 0 0 var(--btn-edge),3px 0 0 0 var(--btn-edge),0 3px 0 0 var(--shade)}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:6px}
+.btn canvas.spr{margin:-8px -3px -8px -12px}
+.btn.primary{background:var(--acc);color:var(--out);font-weight:600;--btn-edge:var(--acc-d);--shade:var(--acc-dd);min-width:116px}
+.btn.small{min-height:40px;padding:0 7px;font-size:14px}
+.btn[aria-pressed="true"]{background:var(--acc-chip);color:var(--acc-chip-ink);--btn-edge:var(--acc-line)}
+
+.devs{display:flex;flex-wrap:wrap;gap:14px 8px;padding-bottom:6px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font:400 12px/20px var(--f-data)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font:400 12px/18px var(--f-data);font-variant-numeric:tabular-nums}
+th{padding:6px 4px;text-align:left;font-weight:400;color:var(--muted);border-bottom:3px solid var(--line)}
+td{padding:6px 4px;white-space:nowrap}
+tr.hit td{background:var(--ok-chip);color:var(--ok-chip-ink);font-weight:600}
+tr.pending td:last-child{color:var(--ask-text);font-weight:600}
+tr.fresh td{animation:fresh 1.2s ease-out}
+@keyframes fresh{from{background:var(--link-chip);color:var(--link-chip-ink)}}
+.note{font-size:13px;line-height:18px;color:var(--muted)}
+.note.warn{color:var(--ask-text)}
+
+.tabs{display:flex;gap:4px;border-bottom:3px solid var(--line)}
+.tab{font:400 16px/1 var(--f-pixel);color:var(--muted);background:transparent;border:0;border-bottom:3px solid transparent;margin-bottom:-3px;min-height:40px;padding:0 12px;cursor:pointer}
+.tab:hover{color:var(--ink)}
+.tab[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--acc-line)}
+.tab:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.term{display:flex;flex-direction:column;gap:2px;height:270px;padding:10px;background:var(--well);font:400 12px/18px var(--f-data);cursor:text;
+  box-shadow:0 -3px 0 0 var(--line),0 3px 0 0 var(--line),-3px 0 0 0 var(--line),3px 0 0 0 var(--line)}
+.term:focus-within{box-shadow:0 -3px 0 0 var(--acc-line),0 3px 0 0 var(--acc-line),-3px 0 0 0 var(--acc-line),3px 0 0 0 var(--acc-line)}
+.term-out{flex:1;min-height:0;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.term .p{color:var(--ok-text)}
+.term .dim{color:var(--muted)}
+.term .err{color:var(--ask-text)}
+.term-in{display:flex;gap:8px;align-items:center}
+.term-in input{flex:1;min-width:0;border:0;outline:0;padding:0;background:transparent;color:var(--ink);font:inherit;caret-color:var(--acc-line)}
+.cmds{display:flex;flex-wrap:wrap;align-items:center;gap:14px 10px;padding-bottom:4px}
+.menu-wrap{position:relative}
+.btn.cmd{min-height:36px;padding:0 8px;font:400 12px/1 var(--f-data)}
+.btn.cmd canvas.spr{margin:-6px -6px -6px -2px}
+#term-clear{margin-left:auto}
+.menu{position:absolute;z-index:5;top:calc(100% + 12px);left:0;display:flex;flex-direction:column;width:max-content;max-width:min(300px,78vw);padding:4px;background:var(--panel);animation:menu .12s ease-out;
+  box-shadow:0 -3px 0 0 var(--edge),0 3px 0 0 var(--edge),-3px 0 0 0 var(--edge),3px 0 0 0 var(--edge),0 -6px 0 0 var(--out),0 6px 0 0 var(--out),-6px 0 0 0 var(--out),6px 0 0 0 var(--out)}
+@keyframes menu{from{opacity:0;transform:translateY(-6px)}}
+.menu button{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;border:0;padding:8px 10px;background:transparent;color:var(--ink);font:inherit;cursor:pointer}
+.menu b{font:600 12px/16px var(--f-data)}
+.menu span{font-size:12px;line-height:16px;color:var(--muted)}
+.menu button:hover,.menu button:focus-visible{outline:0;background:var(--acc-chip)}
+.menu button:hover b,.menu button:hover span,.menu button:focus-visible b,.menu button:focus-visible span{color:var(--acc-chip-ink)}
+.foot{background:var(--panel);border-top:3px solid var(--edge)}
+.foot p{padding-block:12px 14px;text-align:center;color:var(--muted);font-size:13px;line-height:18px}
+.track{position:relative;flex:1 1 280px;min-width:0;height:30px;background:var(--well);box-shadow:0 -3px 0 0 var(--line),0 3px 0 0 var(--line),-3px 0 0 0 var(--line),3px 0 0 0 var(--line)}
+.track i{position:absolute;top:6px;width:6px;height:18px;margin-left:-3px;background:var(--ask-line)}
+.track i.ok{background:var(--ok-line)}
+.track i.later{opacity:.35}
+.track i.now{animation:tick .35s ease-out}
+@keyframes tick{from{transform:scaleY(2.2)}}
+.track input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:ew-resize}
+.track input::-webkit-slider-runnable-track{height:100%;background:transparent}
+.track input::-moz-range-track{height:100%;background:transparent}
+.track input::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:42px;margin-top:-6px;border:0;border-radius:0;background:var(--ink);box-shadow:0 0 0 3px var(--out)}
+.track input::-moz-range-thumb{width:8px;height:42px;border:0;border-radius:0;background:var(--ink);box-shadow:0 0 0 3px var(--out)}
+.track input:focus-visible{outline:3px solid var(--ink);outline-offset:8px}
+.kind{min-width:40px;font:400 16px/1 var(--f-pixel);color:var(--ask-text)}
+#ev-text{flex:0 1 270px;min-width:0}
+.kind.ok{color:var(--ok-text)}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+
+<header class="top"><div class="wrap top-in">
+  <canvas class="spr" data-sprite="logo" aria-hidden="true"></canvas>
+  <h1 class="brand">resend</h1>
+  <span class="sep" aria-hidden="true"></span>
+  <span class="sub">Motion prototype: the first network, one ping</span>
+  <div class="top-right">
+    <span id="status" class="status">PAUSED</span>
+    <span id="clock" class="clock">t = 65.000 ms</span>
+  </div>
+</div></header>
+
+<section class="pals" aria-labelledby="pal-h"><div class="wrap pals-in">
+  <div class="pals-head">
+    <h2 id="pal-h" class="eyebrow">Theme</h2>
+    <p>Three themes from one set of drawings: every sprite is painted by role, not by colour.</p>
+  </div>
+  <div id="pal-list" class="pal-list" role="group" aria-labelledby="pal-h"></div>
+</div></section>
+
+<main class="world"><div class="wrap hud">
+  <div class="left">
+    <section class="panel" id="goals" aria-label="Lab goals">
+      <div class="row"><span class="chip">LAB</span><span id="count" class="count">3 / 4</span></div>
+      <h2 class="title">First network</h2>
+      <ul class="list">
+        <li class="goal"><canvas class="spr" data-sprite="goal-done" role="img" aria-label="Done"></canvas><span>Cable the five devices</span></li>
+        <li class="goal"><canvas class="spr" data-sprite="goal-done" role="img" aria-label="Done"></canvas><span>Give every port an address</span></li>
+        <li class="goal"><canvas class="spr" data-sprite="goal-done" role="img" aria-label="Done"></canvas><span>Set both default gateways</span></li>
+        <li class="goal open" id="goal-ping"><canvas class="spr" data-sprite="goal-open" role="img" aria-label="Open"></canvas><span>PC-A reaches PC-B</span></li>
+      </ul>
+    </section>
+    <section class="panel" aria-labelledby="frames-h">
+      <h2 id="frames-h" class="eyebrow">Frames</h2>
+      <ul class="list frames">
+        <li><canvas class="spr" data-sprite="arp-request" aria-hidden="true"></canvas><span><b>ARP request</b>a broadcast, with its ring</span></li>
+        <li><canvas class="spr" data-sprite="arp-reply" aria-hidden="true"></canvas><span><b>ARP reply</b>to the one who asked</span></li>
+        <li><canvas class="spr" data-sprite="echo-request" aria-hidden="true"></canvas><span><b>Echo Request</b>the ping going out</span></li>
+        <li><canvas class="spr" data-sprite="echo-reply" aria-hidden="true"></canvas><span><b>Echo Reply</b>the ping coming back</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="centre">
+    <p class="say" aria-live="polite"><span id="say-when" class="when"></span><span id="say-text"></span></p>
+    <div class="stagewrap">
+      <canvas id="stage" width="760" height="408" role="img" aria-label="The network: PC-A, Switch-1, Router, Switch-2 and PC-B in a row of cables. The text above says what is happening."></canvas>
+    </div>
+    <div class="panel transport">
+      <div class="tl">
+        <span class="eyebrow">Timeline</span>
+        <div class="track"><span id="ticks"></span><input type="range" id="scrub" min="0" max="180" step="0.1" value="65" aria-label="Simulated time, in milliseconds"></div>
+        <span id="ev-kind" class="kind">ARP</span>
+        <span id="ev-text"></span>
+      </div>
+      <div class="buttons">
+        <button type="button" class="btn primary" id="run"><canvas class="spr" data-sprite="play" data-tint="out" aria-hidden="true"></canvas><span id="run-label">Run</span></button>
+        <button type="button" class="btn" id="step"><canvas class="spr" data-sprite="step" aria-hidden="true"></canvas>Step</button>
+        <button type="button" class="btn" id="restart"><canvas class="spr" data-sprite="reset" aria-hidden="true"></canvas>Restart</button>
+        <span class="bar-sep" aria-hidden="true"></span>
+        <button type="button" class="btn" id="speed" aria-label="Speed">1×</button>
+        <button type="button" class="btn" id="sound"><canvas class="spr" data-sprite="sound" aria-hidden="true"></canvas><span id="sound-label">Sound on</span></button>
+        <button type="button" class="btn" id="fx"><canvas class="spr" data-sprite="effects" aria-hidden="true"></canvas><span id="fx-label">FX: full</span></button>
+      </div>
+    </div>
+  </div>
+
+  <aside class="panel inspector" aria-label="Inspector">
+    <div class="row">
+      <canvas class="spr" id="insp-icon" data-sprite="router-small" aria-hidden="true"></canvas>
+      <div><h2 id="insp-name" class="title">Router</h2><span id="insp-line" class="eyebrow">Router · layer 3</span></div>
+    </div>
+    <div id="devs" class="devs" role="group" aria-label="Device to inspect"></div>
+    <div class="tabs" role="group" aria-label="View">
+      <button type="button" class="tab" data-tab="tables" aria-pressed="true">Tables</button>
+      <button type="button" class="tab" data-tab="term" aria-pressed="false">Terminal</button>
+    </div>
+    <div id="insp-body" class="panel-body" style="display:flex;flex-direction:column;gap:12px;min-width:0"></div>
+  </aside>
+</div></main>
+
+<footer class="foot"><p class="wrap">Space runs or pauses · → steps · R restarts · M mutes · click a device to inspect it</p></footer>
+
+<script>
+(() => {
+'use strict';
+const DATA = /*SPRITES*/null;
+const PALETTES = /*PALETTES*/null;
+const DEFAULT_PAL = /*DEFAULT*/0;
+
+const $ = (s) => document.querySelector(s);
+const root = document.documentElement;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('resend-proto.' + k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('resend-proto.' + k, String(v)); } catch (e) { /* private window */ } },
+};
+
+// ---------- the scene ----------
+const W = 760, H = 408, HOP = 10, T_END = 180, RATE = HOP / 720;
+const F_PIX = '"Pixelify Sans","Courier New",monospace';
+const F_MONO = '"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace';
+const DEV = {
+  A: { name: 'PC-A', type: 'host', line: 'Host', x: 82, y: 56, plate: [46, 8, 168, 42], ip: '192.168.10.10/24', gw: '192.168.10.1', mac: '02:00:00:00:00:01', ifs: [['p1', '02:00:00:00:00:01', '192.168.10.10/24']] },
+  S1: { name: 'Switch-1', type: 'switch', line: 'Switch · layer 2', x: 82, y: 262, plate: [74, 376, 112, 28] },
+  R: { name: 'Router', type: 'router', line: 'Router · layer 3', x: 332, y: 262, plate: [324, 376, 112, 28],
+    ifs: [['p1', '02:00:00:00:01:01', '192.168.10.1/24'], ['p2', '02:00:00:00:01:02', '192.168.20.1/24']] },
+  S2: { name: 'Switch-2', type: 'switch', line: 'Switch · layer 2', x: 582, y: 262, plate: [574, 376, 112, 28] },
+  B: { name: 'PC-B', type: 'host', line: 'Host', x: 582, y: 56, plate: [546, 8, 168, 42], ip: '192.168.20.10/24', gw: '192.168.20.1', mac: '02:00:00:00:00:02', ifs: [['p1', '02:00:00:00:00:02', '192.168.20.10/24']] },
+};
+const PORT = { 'A': [130, 150], 'S1.1': [130, 274], 'S1.2': [193, 316], 'R.1': [314, 316], 'R.2': [446, 316], 'S2.1': [567, 316], 'S2.2': [630, 274], 'B': [630, 150] };
+const PLATES = [['S1.1', '1', 'link'], ['S1.2', '2', 'link'], ['R.1', '1', 'route'], ['R.2', '2', 'route'], ['S2.1', '1', 'link'], ['S2.2', '2', 'link']];
+const CABLES = [
+  { ends: ['A', 'S1.1'], r: [127, 140, 6, 152] },
+  { ends: ['S1.2', 'R.1'], r: [170, 313, 176, 6] },
+  { ends: ['R.2', 'S2.1'], r: [414, 313, 176, 6] },
+  { ends: ['S2.2', 'B'], r: [627, 140, 6, 152] },
+];
+const WAIT = [372, 250];
+const LABEL = { 'arp-request': 'ARP req', 'arp-reply': 'ARP reply', 'echo-request': 'Echo req', 'echo-reply': 'Echo reply' };
+
+// What the engine would hand over: the records of one ping, 10 ms a hop.
+const EV = [
+  { t: 0, dev: 'A', kind: 'ask', arrive: 'A', short: 'PC-A asks who has 192.168.10.1',
+    text: 'PC-A wants 192.168.20.10. That is another network, so the frame must go to the gateway. PC-A asks everyone: who has 192.168.10.1?',
+    send: ['A', 'S1.1', 'arp-request', true], marks: [['ask', 'ARP ?', '192.168.10.1']], cue: ['ask'] },
+  { t: 10, dev: 'S1', kind: 'ask', arrive: 'S1.1', learn: true, short: 'Switch-1 floods the request',
+    text: 'Switch-1 learns that PC-A is on port 1. The request is a broadcast, so it floods out of every other port.',
+    send: ['S1.2', 'R.1', 'arp-request', true], marks: [['ask', 'flood', '→ p2']], cue: ['tick'] },
+  { t: 20, dev: 'R', kind: 'ask', arrive: 'R.1', learn: true, short: 'Router answers with its MAC',
+    text: 'The router owns 192.168.10.1. It notes PC-A in its ARP cache and answers with its own MAC.',
+    send: ['R.1', 'S1.2', 'arp-reply'], marks: [['ask', 'ARP reply', '→ p1']], cue: ['answer'] },
+  { t: 30, dev: 'S1', kind: 'ask', arrive: 'S1.2', learn: true, short: 'Switch-1 forwards the reply',
+    text: 'Switch-1 learns the router on port 2. It already knows where PC-A is, so the reply leaves on port 1 only.',
+    send: ['S1.1', 'A', 'arp-reply'], marks: [['ask', 'forward', '→ p1']], cue: ['tick'] },
+  { t: 40, dev: 'A', kind: 'ok', arrive: 'A', learn: true, short: 'PC-A sends the Echo Request',
+    text: 'PC-A now has the MAC of its gateway and sends the Echo Request to it.',
+    send: ['A', 'S1.1', 'echo-request'], marks: [['ok', 'Echo', '→ 192.168.20.10']], cue: ['note'] },
+  { t: 50, dev: 'S1', kind: 'ok', arrive: 'S1.1', short: 'Switch-1 forwards it',
+    text: 'Switch-1 forwards the frame to port 2, where it learned the router.',
+    send: ['S1.2', 'R.1', 'echo-request'], marks: [['ok', 'forward', '→ p2']], cue: ['note'] },
+  { t: 60, dev: 'R', kind: 'ask', arrive: 'R.1', short: 'Router asks who has 192.168.20.10',
+    text: 'The router finds the route 192.168.20.0/24 on port 2, but it has no MAC for 192.168.20.10. The datagram waits while the router asks.',
+    send: ['R.2', 'S2.1', 'arp-request', true], marks: [['ok', 'route', '192.168.20.0/24 → p2', 100], ['ask', 'ARP ?', '192.168.20.10', 100]], cue: ['hold', 'ask'] },
+  { t: 70, dev: 'S2', kind: 'ask', arrive: 'S2.1', learn: true, short: 'Switch-2 floods the request',
+    text: 'Switch-2 learns the router on port 1 and floods the request.',
+    send: ['S2.2', 'B', 'arp-request', true], marks: [['ask', 'flood', '→ p2']], cue: ['tick'] },
+  { t: 80, dev: 'B', kind: 'ask', arrive: 'B', learn: true, short: 'PC-B answers with its MAC',
+    text: 'PC-B owns 192.168.20.10. It notes the router in its ARP cache and answers.',
+    send: ['B', 'S2.2', 'arp-reply'], marks: [['ask', 'ARP reply', '→ 192.168.20.1']], cue: ['answer'] },
+  { t: 90, dev: 'S2', kind: 'ask', arrive: 'S2.2', learn: true, short: 'Switch-2 forwards the reply',
+    text: 'Switch-2 learns PC-B on port 2 and forwards the reply to port 1.',
+    send: ['S2.1', 'R.2', 'arp-reply'], marks: [['ask', 'forward', '→ p1']], cue: ['tick'] },
+  { t: 100, dev: 'R', kind: 'ok', arrive: 'R.2', learn: true, short: 'Router sends the waiting Echo Request',
+    text: 'The router has the MAC it needed. The waiting Echo Request leaves on port 2, with one hop less to live.',
+    send: ['R.2', 'S2.1', 'echo-request', false, true], marks: [['ok', 'send', 'Echo → p2']], cue: ['release', 'note'] },
+  { t: 110, dev: 'S2', kind: 'ok', arrive: 'S2.1', short: 'Switch-2 forwards it',
+    text: 'Switch-2 forwards the frame to port 2, where it learned PC-B.',
+    send: ['S2.2', 'B', 'echo-request'], marks: [['ok', 'forward', '→ p2']], cue: ['note'] },
+  { t: 120, dev: 'B', kind: 'ok', arrive: 'B', short: 'PC-B sends the Echo Reply',
+    text: 'PC-B answers with an Echo Reply. The MAC of its gateway is already in its cache.',
+    send: ['B', 'S2.2', 'echo-reply'], marks: [['ok', 'Echo reply', '→ 192.168.10.10']], cue: ['note'] },
+  { t: 130, dev: 'S2', kind: 'ok', arrive: 'S2.2', short: 'Switch-2 forwards the reply',
+    text: 'Switch-2 forwards the reply to port 1.',
+    send: ['S2.1', 'R.2', 'echo-reply'], marks: [['ok', 'forward', '→ p1']], cue: ['note'] },
+  { t: 140, dev: 'R', kind: 'ok', arrive: 'R.2', short: 'Router routes the reply to port 1',
+    text: 'The router routes the reply to 192.168.10.0/24 on port 1. PC-A is in its ARP cache, so nothing waits.',
+    send: ['R.1', 'S1.2', 'echo-reply'], marks: [['ok', 'route', '192.168.10.0/24 → p1']], cue: ['note'] },
+  { t: 150, dev: 'S1', kind: 'ok', arrive: 'S1.2', short: 'Switch-1 forwards the reply',
+    text: 'Switch-1 forwards the reply to port 1.',
+    send: ['S1.1', 'A', 'echo-reply'], marks: [['ok', 'forward', '→ p1']], cue: ['note'] },
+  { t: 160, dev: 'A', kind: 'ok', arrive: 'A', win: true, short: 'PC-A has its reply after 120 ms',
+    text: 'PC-A gets its answer 120 ms after sending the Echo Request. The goal is met.',
+    marks: [['ok', 'reply', '192.168.20.10 · 120 ms', 999]], cue: ['win'] },
+];
+// What each device has learned, and when.
+const LEARN = [
+  { t: 10, dev: 'S1', tab: 'mac', mac: '02:00:00:00:00:01', port: 'p1' },
+  { t: 20, dev: 'R', tab: 'arp', ip: '192.168.10.10', mac: '02:00:00:00:00:01', port: 'p1' },
+  { t: 30, dev: 'S1', tab: 'mac', mac: '02:00:00:00:01:01', port: 'p2' },
+  { t: 40, dev: 'A', tab: 'arp', ip: '192.168.10.1', mac: '02:00:00:00:01:01', port: 'p1' },
+  { t: 60, dev: 'R', tab: 'arp', until: 100, ip: '192.168.20.10', port: 'p2' },
+  { t: 70, dev: 'S2', tab: 'mac', mac: '02:00:00:00:01:02', port: 'p1' },
+  { t: 80, dev: 'B', tab: 'arp', ip: '192.168.20.1', mac: '02:00:00:00:01:02', port: 'p1' },
+  { t: 90, dev: 'S2', tab: 'mac', mac: '02:00:00:00:00:02', port: 'p2' },
+  { t: 100, dev: 'R', tab: 'arp', ip: '192.168.20.10', mac: '02:00:00:00:00:02', port: 'p2' },
+];
+function learned(id, tab, T) { return LEARN.filter((l) => l.dev === id && l.tab === tab && l.t <= T && !(l.until && T >= l.until)); }
+
+// Particles are drawn from a seed, so the same instant always looks the same.
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+let notes = 0;
+EV.forEach((e, i) => {
+  const r = rng(977 + i * 131);
+  e.parts = [];
+  for (let k = 0; k < (e.win ? 40 : 9); k++) {
+    e.parts.push({ a: r() * Math.PI * 2, v: e.win ? 50 + r() * 90 : 16 + r() * 22, s: e.win ? 6 : 3 + 3 * Math.floor(r() * 3),
+      life: e.win ? 11 + r() * 8 : 3.5 + r() * 3, c: Math.floor(r() * 5), ph: r() * 6.28 });
+  }
+  if (e.cue.includes('note')) e.note = notes++;
+  e.from = i > 0 && EV[i - 1].send ? tone(EV[i - 1].send[2]) : e.kind;
+});
+function tone(frame) { return frame.startsWith('arp') ? 'ask' : 'ok'; }
+
+// ---------- state ----------
+const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const state = {
+  T: 65, playing: false, stepTo: null, speed: Number(store.get('speed', '1')) || 1,
+  sound: store.get('sound', 'on') === 'on', fx: store.get('fx', reduce ? 'reduced' : 'full'),
+  pal: Math.max(0, PALETTES.findIndex((p) => p.id === store.get('theme', PALETTES[DEFAULT_PAL].id))),
+  tab: store.get('tab', 'tables') === 'term' ? 'term' : 'tables',
+  sel: 'R', selAt: -1000,
+};
+if (!['full', 'reduced', 'off'].includes(state.fx)) state.fx = 'full';
+if (![0.5, 1, 2].includes(state.speed)) state.speed = 1;
+const probe = /^#p(\d)t(\d+)$/.exec(location.hash);
+if (probe) { state.pal = Math.min(PALETTES.length - 1, +probe[1]); state.T = Math.min(T_END, +probe[2]); }
+
+// ---------- palette and sprites ----------
+let C = {};
+const cache = new Map();
+function expand(p) {
+  const c = { out: p.out, shade: p.shade, bg: p.bg, canvas: p.canvas, grid: p.grid, panel: p.panel, edge: p.edge, btn: p.btn,
+    'btn-edge': p.btnEdge, well: p.well, line: p.line, ink: p.ink, muted: p.muted, screen: p.screen,
+    'metal-dd': p.metalDD, 'metal-d': p.metalD, metal: p.metal, 'metal-l': p.metalL };
+  for (const f of ['acc', 'ok', 'link', 'ask', 'route']) {
+    const t = p[f];
+    c[f + '-dd'] = t[0]; c[f + '-d'] = t[1]; c[f] = t[2]; c[f + '-l'] = t[3];
+    c[f + '-text'] = p.dark ? t[2] : t[0];
+    c[f + '-line'] = p.dark ? t[2] : t[1];
+    c[f + '-chip'] = p.dark ? t[0] : t[3];
+    c[f + '-chip-ink'] = p.dark ? t[3] : t[0];
+  }
+  return c;
+}
+function sprite(name, mode) {
+  const key = name + '|' + (mode || '');
+  let cv = cache.get(key);
+  if (cv) return cv;
+  const s = DATA.sprites[name];
+  cv = document.createElement('canvas');
+  cv.width = s.w; cv.height = s.h;
+  const g = cv.getContext('2d');
+  for (let i = 0; i < s.d.length; i++) {
+    if (s.d[i] === '.') continue;
+    const role = DATA.roles[DATA.chars.indexOf(s.d[i])];
+    g.fillStyle = mode === 'white' ? '#ffffff' : (mode && role === 'ink') ? C[mode] : C[role];
+    g.fillRect(i % s.w, (i / s.w) | 0, 1, 1);
+  }
+  cache.set(key, cv);
+  return cv;
+}
+const BOX = {};
+for (const name of ['host', 'switch', 'router']) {
+  const s = DATA.sprites[name];
+  let x0 = s.w, y0 = s.h, x1 = 0, y1 = 0;
+  for (let i = 0; i < s.d.length; i++) {
+    if (s.d[i] === '.') continue;
+    const x = i % s.w, y = (i / s.w) | 0;
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  }
+  BOX[name] = [x0, y0, x1, y1];
+}
+function paintOne(el) {
+  const s = DATA.sprites[el.dataset.sprite];
+  if (!s) return;
+  if (el.width !== s.w || el.height !== s.h) { el.width = s.w; el.height = s.h; }
+  el.style.width = s.w * 3 + 'px'; el.style.height = s.h * 3 + 'px';
+  const g = el.getContext('2d');
+  g.clearRect(0, 0, s.w, s.h);
+  g.drawImage(sprite(el.dataset.sprite, el.dataset.tint), 0, 0);
+}
+function applyPalette(i, save) {
+  state.pal = i;
+  const p = PALETTES[i];
+  C = expand(p);
+  cache.clear();
+  for (const k in C) root.style.setProperty('--' + k, C[k]);
+  root.style.colorScheme = p.dark ? 'dark' : 'light';
+  const t = document.createElement('canvas');
+  t.width = t.height = 16;
+  const g = t.getContext('2d');
+  g.fillStyle = C.grid; g.fillRect(0, 0, 1, 1);
+  root.style.setProperty('--tile', 'url(' + t.toDataURL() + ')');
+  document.querySelectorAll('.pal').forEach((b, j) => b.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
+  document.querySelectorAll('canvas[data-sprite]').forEach(paintOne);
+  if (save) store.set('theme', p.id);
+}
+
+// ---------- drawing ----------
+const cv = $('#stage'), ctx = cv.getContext('2d');
+let dpr = 1;
+function fit() {
+  dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+}
+const snap = (v) => Math.round(v * dpr) / dpr;
+const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+const lerp = (a, b, k) => a + (b - a) * k;
+const easeIO = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const backOut = (x) => 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2);
+
+function blit(name, cx, cy, k, alpha, mode) {
+  const s = sprite(name, mode), w = s.width * k, h = s.height * k;
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(s, snap(cx - w / 2), snap(cy - h / 2), w, h);
+  ctx.globalAlpha = 1;
+}
+function plate(x, y, w, h, fill, edge) {
+  x = snap(x); y = snap(y);
+  ctx.fillStyle = edge;
+  ctx.fillRect(x, y - 3, w, h + 6); ctx.fillRect(x - 3, y, w + 6, h);
+  ctx.fillStyle = fill;
+  ctx.fillRect(x, y, w, h);
+}
+function ring(cx, cy, half, color, alpha) {
+  const x = snap(cx - half), y = snap(cy - half), s = Math.round(half * 2);
+  ctx.globalAlpha = alpha; ctx.fillStyle = color;
+  ctx.fillRect(x, y - 3, s, 3); ctx.fillRect(x, y + s, s, 3); ctx.fillRect(x - 3, y, 3, s); ctx.fillRect(x + s, y, 3, s);
+  ctx.globalAlpha = 1;
+}
+function write(str, x, y, font, color, align) {
+  ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(str, snap(x), snap(y));
+}
+function width(str, font) { ctx.font = font; return ctx.measureText(str).width; }
+function lastWhere(T, pred) {
+  for (let i = EV.length - 1; i >= 0; i--) if (EV[i].t <= T && pred(EV[i])) return EV[i];
+  return null;
+}
+
+function draw(now) {
+  const T = state.T, fx = state.fx, full = fx === 'full';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = false;
+  const live = EV.filter((e) => e.send && T >= e.t && T < e.t + HOP);
+
+  // Cables, with dashes that run while a frame is on them.
+  for (const c of CABLES) {
+    const e = live.find((v) => c.ends.includes(v.send[0]) && c.ends.includes(v.send[1]));
+    const [x, y, w, h] = c.r;
+    ctx.fillStyle = C.out; ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+    ctx.fillStyle = e ? C['metal-l'] : C.metal; ctx.fillRect(x, y, w, h);
+    if (e && fx !== 'off') {
+      const p0 = PORT[e.send[0]], p1 = PORT[e.send[1]], horiz = w > h, len = horiz ? w : h;
+      const fwd = horiz ? p1[0] > p0[0] : p1[1] > p0[1], off = ((T - e.t) * 7) % 18;
+      ctx.fillStyle = C[tone(e.send[2]) + '-d'];
+      for (let d = off - 18; d < len; d += 18) {
+        const a = Math.max(0, d), b = Math.min(len, d + 8);
+        if (b <= a) continue;
+        const s = fwd ? a : len - b;
+        if (horiz) ctx.fillRect(x + s, y + 2, b - a, 2); else ctx.fillRect(x + 2, y + s, 2, b - a);
+      }
+    }
+  }
+
+  // Port plates; the one that just learned an address flashes.
+  for (const [key, n, fam] of PLATES) {
+    const [x, y] = PORT[key];
+    plate(x - 12, y - 12, 24, 24, C.well, C[fam + '-d']);
+    const e = lastWhere(T, (v) => v.learn && v.arrive === key);
+    if (e && fx !== 'off' && T - e.t < 3) {
+      ctx.globalAlpha = 1 - (T - e.t) / 3; ctx.fillStyle = C[fam + '-l'];
+      ctx.fillRect(x - 12, y - 12, 24, 24); ctx.globalAlpha = 1;
+    }
+    write(n, x, y + 1, '14px ' + F_PIX, C.ink, 'center');
+  }
+
+  // Devices: a hop and a flash when a frame arrives, lights on the ports in use.
+  for (const id in DEV) {
+    const d = DEV[id], e = lastWhere(T, (v) => v.dev === id);
+    let oy = 0, flash = 0;
+    if (e) {
+      const a = T - e.t, big = e.win ? 1.8 : 1;
+      if (full && a < 4) { const k = a / 4; oy = k < 0.6 ? -6 * big * Math.sin(Math.PI * k / 0.6) : -2 * big * Math.sin(Math.PI * (k - 0.6) / 0.4); }
+      if (fx !== 'off' && a < 1.4) flash = 0.6 * (1 - a / 1.4);
+    }
+    oy = Math.round(oy);
+    blit(d.type, d.x + 48, d.y + 48 + oy, 3, 1);
+    if (flash > 0) blit(d.type, d.x + 48, d.y + 48 + oy, 3, flash, 'white');
+    if (d.type === 'host') {
+      if (Math.floor(T / 2.5) % 2 === 1) { ctx.fillStyle = C.screen; ctx.fillRect(d.x + 42, d.y + oy + 36, 9, 3); }
+    } else {
+      const base = d.type === 'switch' ? [4, 16] : [15, 14];
+      for (let i = 0; i < 2; i++) {
+        const key = id + '.' + (i + 1);
+        if (live.some((v) => v.send[0] === key || v.send[1] === key) && Math.floor(T * 1.3) % 2 === 0) {
+          ctx.fillStyle = C['ok-l']; ctx.fillRect(d.x + (base[0] + 3 * i) * 3, d.y + oy + base[1] * 3, 6, 3);
+        }
+      }
+    }
+    const [px, py, pw, ph] = d.plate;
+    plate(px, py, pw, ph, C.panel, C.edge);
+    if (d.ip) {
+      write(d.name, px + pw / 2, py + 13, '600 16px ' + F_PIX, C.ink, 'center');
+      write(d.ip, px + pw / 2, py + 30, '12px ' + F_MONO, C.muted, 'center');
+    } else {
+      write(d.name, px + pw / 2, py + ph / 2 + 1, '600 16px ' + F_PIX, C.ink, 'center');
+    }
+  }
+
+  // The selection: four corners that snap into place.
+  {
+    const d = DEV[state.sel], b = BOX[d.type], k = clamp01((now - state.selAt) / 220), L = 12;
+    const o = full ? (1 - backOut(k)) * 14 + (state.playing ? Math.round(Math.sin(T * 0.7)) * 1.5 : 0) : 0;
+    const x0 = snap(d.x + b[0] * 3 - 6 - o), y0 = snap(d.y + b[1] * 3 - 6 - o), x1 = snap(d.x + (b[2] + 1) * 3 + 6 + o), y1 = snap(d.y + (b[3] + 1) * 3 + 6 + o);
+    ctx.fillStyle = C['acc-line'];
+    for (const [cx, sx] of [[x0, 1], [x1, -1]]) for (const [cy, sy] of [[y0, 1], [y1, -1]]) {
+      ctx.fillRect(sx > 0 ? cx : cx - L, sy > 0 ? cy : cy - 3, L, 3);
+      ctx.fillRect(sx > 0 ? cx : cx - 3, sy > 0 ? cy : cy - L, 3, L);
+    }
+  }
+
+  // Markers: what each device decided.
+  for (const e of EV) {
+    if (T < e.t) break;
+    e.marks.forEach((m, j) => {
+      const [tn, title, data, until] = m;
+      let alpha = until ? clamp01((until - T) / 2) : clamp01(1 - (T - e.t - 13) / 5);
+      if (alpha <= 0) return;
+      const k = clamp01((T - e.t) / 1.5), slide = full ? (1 - backOut(k)) * 10 : 0;
+      alpha *= clamp01(k * 2.5);
+      const tw = width(title, '16px ' + F_PIX), w = Math.ceil(tw + (data ? 8 + width(data, '12px ' + F_MONO) : 0) + 20), n = e.marks.length;
+      let x, y;
+      if (e.dev === 'A') { x = 196; y = 78 + j * 34 - (n - 1) * 17; }
+      else if (e.dev === 'B') { x = 564 - w; y = 78 + j * 34 - (n - 1) * 17; }
+      else if (e.dev === 'S1') { x = 152; y = 240; }
+      else if (e.dev === 'S2') { x = 608 - w; y = 240; }
+      else { x = 380 - w / 2; y = n === 1 ? 192 : 158 + j * 34; }
+      y += slide;
+      ctx.globalAlpha = alpha;
+      plate(x, y, w, 26, C.btn, C[tn + '-line']);
+      ctx.globalAlpha = alpha;
+      write(title, x + 10, y + 14, '16px ' + F_PIX, C.ink);
+      if (data) write(data, x + 18 + tw, y + 14, '12px ' + F_MONO, C.ink);
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  // The datagram the router keeps while it asks.
+  if (T >= 60 && T < 100) {
+    const a = T - 60;
+    let x = WAIT[0], y = WAIT[1];
+    if (full && a < 3) {
+      const k = easeOut(a / 3);
+      x = lerp(PORT['R.1'][0], WAIT[0], k); y = lerp(PORT['R.1'][1], WAIT[1], k) - Math.sin(Math.PI * k) * 30;
+    } else if (full) {
+      y += Math.round(Math.sin(T * 0.8) * 3);
+    }
+    blit('echo-request', x, y, 3, 1);
+    if (a >= 2) {
+      ctx.globalAlpha = clamp01((a - 2) / 1.5);
+      plate(WAIT[0] + 30, WAIT[1] - 11, 68, 22, C.panel, C['ask-d']);
+      ctx.globalAlpha = clamp01((a - 2) / 1.5);
+      write('waiting', WAIT[0] + 64, WAIT[1] + 1, '14px ' + F_PIX, C['ask-text'], 'center');
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Frames in flight.
+  for (const e of live) {
+    const [from, to, name, bcast, queued] = e.send, u = (T - e.t) / HOP, p0 = PORT[from], p1 = PORT[to];
+    const tn = tone(name), horiz = p0[1] === p1[1];
+    const at = (v) => {
+      if (queued) {
+        if (v < 0.3) { const k = full ? easeOut(v / 0.3) : v / 0.3; return [lerp(WAIT[0], p0[0], k), lerp(WAIT[1], p0[1], k) - (full ? Math.sin(Math.PI * k) * 18 : 0)]; }
+        v = (v - 0.3) / 0.7;
+      }
+      const k = full ? easeIO(v) : v;
+      let x = lerp(p0[0], p1[0], k), y = lerp(p0[1], p1[1], k);
+      if (full) {
+        if (tn === 'ok' && horiz) y -= Math.abs(Math.sin(k * Math.PI * 2)) * 12;
+        else if (tn === 'ask') { const wob = Math.sin(k * Math.PI * 2) * 3; if (horiz) y += wob; else x += wob; }
+      }
+      return [x, y];
+    };
+    const [x, y] = at(u);
+    if (full) {
+      for (let i = 5; i >= 1; i--) {
+        const v = u - i * 0.03;
+        if (v <= 0) continue;
+        const [tx, ty] = at(v), s = 15 - i * 2;
+        ctx.globalAlpha = 0.5 - i * 0.08; ctx.fillStyle = C[tn];
+        ctx.fillRect(snap(tx - s / 2), snap(ty - s / 2), s, s);
+      }
+      ctx.globalAlpha = 1;
+    }
+    let k = 3;
+    if (full) {
+      if (!queued) { if (u < 0.03) k = 1; else if (u < 0.06) k = 2; else if (u < 0.12) k = 4; }
+      if (u > 0.97) k = 1; else if (u > 0.94) k = 2;
+    }
+    if (bcast && fx !== 'off' && k >= 3) {
+      ring(x, y, 27 + (full ? Math.round(Math.sin(T * 1.6) * 1.5) : 0), C[tn], 1);
+      if (full) { const ph = ((T - e.t) % 3.3) / 3.3; ring(x, y, 27 + ph * 22, C[tn], (1 - ph) * 0.55); }
+    }
+    blit(name, x, y, k, 1);
+    const fade = clamp01((u - 0.1) / 0.08) * clamp01((0.92 - u) / 0.08);
+    if (fade > 0) {
+      const text = LABEL[name], w = Math.ceil(width(text, '14px ' + F_PIX)) + 16;
+      const lx = horiz ? lerp(p0[0], p1[0], full ? easeIO(queued ? clamp01((u - 0.3) / 0.7) : u) : u) - w / 2 : p0[0] < W / 2 ? p0[0] - 36 - w : p0[0] + 36;
+      const ly = horiz ? p0[1] + 36 : y - 10;
+      ctx.globalAlpha = fade;
+      plate(lx, ly, w, 20, C.panel, C[tn + '-d']);
+      ctx.globalAlpha = fade;
+      write(text, lx + w / 2, ly + 11, '14px ' + F_PIX, C[tn + '-text'], 'center');
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Arrivals: a ring and a few sparks where the frame came in; confetti for the reply.
+  if (fx !== 'off') {
+    for (const e of EV) {
+      if (T < e.t) break;
+      const a = T - e.t;
+      if (a > 20) continue;
+      const [x, y] = e.win ? [130, 104] : PORT[e.arrive];
+      if (e.win) {
+        for (const lag of [0, 2]) { const k = (a - lag) / 6; if (k > 0 && k < 1) ring(x, y, 34 + easeOut(k) * 30, C['ok-line'], 1 - k); }
+      } else if (a < 5) {
+        ring(x, y, 12 + easeOut(a / 5) * 24, C[e.from], 1 - a / 5);
+      }
+      if (!full) continue;
+      for (const p of e.parts) {
+        if (a >= p.life) continue;
+        const d = p.v * (1 - Math.exp(-0.6 * a));
+        const X = x + Math.cos(p.a) * d, Y = y + Math.sin(p.a) * d - (e.win ? 46 * (1 - Math.exp(-0.5 * a)) : 0) + (e.win ? 0.42 : 0.3) * a * a;
+        if (e.win) {
+          const w = Math.max(1, Math.round(p.s * Math.abs(Math.cos(a * 1.3 + p.ph))));
+          ctx.globalAlpha = clamp01((p.life - a) / 3);
+          ctx.fillStyle = C[['ok', 'ask', 'link', 'route', 'acc'][p.c]];
+          ctx.fillRect(snap(X - w / 2), snap(Y - p.s / 2), w, p.s);
+        } else {
+          const s = Math.max(2, Math.round(p.s * (1 - a / p.life)));
+          ctx.fillStyle = C[p.c < 2 ? e.from + '-l' : e.from];
+          ctx.fillRect(snap(X - s / 2), snap(Y - s / 2), s, s);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // The moment: the goal is met.
+  if (T >= 160) {
+    const a = T - 160, k = clamp01(a / 3), drop = full ? (1 - backOut(k)) * -34 : 0, w = 304, x = 380 - w / 2, y = 150 + drop;
+    ctx.globalAlpha = clamp01(a / 1.2);
+    ctx.fillStyle = C.out; ctx.fillRect(snap(x), snap(y) - 6, w, 66); ctx.fillRect(snap(x) - 6, snap(y), w + 12, 54);
+    plate(x, y, w, 54, C['ok-chip'], C['ok-line']);
+    write('PC-A reached PC-B', 380, y + 20, '600 20px ' + F_PIX, C['ok-chip-ink'], 'center');
+    write('Echo Reply after 120 ms', 380, y + 40, '12px ' + F_MONO, C['ok-chip-ink'], 'center');
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ---------- sound: a few voices, no files ----------
+let ac = null, master = null;
+function audio() {
+  if (!state.sound) return null;
+  if (!ac) {
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = 0.6; master.connect(ac.destination);
+    } catch (e) { ac = null; return null; }
+  }
+  if (ac.state === 'suspended') ac.resume().catch(() => {});
+  return ac;
+}
+function voice(freq, at, dur, type, vol, slide) {
+  const a = audio();
+  if (!a) return;
+  const t0 = a.currentTime + at, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t0);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(master);
+  o.start(t0); o.stop(t0 + dur + 0.03);
+}
+const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51];
+function playCue(e) {
+  if (!state.sound) return;
+  let at = 0;
+  for (const c of e.cue) {
+    if (c === 'ask') { voice(330, at, 0.1, 'triangle', 0.16); voice(440, at + 0.1, 0.14, 'triangle', 0.16); }
+    else if (c === 'answer') { voice(440, at, 0.1, 'triangle', 0.16); voice(330, at + 0.1, 0.14, 'triangle', 0.16); }
+    else if (c === 'tick') { voice(990, at, 0.04, 'square', 0.03); }
+    else if (c === 'note') { const f = PENTA[e.note % PENTA.length]; voice(f, at, 0.16, 'square', 0.05); voice(f * 2, at, 0.09, 'triangle', 0.05); }
+    else if (c === 'hold') { voice(196, at, 0.22, 'triangle', 0.2, 147); at += 0.2; }
+    else if (c === 'release') { voice(294, at, 0.12, 'triangle', 0.16, 587); at += 0.1; }
+    else if (c === 'win') {
+      [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((f, i) => voice(f, i * 0.085, 0.2, 'square', 0.05));
+      voice(523.25, 0.43, 0.6, 'triangle', 0.14); voice(783.99, 0.43, 0.6, 'triangle', 0.1); voice(1046.5, 0.43, 0.6, 'triangle', 0.1);
+    }
+  }
+}
+function click() { voice(700, 0, 0.03, 'square', 0.025); }
+
+// ---------- the HUD around the stage ----------
+const el = { clock: $('#clock'), status: $('#status'), scrub: $('#scrub'), runLabel: $('#run-label'), runIcon: $('#run canvas'),
+  sayWhen: $('#say-when'), sayText: $('#say-text'), evKind: $('#ev-kind'), evText: $('#ev-text'),
+  goals: $('#goals'), goal: $('#goal-ping'), count: $('#count'), body: $('#insp-body') };
+let shownIdx = -2, shownRun = '', fired = -1;
+function indexAt(T) { let i = -1; while (i + 1 < EV.length && EV[i + 1].t <= T) i++; return i; }
+
+function table(title, heads, rows, empty) {
+  let h = '<h3 class="eyebrow">' + title + '</h3>';
+  if (!rows.length) return h + '<p class="note">' + empty + '</p>';
+  h += '<div class="tablewrap"><table><thead><tr>' + heads.map((x) => '<th scope="col">' + x + '</th>').join('') + '</tr></thead><tbody>';
+  for (const r of rows) h += '<tr class="' + r.cls + '">' + r.cells.map((c) => '<td>' + c + '</td>').join('') + '</tr>';
+  return h + '</tbody></table></div>';
+}
+// The terminal speaks the language of the Linux tools and reads the same state as the tables.
+const TERM = { A: [], S1: [], R: [], S2: [], B: [] };
+const IP = ['ip', [['ip addr', 'the addresses of its ports'], ['ip route', 'where it sends what'], ['ip neigh', 'the MACs it knows: its ARP cache']]];
+const BRIDGE = ['bridge', [['bridge fdb show', 'the MAC table: what it has learned']]];
+const MENUS = { A: [['ping', [['ping -c 1 192.168.20.10', 'one Echo Request to PC-B']]], IP], B: [IP], R: [IP], S1: [BRIDGE], S2: [BRIDGE] };
+const HIST = { A: [], S1: [], R: [], S2: [], B: [] }, histAt = {};
+let runId = 0;
+function pingText(T) {
+  let t = 'PING 192.168.20.10 (192.168.20.10) 56(84) bytes of data.';
+  if (T >= 160) t += '\n64 bytes from 192.168.20.10: icmp_seq=1 ttl=63 time=120 ms\n\n--- 192.168.20.10 ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss\nrtt min/avg/max/mdev = 120.000/120.000/120.000/0.000 ms';
+  return t;
+}
+function last255(cidr) { const p = cidr.split('/')[0].split('.'); p[3] = '255'; return p.join('.'); }
+function network(cidr) { const p = cidr.split('/')[0].split('.'); p[3] = '0'; return p.join('.') + '/24'; }
+function command(id, raw) {
+  const cmd = raw.trim().replace(/\s+/g, ' ');
+  if (!cmd) return;
+  const d = DEV[id], T = state.T, log = TERM[id], ifs = d.ifs || [];
+  let out = '', err = false;
+  HIST[id].push(cmd); histAt[id] = HIST[id].length;
+  if (cmd === 'clear') { log.length = 0; return; }
+  if (cmd === 'help') {
+    out = 'Here you can run: ' + MENUS[id].flatMap((m) => m[1].map((c) => c[0])).concat('clear').join(', ');
+  } else if (ifs.length && /^ip a(ddr(ess)?)?( show)?$/.test(cmd)) {
+    out = ifs.map((f, i) => (i + 1) + ': ' + f[0] + ': <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP\n    link/ether ' + f[1] + ' brd ff:ff:ff:ff:ff:ff\n    inet ' + f[2] + ' brd ' + last255(f[2]) + ' scope global ' + f[0]).join('\n');
+  } else if (ifs.length && /^ip r(oute)?( show)?$/.test(cmd)) {
+    out = (d.gw ? 'default via ' + d.gw + ' dev p1\n' : '') + ifs.map((f) => network(f[2]) + ' dev ' + f[0] + ' proto kernel scope link src ' + f[2].split('/')[0]).join('\n');
+  } else if (ifs.length && /^ip n(eigh(bou?r)?)?( show)?$/.test(cmd)) {
+    out = learned(id, 'arp', T).map((l) => l.ip + ' dev ' + l.port + (l.mac ? ' lladdr ' + l.mac + ' REACHABLE' : ' INCOMPLETE')).join('\n');
+  } else if (d.type === 'switch' && /^bridge fdb( show)?$/.test(cmd)) {
+    out = learned(id, 'mac', T).map((l) => l.mac + ' dev ' + l.port + ' master br0').join('\n');
+  } else if (/^ping( |$)/.test(cmd)) {
+    if (id === 'A' && /^ping( -c \d+)? 192\.168\.20\.10$/.test(cmd)) { audio(); restart(); log.push({ cmd, ping: runId }); return; }
+    out = 'ping: this prototype plays one ping only, from PC-A: ping -c 1 192.168.20.10'; err = true;
+  } else {
+    out = cmd.split(' ')[0] + ': not available here. Try help.'; err = true;
+  }
+  log.push({ cmd, out, err });
+}
+function closeMenus(refocus) {
+  document.querySelectorAll('.menu-wrap > .btn[aria-expanded="true"]').forEach((b) => {
+    b.setAttribute('aria-expanded', 'false'); b.nextElementSibling.hidden = true;
+    if (refocus) b.focus();
+  });
+}
+function renderTerm() {
+  const id = state.sel, host = DEV[id].name.toLowerCase();
+  if (el.body.dataset.term !== id) {
+    el.body.dataset.term = id;
+    el.body.innerHTML = '<div class="cmds" role="group" aria-label="Commands, by family">' +
+      MENUS[id].map(([name, items], i) => '<div class="menu-wrap"><button type="button" class="btn cmd" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-' + i + '">' + name +
+        '<canvas class="spr" data-sprite="caret" aria-hidden="true"></canvas></button><div class="menu" id="menu-' + i + '" role="menu" aria-label="' + name + '" hidden>' +
+        items.map(([c, what]) => '<button type="button" role="menuitem" data-cmd="' + c + '"><b>' + c + '</b><span>' + what + '</span></button>').join('') + '</div></div>').join('') +
+      '<button type="button" class="btn cmd" id="term-clear">clear</button></div>' +
+      '<div class="term" id="term"><div class="term-out" id="term-out" role="log" aria-label="Terminal output"></div>' +
+      '<form class="term-in" id="term-form"><span class="p" aria-hidden="true">' + host + ':~$</span>' +
+      '<input id="term-cmd" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Command for ' + DEV[id].name + '"></form></div>';
+    el.body.querySelectorAll('canvas[data-sprite]').forEach(paintOne);
+    const input = $('#term-cmd');
+    $('#term-form').addEventListener('submit', (ev) => { ev.preventDefault(); const v = input.value; input.value = ''; command(id, v); click(); renderTerm(); });
+    $('#term').addEventListener('click', (ev) => { if (ev.target !== input && !String(window.getSelection())) input.focus(); });
+    input.addEventListener('keydown', (ev) => {
+      const h = HIST[id];
+      let at = histAt[id] === undefined ? h.length : histAt[id];
+      if (ev.key === 'ArrowUp' && h.length) at = Math.max(0, at - 1);
+      else if (ev.key === 'ArrowDown') at = Math.min(h.length, at + 1);
+      else return;
+      ev.preventDefault();
+      histAt[id] = at; input.value = at < h.length ? h[at] : '';
+    });
+    el.body.querySelectorAll('.menu-wrap').forEach((wrap) => {
+      const btn = wrap.firstElementChild, menu = wrap.lastElementChild, items = Array.from(menu.children);
+      btn.addEventListener('click', (ev) => {
+        const open = btn.getAttribute('aria-expanded') === 'true';
+        closeMenus(false);
+        if (!open) { btn.setAttribute('aria-expanded', 'true'); menu.hidden = false; if (ev.detail === 0) items[0].focus(); }
+        click();
+      });
+      wrap.addEventListener('keydown', (ev) => {
+        const i = items.indexOf(document.activeElement);
+        if (ev.key === 'Escape') closeMenus(true);
+        else if (ev.key === 'ArrowDown' && !menu.hidden) { ev.preventDefault(); items[(i + 1) % items.length].focus(); }
+        else if (ev.key === 'ArrowUp' && !menu.hidden) { ev.preventDefault(); items[i <= 0 ? items.length - 1 : i - 1].focus(); }
+      });
+      items.forEach((it) => it.addEventListener('click', () => { closeMenus(true); command(id, it.dataset.cmd); click(); renderTerm(); }));
+    });
+    $('#term-clear').addEventListener('click', () => { command(id, 'clear'); click(); renderTerm(); });
+  }
+  const out = $('#term-out');
+  out.textContent = '';
+  const add = (cls, text) => { const o = document.createElement('div'); o.className = cls; o.textContent = text; out.append(o); };
+  if (!TERM[id].length) add('dim', 'Type a command, or pick one from the menus above.');
+  for (const e of TERM[id]) {
+    const line = document.createElement('div'), p = document.createElement('span');
+    p.className = 'p'; p.textContent = host + ':~$ ';
+    line.append(p, e.cmd);
+    out.append(line);
+    const text = e.ping ? pingText(state.T) : e.out;
+    if (text) add(e.err ? 'err' : '', text);
+  }
+  out.scrollTop = out.scrollHeight;
+}
+
+function inspector(fresh) {
+  const id = state.sel, d = DEV[id], T = state.T, now = shownIdx >= 0 ? EV[shownIdx].t : -1;
+  $('#insp-name').textContent = d.name;
+  $('#insp-line').textContent = d.line;
+  const icon = $('#insp-icon');
+  icon.dataset.sprite = d.type + '-small';
+  paintOne(icon);
+  document.querySelectorAll('#devs .btn').forEach((b) => b.setAttribute('aria-pressed', b.dataset.dev === id ? 'true' : 'false'));
+  document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tab === state.tab ? 'true' : 'false'));
+  if (state.tab === 'term') { renderTerm(); return; }
+  el.body.dataset.term = '';
+  const rows = (tab, cells) => learned(id, tab, T).map((l) => ({ cells: cells(l), cls: (fresh && l.t === now ? 'fresh ' : '') + (l.until ? 'pending' : '') }));
+  let h = '';
+  if (d.type === 'host') {
+    h += '<h3 class="eyebrow">Settings</h3><dl class="kv"><dt>Address</dt><dd>' + d.ip + '</dd><dt>Gateway</dt><dd>' + d.gw + '</dd><dt>MAC</dt><dd>' + d.mac + '</dd></dl>';
+    h += table('ARP cache', ['Address', 'MAC', 'Expires'], rows('arp', (l) => [l.ip, l.mac || 'not yet', l.mac ? '60 s' : 'asking']), 'Empty. It fills when this host needs the MAC of a neighbour.');
+  } else if (d.type === 'switch') {
+    h += table('MAC table', ['MAC', 'Port'], rows('mac', (l) => [l.mac, l.port]), 'Empty. A switch learns from the source of each frame it sees.');
+  } else {
+    const hit = T >= 60 && T < 110 ? 1 : T >= 140 && T < 150 ? 0 : -1;
+    h += table('Routing table', ['Destination', 'Via', 'Port'], [
+      { cells: ['192.168.10.0/24', 'connected', 'p1'], cls: hit === 0 ? 'hit' : '' },
+      { cells: ['192.168.20.0/24', 'connected', 'p2'], cls: hit === 1 ? 'hit' : '' }], '');
+    if (hit === 1) h += '<p class="note">The second route matched the Echo Request for 192.168.20.10.</p>';
+    if (hit === 0) h += '<p class="note">The first route matched the Echo Reply for 192.168.10.10.</p>';
+    h += table('ARP cache', ['Address', 'MAC', 'Port', 'Expires'], rows('arp', (l) => [l.ip, l.mac || 'not yet', l.port, l.mac ? '60 s' : 'asking']), 'Empty. It fills when the router needs the MAC of a neighbour.');
+    if (T >= 60 && T < 100) h += '<p class="note warn">1 datagram waits for 192.168.20.10.</p>';
+  }
+  el.body.innerHTML = h;
+}
+function sync(force) {
+  const T = state.T;
+  el.clock.textContent = 't = ' + T.toFixed(3) + ' ms';
+  el.scrub.value = T;
+  const st = state.playing ? 'RUNNING' : T >= T_END ? 'DONE' : 'PAUSED';
+  if (el.status.textContent !== st) { el.status.textContent = st; el.status.classList.toggle('run', st !== 'PAUSED'); }
+  const run = state.playing ? 'Pause' : T >= T_END ? 'Replay' : 'Run';
+  if (run !== shownRun) {
+    shownRun = run; el.runLabel.textContent = run;
+    el.runIcon.dataset.sprite = state.playing ? 'pause' : T >= T_END ? 'reset' : 'play';
+    paintOne(el.runIcon);
+  }
+  const idx = indexAt(T);
+  if (idx === shownIdx && !force) return;
+  const fresh = state.playing && idx === shownIdx + 1;
+  shownIdx = idx;
+  const e = EV[idx];
+  el.sayWhen.textContent = e ? 't = ' + e.t + ' ms' : 't = 0 ms';
+  el.sayWhen.classList.toggle('ok', !!e && e.kind === 'ok');
+  el.sayText.textContent = e ? e.text : 'Nothing has happened yet. Press Run to send a ping from PC-A to 192.168.20.10.';
+  el.evKind.textContent = e ? (e.kind === 'ok' ? 'ICMP' : 'ARP') : 'START';
+  el.evKind.classList.toggle('ok', !!e && e.kind === 'ok');
+  el.evText.textContent = e ? e.short : 'The ping has not been sent';
+  document.querySelectorAll('#ticks i').forEach((t, i) => { t.classList.toggle('later', i > idx); t.classList.toggle('now', fresh && i === idx); });
+  if (fresh) { el.sayText.classList.remove('in'); void el.sayText.offsetWidth; el.sayText.classList.add('in'); }
+  const won = T >= 160, was = el.goal.classList.contains('done');
+  if (won !== was) {
+    el.goal.classList.toggle('done', won); el.goal.classList.toggle('open', !won);
+    el.goal.classList.toggle('stamp', won && fresh); el.count.classList.toggle('bump', won && fresh);
+    el.goals.classList.toggle('won', won);
+    const c = el.goal.querySelector('canvas');
+    c.dataset.sprite = won ? 'goal-done' : 'goal-open'; c.setAttribute('aria-label', won ? 'Done' : 'Open');
+    paintOne(c);
+    el.count.textContent = won ? '4 / 4' : '3 / 4';
+  }
+  inspector(fresh);
+}
+
+// ---------- the loop: it stops when nothing moves ----------
+let raf = 0, last = 0, uiUntil = 0;
+function frame(now) {
+  raf = 0;
+  const dt = Math.min(64, now - last);
+  last = now;
+  if (state.playing) {
+    let T = state.T + dt * RATE * state.speed;
+    if (state.stepTo !== null && T >= state.stepTo) { T = state.stepTo; state.stepTo = null; state.playing = false; }
+    if (T >= T_END) { T = T_END; state.stepTo = null; state.playing = false; }
+    state.T = T;
+    while (fired + 1 < EV.length && EV[fired + 1].t <= T) { fired++; playCue(EV[fired]); }
+  }
+  draw(now);
+  sync(false);
+  if (state.playing || now < uiUntil) raf = requestAnimationFrame(frame);
+}
+function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+function seek(T) { state.T = T; state.playing = false; state.stepTo = null; fired = indexAt(T); kick(); }
+function restart() {
+  // A ping typed in a terminal belongs to the run it started: a new run leaves it as it was.
+  for (const id in TERM) for (const e of TERM[id]) if (e.ping) { e.out = pingText(state.T) + (state.T < 160 ? '\n^C' : ''); e.ping = 0; }
+  runId++;
+  state.T = 0; fired = -1; state.stepTo = null; state.playing = true; kick();
+}
+function toggleRun() {
+  audio();
+  if (state.playing) { state.playing = false; state.stepTo = null; }
+  else if (state.T >= T_END) { restart(); return; }
+  else { state.playing = true; state.stepTo = null; }
+  kick();
+}
+function step() {
+  audio();
+  if (state.T >= T_END) return;
+  // From the middle of one hop to the middle of the next: an arrival, a decision, a departure.
+  const stops = EV.map((e) => e.t + HOP / 2).concat(T_END);
+  state.stepTo = stops.find((t) => t > state.T + 0.5);
+  state.playing = true;
+  kick();
+}
+function select(id) {
+  state.sel = id; state.selAt = performance.now(); uiUntil = state.selAt + 280;
+  inspector(false);
+  kick();
+}
+function setSound(on) {
+  state.sound = on; store.set('sound', on ? 'on' : 'off');
+  $('#sound-label').textContent = on ? 'Sound on' : 'Sound off';
+  const c = $('#sound canvas'); c.dataset.sprite = on ? 'sound' : 'mute'; paintOne(c);
+}
+function setFx(v) { state.fx = v; store.set('fx', v); $('#fx-label').textContent = 'FX: ' + v; $('#fx').setAttribute('aria-label', 'Effects: ' + v); kick(); }
+function setSpeed(v) { state.speed = v; store.set('speed', v); $('#speed').textContent = v + '×'; }
+
+// ---------- build the page ----------
+PALETTES.forEach((p, i) => {
+  const b = document.createElement('button'), c = expand(p);
+  b.type = 'button'; b.className = 'pal'; b.setAttribute('aria-pressed', 'false');
+  for (const [k, v] of [['panel', c.panel], ['ink', c.ink], ['muted', c.muted], ['edge', c.edge], ['out', c.out], ['acc', c['acc-line']], ['on', p.dark ? c.out : '#ffffff']]) b.style.setProperty('--p-' + k, v);
+  const colours = new Set();
+  for (const k in p) { if (Array.isArray(p[k])) p[k].forEach((v) => colours.add(v)); else if (typeof p[k] === 'string' && p[k][0] === '#') colours.add(p[k]); }
+  const sw = [...new Set([c.canvas, c.metal, c['metal-l'], c.acc, c.ok, c.link, c.ask, c.route, c.ink])].filter((v) => v !== c.panel).map((v) => '<i style="background:' + v + '"></i>').join('');
+  b.innerHTML = '<span class="pal-name">' + p.name + '<span class="pal-on">IN USE</span><span class="pal-sw" aria-hidden="true">' + sw + '</span></span><span class="pal-note">' + p.note + ' ' + colours.size + ' colours.</span>';
+  b.addEventListener('click', () => { applyPalette(i, true); click(); kick(); });
+  $('#pal-list').appendChild(b);
+});
+for (const id in DEV) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'btn small'; b.dataset.dev = id; b.textContent = DEV[id].name;
+  b.addEventListener('click', () => { select(id); click(); });
+  $('#devs').appendChild(b);
+}
+EV.forEach((e) => {
+  const t = document.createElement('i');
+  if (e.kind === 'ok') t.className = 'ok';
+  t.style.left = 'calc(4px + (100% - 8px) * ' + (e.t / T_END).toFixed(4) + ')';
+  $('#ticks').appendChild(t);
+});
+
+$('#run').addEventListener('click', toggleRun);
+$('#step').addEventListener('click', () => { step(); click(); });
+$('#restart').addEventListener('click', () => { audio(); restart(); });
+$('#speed').addEventListener('click', () => { setSpeed(state.speed === 0.5 ? 1 : state.speed === 1 ? 2 : 0.5); click(); });
+$('#sound').addEventListener('click', () => { setSound(!state.sound); click(); });
+$('#fx').addEventListener('click', () => { setFx(state.fx === 'full' ? 'reduced' : state.fx === 'reduced' ? 'off' : 'full'); click(); });
+el.scrub.addEventListener('input', () => seek(Number(el.scrub.value)));
+document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => { state.tab = b.dataset.tab; store.set('tab', state.tab); inspector(false); click(); }));
+function deviceAt(ev) {
+  const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) * W / r.width, y = (ev.clientY - r.top) * H / r.height;
+  for (const id in DEV) {
+    const d = DEV[id], p = d.plate;
+    if ((x >= d.x && x < d.x + 96 && y >= d.y && y < d.y + 96) || (x >= p[0] && x < p[0] + p[2] && y >= p[1] && y < p[1] + p[3])) return id;
+  }
+  return null;
+}
+cv.addEventListener('click', (ev) => { const id = deviceAt(ev); if (id) { select(id); click(); } });
+document.addEventListener('pointerdown', (ev) => { if (!(ev.target instanceof Element) || !ev.target.closest('.menu-wrap')) closeMenus(false); });
+cv.addEventListener('pointermove', (ev) => { cv.style.cursor = deviceAt(ev) ? 'pointer' : 'default'; });
+document.addEventListener('keydown', (ev) => {
+  const tag = ev.target && ev.target.tagName;
+  if (ev.ctrlKey || ev.metaKey || ev.altKey || tag === 'BUTTON' || tag === 'INPUT') return;
+  if (ev.key === ' ') { ev.preventDefault(); toggleRun(); }
+  else if (ev.key === 'ArrowRight') { ev.preventDefault(); step(); }
+  else if (ev.key === 'r' || ev.key === 'R') { audio(); restart(); }
+  else if (ev.key === 'm' || ev.key === 'M') { setSound(!state.sound); }
+});
+window.addEventListener('resize', () => { const was = dpr; fit(); if (was !== dpr || !raf) { draw(performance.now()); } });
+
+fit();
+applyPalette(state.pal, false);
+setSound(state.sound); setFx(state.fx); setSpeed(state.speed);
+fired = indexAt(state.T);
+draw(performance.now());
+sync(true);
+// The stage writes its labels itself, so it is drawn again as each font arrives.
+const redraw = () => draw(performance.now());
+if (document.fonts && document.fonts.load) {
+  for (const f of ['16px "Pixelify Sans"', '600 16px "Pixelify Sans"', '12px "JetBrains Mono"']) document.fonts.load(f).then(redraw, () => {});
+  if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', redraw);
+}
+})();
+</script>

@@ -56,7 +56,7 @@ A network the router is not on needs a static route: `"routes": [{"destination":
 | Member | Type | Required | Meaning |
 |---|---|---|---|
 | `format` | string | yes | Always `"resend-scenario"` |
-| `version` | number | yes | Format version, currently `2` |
+| `version` | number | yes | Format version, currently `3`. resend writes `2` when every host has an address, so that earlier versions still open the file, and `3` otherwise |
 | `title` | string | no | Shown when the file is opened |
 | `notes` | string | no | What the scenario shows, or what to try |
 | `seed` | number | no | Seed for random choices, 0 to 4294967295; default 1. Nothing in version 2 is random yet, but the seed is kept so a scenario stays reproducible when something is |
@@ -83,7 +83,7 @@ A network the router is not on needs a static route: `"routes": [{"destination":
 |---|---|---|---|
 | `mac` | string | no | Six pairs of hex digits separated by colons, e.g. `"02:00:00:00:00:01"`. Default: `02:00:` followed by the device id for a host, `02:1p:` followed by the device id for port p (0–7) of a switch, e.g. `02:13:00:00:00:05` for port 4 of switch 5, and `02:2p:` for a router, e.g. `02:21:00:00:00:03` for port 2 of router 3 |
 | `up` | boolean | no | Administrative state, default `true`. A disabled port has no carrier, and neither has the port at the other end of its cable |
-| `ipv4` | string | hosts | The interface address with its prefix length, e.g. `"192.168.1.10/24"`. Required on a host, optional on each router port: a router port without one takes part in no network |
+| `ipv4` | string | no | The interface address with its prefix length, e.g. `"192.168.1.10/24"`. A host without one (version 3; required before) sends and accepts no IPv4: its pings fail at once with *no address*, as a PC fresh out of its box. A router port without one takes part in no network |
 
 An address must be usable on its prefix: not the network or broadcast address of its subnet (except on /31 and /32, which have neither, as in RFC 3021), not 0.0.0.0/8, loopback (127/8), multicast (224/4) or reserved (240/4). Switch ports have no address.
 
@@ -111,11 +111,11 @@ Reading stops at the first problem with the file itself and says where it is:
 
 The JSON is strict: whole numbers only, no comments, no trailing commas, no duplicate members, valid UTF-8, at most 64 levels of nesting.
 
-A file that reads correctly is then validated as a network, and every problem is reported with the device or cable it concerns: duplicate ids, a cable to a missing device or port, two cables on one port, a cable between two ports of the same device, a missing or unusable address, a gateway that is not a unicast address, a route with host bits set or a duplicate destination, more than 32 routes, a delay or ageing time out of range, or more than 100 devices. Questionable but valid networks, such as two hosts with the same address, masks that disagree, a gateway on another subnet, a missing return route or a loop of switches or of routes, are accepted: they are worth trying. In a loop of switches, resend's storm guard stops the frames that go round it; in a loop of routes, the TTL does.
+A file that reads correctly is then validated as a network, and every problem is reported with the device or cable it concerns: duplicate ids, a cable to a missing device or port, two cables on one port, a cable between two ports of the same device, an unusable address, a host without an address in a file older than version 3, a gateway that is not a unicast address, a route with host bits set or a duplicate destination, more than 32 routes, a delay or ageing time out of range, or more than 100 devices. Questionable but valid networks, such as two hosts with the same address, masks that disagree, a gateway on another subnet, a missing return route or a loop of switches or of routes, are accepted: they are worth trying. In a loop of switches, resend's storm guard stops the frames that go round it; in a loop of routes, the TTL does.
 
 ## Versions
 
-The version changes only when a file written by a newer resend could be misread by an older one. Older files keep opening: a newer resend reads every earlier version, and writes the current one.
+The version changes only when a file written by a newer resend could be misread by an older one. Older files keep opening: a newer resend reads every earlier version, and writes the lowest one that holds the network. Version 2 added routers, gateways and routes; version 3, hosts without an address.
 
 - Version 1: hosts and switches.
 - Version 2 (resend 0.3): routers, default gateways and static routes.

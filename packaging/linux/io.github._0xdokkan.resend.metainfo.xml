@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata: what software centres and the AppImage show of resend. -->
+<component type="desktop-application">
+  <id>io.github._0xdokkan.resend</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>resend</name>
+  <summary>Build networks and see why a packet arrives or stops</summary>
+  <developer id="io.github._0xdokkan">
+    <name>Zayd Soulmani</name>
+  </developer>
+
+  <description>
+    <p>
+      resend is a networking lab for the desktop. Hosts, switches and routers are put on a canvas and
+      wired together; their addresses, gateways and routes are set in the inspector. A ping or a
+      traceroute then plays out frame by frame, and every frame tells why it was sent, where it went
+      and why it stopped.
+    </p>
+    <ul>
+      <li>Ethernet, ARP, IPv4 with default gateways and static routes, ICMP Echo, Time Exceeded and Destination Unreachable</li>
+      <li>Faults while traffic flows: unplugged cables, disabled ports, devices powered off, changed addresses, switch loops</li>
+      <li>A timeline that goes back to any instant, and every frame field by field and byte by byte</li>
+      <li>Captures for Wireshark, networks saved to files, undo and redo</li>
+      <li>Guided labs whose goals are checked on the simulation, with steps, hints and a solution</li>
+    </ul>
+    <p>All traffic stays inside the simulation: resend never touches the real network.</p>
+  </description>
+
+  <launchable type="desktop-id">io.github._0xdokkan.resend.desktop</launchable>
+  <provides>
+    <binary>resend</binary>
+    <binary>resend-cli</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/0xdokkan/resend</url>
+  <url type="bugtracker">https://github.com/0xdokkan/resend/issues</url>
+  <url type="vcs-browser">https://github.com/0xdokkan/resend</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>A ping across a LAN: the canvas, the timeline and the inspector</caption>
+      <image>https://raw.githubusercontent.com/0xdokkan/resend/main/docs/images/sandbox.png</image>
+    </screenshot>
+  </screenshots>
+
+  <categories>
+    <category>Education</category>
+    <category>ComputerScience</category>
+  </categories>
+  <keywords>
+    <keyword>network</keyword>
+    <keyword>simulator</keyword>
+    <keyword>ethernet</keyword>
+    <keyword>ipv4</keyword>
+    <keyword>ping</keyword>
+    <keyword>traceroute</keyword>
+  </keywords>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.3.0" date="2026-11-07">
+      <description>
+        <p>Routers, default gateways, ICMP errors and traceroute.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -4,6 +4,7 @@
 // would. Menu items, which the testing backend does not expose, are driven
 // through the callbacks they invoke.
 #include "app_controller.hpp"
+#include "look/look.hpp"
 #include "check.hpp"
 #include "scenario/scenario_json.hpp"
 
@@ -18,6 +19,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -46,7 +48,13 @@ std::vector<ElementHandle> controls(const Ui& ui, std::string_view label) {
 }
 ElementHandle element(const Ui& ui, std::string_view label) {
     const auto found = controls(ui, label);
-    if (found.size() != 1) std::cerr << "Expected one control labelled \"" << label << "\", found " << found.size() << '\n';
+    if (found.size() != 1) {
+        std::cerr << "Expected one control labelled \"" << label << "\", found " << found.size() << ". Controls with a label:\n";
+        ElementHandle::visit_elements(ui, [](const ElementHandle& item) {
+            if (const auto text = item.accessible_label(); text && !text->empty() && item.accessible_role() != AccessibleRole::Text)
+                std::cerr << "  " << std::string_view(*text) << '\n';
+        });
+    }
     CHECK(found.size() == 1);
     return found[0];
 }
@@ -60,6 +68,7 @@ ElementHandle chip(const Ui& ui, std::string_view label) {
     std::vector<ElementHandle> found;
     for (const auto& item : ElementHandle::find_by_accessible_label(ui, label))
         if (item.accessible_role() == AccessibleRole::Checkbox) found.push_back(item);
+    if (found.size() != 1) std::cerr << "Expected one filter labelled \"" << label << "\", found " << found.size() << '\n';
     CHECK(found.size() == 1);
     return found[0];
 }
@@ -106,7 +115,8 @@ void run_to_end(const Ui& ui, resend::AppController& app) {
 }
 void play_to_end(const Ui& ui, resend::AppController& app) {
     press(ui, "Run");
-    for (int frame = 0; frame < 2000 && app.simulation().pending(); ++frame) app.advance_playback(100ms);
+    // To the last event, then through the afterglow, when it stops.
+    for (int frame = 0; frame < 2000 && (app.simulation().pending() || running(ui)); ++frame) app.advance_playback(100ms);
     CHECK(!app.simulation().pending() && !running(ui));
 }
 slint::LogicalPosition center(const ElementHandle& item) {
@@ -429,11 +439,12 @@ void scrubber_travels_and_locks(const Ui& ui, resend::AppController& app) {
     press(ui, "Send the ping");
     play_to_end(ui, app);
     const auto& timeline = ui->global<UiTimeline>();
-    CHECK(timeline.get_end_ms() == 80.0f && timeline.get_now_ms() == 80.0f);
+    // The ping ends at 80 ms; the afterglow shows 12 ms more.
+    CHECK(timeline.get_end_ms() == 92.0f && timeline.get_now_ms() == 92.0f);
     // A change after the run is recorded at its instant.
     press(ui, "PC-B, 192.168.1.20/24");
     press(ui, "Power off");
-    CHECK(status(ui) == "Power off PC-B: applied at t = 80.000 ms.");
+    CHECK(status(ui) == "Power off PC-B: applied at t = 92.000 ms.");
     CHECK(newest(ui, "EDIT: PC-B powered off"));
 
     // Back to 40 ms: the run is replayed up to there.
@@ -449,7 +460,7 @@ void scrubber_travels_and_locks(const Ui& ui, resend::AppController& app) {
     CHECK(app.simulation().edits().empty() && app.workspace().commands().size() == 2);
     CHECK(status(ui) == "The instant shown is before later changes: go to the latest instant to change the network.");
     press(ui, "Go to the latest instant");
-    CHECK(!timeline.get_locked() && clock(ui) == "80.000 ms" && !app.scenario().device(DeviceId{2})->powered);
+    CHECK(!timeline.get_locked() && clock(ui) == "92.000 ms" && !app.scenario().device(DeviceId{2})->powered);
     CHECK(newest(ui, "EDIT: PC-B powered off"));
     // The slider moves the instant too.
     element(ui, "Instant shown").set_accessible_value("20");
@@ -472,18 +483,78 @@ void drops_and_playback_controls(const Ui& ui, resend::AppController& app, const
     CHECK(run.get_speed_label() == slint::SharedString("2×"));
     for (int i = 0; i < 4; ++i) press(ui, "Playback speed");
     CHECK(run.get_speed_label() == slint::SharedString("1×"));
-    // Reduced motion, from the View menu: a step jumps straight to the next
-    // event. The choice is kept in the settings.
-    ui->global<UiApp>().invoke_toggle_motion();
-    CHECK(ui->global<UiApp>().get_reduced_motion() && resend::load_settings(state).reduced_motion);
+    // Reduced effects, from the HUD's button: a step jumps straight to the
+    // next event. The choice is kept in the settings.
+    CHECK(ui->global<Motion>().get_effects() == slint::SharedString("full"));
+    press(ui, "Effects: full");
+    CHECK(ui->global<Motion>().get_effects() == slint::SharedString("reduced") && resend::load_settings(state).effects == "reduced");
+    CHECK(exists(ui, "Effects: reduced"));
     press(ui, "Step");
     CHECK(!running(ui) && clock(ui) == "1000.000 ms");
     CHECK(shown(ui, "ARP timeout"));
-    ui->global<UiApp>().invoke_toggle_motion();
-    CHECK(!ui->global<UiApp>().get_reduced_motion() && !resend::load_settings(state).reduced_motion);
+    // Off, then full again: the button goes round.
+    press(ui, "Effects: reduced");
+    CHECK(ui->global<Motion>().get_effects() == slint::SharedString("off") && resend::load_settings(state).effects == "off");
+    CHECK(status(ui) == "Effects off: events appear one instant at a time, with their markers and texts only.");
+    press(ui, "Effects: off");
+    CHECK(ui->global<Motion>().get_effects() == slint::SharedString("full") && resend::load_settings(state).effects == "full");
     press(ui, "Reset the simulation");
     CHECK(clock(ui) == "0.000 ms" && !app.simulation().pending());
     CHECK(status(ui) == "Caches, tables and events cleared. The topology stays as it is.");
+}
+
+// G5: the HUD's button and M turn the sound on and off, the menu sets its
+// level, all kept in the settings; a ping is heard to its resolve, and
+// what is heard never changes what happens.
+void sound_on_and_off(const Ui& ui, resend::AppController& app, const fs::path& state) {
+    fresh(app);
+    const auto& sound = ui->global<UiSound>();
+    CHECK(sound.get_on() && app.settings().sound && !app.sound_output().audible());
+    CHECK(sound.get_device() == slint::SharedString("none in this session"));
+    press(ui, "PC-A, 192.168.1.10/24");
+    press(ui, "Send the ping");
+    const auto before = app.played_count();
+    play_to_end(ui, app);
+    CHECK(succeeded(app));
+    const auto& heard = app.played();
+    const auto count = static_cast<std::size_t>(app.played_count() - before);
+    CHECK(count > 8 && count <= heard.size());
+    std::vector<resend::CueKind> kinds;
+    for (auto at = heard.end() - static_cast<std::ptrdiff_t>(count); at != heard.end(); ++at)
+        if (at->kind != resend::CueKind::Click) kinds.push_back(at->kind);
+    // The request, the hops, the reply, and the resolve last.
+    CHECK(kinds.front() == resend::CueKind::Ask && kinds.back() == resend::CueKind::Resolve);
+    CHECK(std::count(kinds.begin(), kinds.end(), resend::CueKind::Ask) == 1);
+    CHECK(std::count(kinds.begin(), kinds.end(), resend::CueKind::Answer) == 1);
+    const auto records = app.simulation().trace().records();
+
+    // Off from the HUD: nothing more is heard, the same ping runs the same.
+    press(ui, "Sound: on");
+    CHECK(!sound.get_on() && !resend::load_settings(state).sound && exists(ui, "Sound: off"));
+    CHECK(status(ui) == "Sound off.");
+    const auto quiet = app.played_count();
+    press(ui, "Reset the simulation");
+    press(ui, "Send the ping");
+    play_to_end(ui, app);
+    CHECK(app.played_count() == quiet);
+    CHECK(app.simulation().trace().records() == records);
+    // Scrubbing back and replaying in silence, then on with M: a jump is
+    // never heard, only what plays.
+    key(ui, "m");
+    CHECK(sound.get_on() && resend::load_settings(state).sound);
+    const auto on = app.played_count();
+    app.seek(20ms);
+    ui->global<UiRun>().invoke_latest();
+    CHECK(app.played_count() == on && clock(ui) == "92.000 ms");
+    // The level, from the menu or the palette.
+    ui->global<UiSound>().invoke_set_sound("quiet");
+    CHECK(sound.get_level() == slint::SharedString("quiet") && resend::load_settings(state).volume == "quiet");
+    ui->global<UiApp>().invoke_run_command("sound:loud");
+    CHECK(sound.get_level() == slint::SharedString("loud") && resend::load_settings(state).volume == "loud");
+    ui->global<UiApp>().invoke_run_command("sound:off");
+    CHECK(!sound.get_on());
+    ui->global<UiApp>().invoke_run_command("sound:medium");  // a level turns it back on
+    CHECK(sound.get_on() && sound.get_level() == slint::SharedString("medium"));
 }
 
 void packets_move_on_the_canvas(const Ui& ui, resend::AppController& app) {
@@ -583,7 +654,7 @@ void live_edits(const Ui& ui, resend::AppController& app) {
     CHECK(app.simulation().edits().size() == 1 && app.simulation().edits()[0].time == 15ms);
     CHECK(status(ui) == "Power off PC-B: applied at t = 15.000 ms.");
     CHECK(newest(ui, "EDIT: PC-B powered off"));
-    CHECK(shown(ui, "⏻ powered off"));
+    CHECK(shown(ui, "powered off"));
     app.seek(20ms);
     CHECK(shown(ui, "× device off"));
     play_to_end(ui, app);
@@ -608,7 +679,7 @@ void storm_pauses_playback(const Ui& ui, resend::AppController& app) {
     CHECK(!running(ui) && app.simulation().pending());
     CHECK(status(ui).starts_with("Storm protection:"));
     CHECK(newest(ui, "SIMULATOR: Storm protection · frame stopped at Switch-2"));
-    CHECK(shown(ui, "⚠ storm stopped"));
+    CHECK(shown(ui, "storm stopped"));
     // Run again: it pauses at each of the three guards.
     int pauses = 1;
     while (app.simulation().pending() && pauses < 10) {
@@ -858,39 +929,39 @@ void autosave_and_recovery(const Ui& ui, resend::AppController& app, const fs::p
     CHECK(files().empty() && app.scenario().devices.size() == 3);
 }
 
-void language(const Ui& ui, resend::AppController& app, const fs::path& state) {
-    fresh(app);
-    press(ui, "PC-A, 192.168.1.10/24");
-    press(ui, "Send the ping");
-    play_to_end(ui, app);
-    ui->global<UiApp>().invoke_set_language("it");
-    CHECK(resend::load_settings(state).language == "it" && ui->global<UiApp>().get_language() == slint::SharedString("it"));
-    CHECK(status(ui) == "Lingua cambiata.");
-    // The interface, the texts made in C++ and the example's lesson.
-    CHECK(exists(ui, "Invia il ping") && !exists(ui, "Send the ping"));
-    CHECK(newest(ui, "ICMP: Ping riuscito · 192.168.1.20 → PC-A"));
-    CHECK(exists(ui, "Switch-01, 8 porte Ethernet"));
-    CHECK(shown(ui, "LAN di esempio"));
-    CHECK(ui->global<UiApp>().get_examples()->row_data(0)->title == slint::SharedString("LAN di esempio"));
-    ui->global<UiApp>().invoke_set_language("en");
-    CHECK(exists(ui, "Send the ping") && newest(ui, "ICMP: Ping succeeded · 192.168.1.20 → PC-A"));
-    CHECK(resend::load_settings(state).language == "en");
+// The HUD's parts over the canvas, which lies under all of them; they do
+// not overlap, so their areas add up.
+double covered(const Ui& ui) {
+    double area = 0;
+    for (const auto* label : {"Document", "Clock", "Build", "Zoom", "Inspector", "Actions", "Events", "Timeline"})
+        for (const auto& item : ElementHandle::find_by_accessible_label(ui, label))
+            if (item.accessible_role() == AccessibleRole::Groupbox) area += double(item.size().width) * item.size().height;
+    return area;
 }
 
 void panels_fold(const Ui& ui) {
-    const auto width = [&] { return element(ui, "Network topology").size().width; };
-    const auto full = width();
+    const auto full = covered(ui);
+    // The area of the HUD's part with this name.
+    const auto part = [&](std::string_view label) {
+        double area = 0;
+        for (const auto& item : ElementHandle::find_by_accessible_label(ui, label))
+            if (item.accessible_role() == AccessibleRole::Groupbox) area += double(item.size().width) * item.size().height;
+        return area;
+    };
+    // The build bar folds to its tab. In a window this low the events,
+    // which start beside it, take the room it leaves.
+    const auto bar = part("Build");
     press(ui, "Hide the palette");
-    CHECK(!ui->global<UiApp>().get_palette_open() && !exists(ui, "Add Host") && width() > full);
+    CHECK(!ui->global<UiApp>().get_palette_open() && !exists(ui, "Add Host") && part("Build") < bar / 10);
     press(ui, "Hide the inspector");
     CHECK(!ui->global<UiApp>().get_inspector_open() && !exists(ui, "Apply the configuration"));
-    CHECK(width() > full + 400);
+    CHECK(covered(ui) < full - 50000);
     press(ui, "Hide the timeline");
     CHECK(!exists(ui, "Event list"));
     press(ui, "Show the palette");
     press(ui, "Show the inspector");
     press(ui, "Show the timeline");
-    CHECK(exists(ui, "Add Host") && exists(ui, "Event list") && width() == full);
+    CHECK(exists(ui, "Add Host") && exists(ui, "Event list") && covered(ui) == full);
 
     // A 1920 × 1080 screen at 2× scale: 960 × 540 logical pixels. With the
     // side panels folded, everything fits and the canvas keeps its room.
@@ -898,18 +969,191 @@ void panels_fold(const Ui& ui) {
     press(ui, "Hide the palette");
     press(ui, "Hide the inspector");
     const auto canvas = element(ui, "Network topology");
-    for (const auto* label : {"Send the ping", "Reset the simulation", "Show the inspector", "Go to the latest instant", "Hide the timeline"}) {
+    for (const auto* label : {"Send the ping", "Reset the simulation", "Show the inspector", "Go to the latest instant", "Hide the timeline",
+                              "Zoom in", "Fit the network in view", "Undo Connect PC-5 port 1 — Switch-01 port 4", "Command palette"}) {
+        if (!exists(ui, label)) continue;
         const auto item = element(ui, label);
         const auto at = item.absolute_position();
         CHECK(at.x >= 0 && at.y >= 0 && at.x + item.size().width <= 960 && at.y + item.size().height <= 540);
     }
-    CHECK(canvas.size().width >= 850 && canvas.size().height >= 120);
+    const double window = double(canvas.size().width) * canvas.size().height;
+    CHECK(canvas.size().width >= 950 && window - covered(ui) >= 0.35 * window);
     press(ui, "Hide the timeline");
-    CHECK(element(ui, "Network topology").size().height >= 300);
+    CHECK(window - covered(ui) >= 0.6 * window);
+    // H hides the HUD: only the canvas is left.
+    ui->global<UiApp>().set_hud_hidden(true);
+    CHECK(covered(ui) == 0 && !exists(ui, "Send the ping"));
+    ui->global<UiApp>().set_hud_hidden(false);
     press(ui, "Show the timeline");
     press(ui, "Show the palette");
     press(ui, "Show the inspector");
     ui->window().set_size(slint::LogicalSize({1100, 760}));
+}
+
+// G2's exit check: at 1360 × 900 with a device selected, at least 55% of
+// the window is canvas that no panel covers.
+void canvas_is_the_stage(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    ui->window().set_size(slint::LogicalSize({1360, 900}));
+    ui->global<UiApp>().set_timeline_open(false);
+    press(ui, "PC-A, 192.168.1.10/24");
+    CHECK(exists(ui, "Apply the configuration"));
+    const auto canvas = element(ui, "Network topology");
+    const double window = double(canvas.size().width) * canvas.size().height;
+    const double free = window - covered(ui);
+    std::cout << "  canvas uncovered at 1360 × 900: " << int(100 * free / window) << "%\n";
+    CHECK(free >= 0.55 * window);
+    ui->global<UiApp>().set_timeline_open(true);
+    ui->window().set_size(slint::LogicalSize({1100, 760}));
+}
+
+// G1's exit check: a theme changes colours and images, never a size or a
+// position.
+void themes_move_nothing(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    press(ui, "PC-A, 192.168.1.10/24");
+    const auto layout = [&] {
+        std::vector<float> numbers;
+        ElementHandle::visit_elements(ui, [&](const ElementHandle& item) {
+            if (!item.accessible_label() || item.accessible_label()->empty()) return;
+            const auto at = item.absolute_position();
+            const auto size = item.size();
+            numbers.insert(numbers.end(), {at.x, at.y, size.width, size.height});
+        });
+        return numbers;
+    };
+    const auto before = layout();
+    CHECK(before.size() > 200);
+    for (const auto* theme : {"picnic", "bubblegum", "blueberry"}) {
+        app.set_theme(theme);
+        settle(ui);
+        CHECK(ui->global<UiApp>().get_theme() == slint::SharedString(theme));
+        CHECK(layout() == before);
+    }
+    CHECK(app.settings().theme == "blueberry");
+    // Every sprite has its image, painted.
+    for (const auto name : resend::AppController::sprite_properties()) CHECK(resend::look::find_sprite(name) != nullptr);
+    CHECK(resend::AppController::painted_sprites().size() == resend::look::sprites().size());
+    CHECK(ui->global<UiSprites>().get_devices()->row_count() == 18 && ui->global<UiSprites>().get_ports()->row_count() == 4);
+    CHECK(ui->global<UiSprites>().get_packets()->row_count() == resend::pdu_kinds.size());
+    CHECK(ui->global<UiSprites>().get_host().size().width == 32 && ui->global<UiSprites>().get_play().size().width == 16);
+}
+
+// G2's exit check: every action of the menus is in the command palette,
+// under the same name; and the palette runs them.
+void palette_has_every_action(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    const auto& run = ui->global<UiApp>();
+    run.invoke_show_commands();
+    settle(ui);  // the change handlers see the dialog open, as between two frames
+    CHECK(run.get_dialog() == slint::SharedString("commands"));
+    const auto commands = run.get_commands();
+    std::set<std::string> titles;
+    for (std::size_t i = 0; i < commands->row_count(); ++i) titles.insert(std::string(commands->row_data(i)->title));
+    // The menu items written in ui/app.slint, read from the source.
+    const auto source = read_text(fs::path(RESEND_SOURCE_DIR) / "ui" / "app.slint");
+    const auto menus = source.substr(source.find("MenuBar {"), source.find("shortcuts := FocusScope") - source.find("MenuBar {"));
+    int items = 0;
+    for (auto at = menus.find("MenuItem { title: "); at != std::string::npos; at = menus.find("MenuItem { title: ", at + 1)) {
+        const auto start = at + 18;
+        std::string title;
+        if (menus.compare(start, 5, "@tr(\"") == 0) title = menus.substr(start + 5, menus.find('"', start + 5) - start - 5);
+        else if (menus[start] == '"') title = menus.substr(start + 1, menus.find('"', start + 1) - start - 1);
+        else continue;  // a title computed from the state, checked below
+        ++items;
+        if (!titles.contains(title)) std::cerr << "  not in the palette: " << title << '\n';
+        CHECK(titles.contains(title));
+    }
+    CHECK(items >= 30);
+    for (const auto& computed : {std::string(run.get_undo_text()), std::string(run.get_redo_text()), std::string("Run"),
+                                 std::string("Sample LAN"), std::string("Blueberry"), std::string("Picnic")})
+        CHECK(titles.contains(computed));
+    // Typing filters; Enter runs the first one, here Zoom in.
+    type(ui, "Search the actions", "zoom in");
+    CHECK(run.get_commands()->row_count() == 1);
+    const auto zoom = app.canvas().zoom();
+    // The row of the list, not the button of the zoom plate under the dialog.
+    const auto list = element(ui, "Matching actions");
+    int rows = 0;
+    for (const auto& item : controls(ui, "Zoom in"))
+        if (inside(item, list)) {
+            item.invoke_accessible_default_action();
+            ++rows;
+        }
+    CHECK(rows == 1);
+    CHECK(run.get_dialog() == slint::SharedString("") && app.canvas().zoom() > zoom);
+    // Ctrl+K opens it again; the key map is on ?.
+    shortcut(ui, "k");
+    CHECK(run.get_dialog() == slint::SharedString("commands"));
+    press(ui, "Close");
+    key(ui, "?");
+    CHECK(run.get_dialog() == slint::SharedString("keys") && exists(ui, "Keyboard shortcuts"));
+    press(ui, "Close");
+}
+
+// G2's exit check: no cell of a table is cut, with the longest values the
+// model allows.
+void tables_cut_nothing(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    press(ui, "PC-A, 192.168.1.10/24");
+    const auto& inspector = ui->global<UiInspector>();
+    inspector.set_tab(1);
+    CHECK(exists(ui, "ARP cache"));
+    const auto columns = inspector.get_table_columns();
+    CHECK(columns->row_count() == 4);
+    const std::size_t widest[] = {15, 17};  // 255.255.255.255, ff:ff:ff:ff:ff:ff
+    for (std::size_t i = 0; i < 2; ++i) CHECK(static_cast<std::size_t>(columns->row_data(i)->chars) >= widest[i]);
+    app.open(netsim::sample_lan());
+    ui->global<UiApp>().invoke_open_example(6);  // two LANs and a router
+    CHECK(app.select_device("Router"));
+    const auto routing = inspector.get_routing_columns();
+    CHECK(routing->row_count() == 4 && routing->row_data(0)->chars >= 18);  // 255.255.255.255/32
+    // Each cell fits its column, in characters of the monospace.
+    const auto rows = inspector.get_routing_rows();
+    for (std::size_t r = 0; r < rows->row_count(); ++r)
+        for (std::size_t c = 0; c < 4; ++c) {
+            const auto text = cell(rows, r, c);
+            const auto chars = std::count_if(text.begin(), text.end(), [](char ch) { return (static_cast<unsigned char>(ch) & 0xC0) != 0x80; });
+            CHECK(chars <= routing->row_data(c)->chars);
+        }
+    inspector.set_tab(0);
+}
+
+// G2.4: a right click opens the menu of what is under the pointer, and the
+// destination of a ping can be picked on the canvas.
+void context_menu(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    ui->window().set_size(slint::LogicalSize({1360, 900}));
+    settle(ui);
+    auto& window = ui->window();
+    const auto right_click = [&](slint::LogicalPosition at) {
+        window.dispatch_pointer_move_event(at);
+        window.dispatch_pointer_press_event(at, slint::PointerEventButton::Right);
+        window.dispatch_pointer_release_event(at, slint::PointerEventButton::Right);
+        settle(ui);
+    };
+    CHECK(app.select_device("PC-A"));
+    ui->global<UiRun>().set_target("");
+    right_click(center(element(ui, "PC-B, 192.168.1.20/24")));
+    CHECK(ui->global<UiInspector>().get_heading() == slint::SharedString("PC-B"));
+    CHECK(exists(ui, "Ping from here") && exists(ui, "Ping this device") && exists(ui, "Power off") && !exists(ui, "Unplug cable"));
+    press(ui, "Ping this device");
+    CHECK(ui->global<UiRun>().get_target() == slint::SharedString("192.168.1.20"));
+    CHECK(ui->global<UiInspector>().get_heading() == slint::SharedString("PC-A"));
+    CHECK(status(ui) == "PC-A will ping PC-B (192.168.1.20): press Send." && !exists(ui, "Context menu"));
+    // Escape closes it, as a click anywhere else does.
+    right_click(center(element(ui, "Switch-01, 8 Ethernet ports")));
+    CHECK(exists(ui, "Context menu") && !exists(ui, "Ping this device"));
+    key(ui, slint::platform::key_codes::Escape);
+    settle(ui);
+    CHECK(!exists(ui, "Context menu"));
+    // On the background: what can be added there.
+    right_click(slint::LogicalPosition({700, 820}));
+    CHECK(exists(ui, "Add router") && !exists(ui, "Ping this device"));
+    press(ui, "Add router");
+    CHECK(app.scenario().devices.size() == 4);
+    shortcut(ui, "z");
+    CHECK(app.scenario().devices.size() == 3);
 }
 
 void about_dialog(const Ui& ui) {
@@ -921,6 +1165,442 @@ void about_dialog(const Ui& ui) {
     CHECK(ElementHandle::find_by_element_type_name(ui, "AboutSlint").size() == 1);
     press(ui, "Close");
     CHECK(!exists(ui, "About resend"));
+}
+
+void labs(const Ui& ui, resend::AppController& app, const fs::path& state) {
+    fresh(app);
+    const auto& lab = ui->global<UiLab>();
+    CHECK(!lab.get_active() && !exists(ui, "Check the goals"));
+    // G opens the library while no lab is open; a lab opens from it.
+    key(ui, "g");
+    CHECK(dialog(ui) == "labs" && exists(ui, "Your first network") && exists(ui, "The missing gateway"));
+    press(ui, "The missing gateway");
+    CHECK(dialog(ui).empty() && lab.get_active() && app.lab() && app.lab()->id == "missing-gateway");
+    CHECK(lab.get_title() == slint::SharedString("The missing gateway") && exists(ui, "Check the goals"));
+    CHECK(app.scenario() == app.lab()->network && !app.workspace().modified());
+
+    // As given, both goals fail, and say why.
+    press(ui, "Check the goals");
+    CHECK(app.verdicts().size() == 2 && !app.verdicts()[0].met);
+    CHECK(shown(ui, "PC-A does not reach 192.168.2.20: the request arrives, but PC-B cannot send its reply back: PC-B has no default gateway."));
+    CHECK(lab.get_progress() == slint::SharedString("0 of 2 met"));
+
+    // PC-A is locked: the inspector says so, and a change is refused.
+    press(ui, "PC-A, 192.168.1.10/24");
+    CHECK(ui->global<UiInspector>().get_lock_note() == slint::SharedString("The lab keeps PC-A as it is: it cannot be changed."));
+    type(ui, "Default gateway", "192.168.1.254");
+    press(ui, "Apply the configuration");
+    CHECK(status(ui) == "The lab keeps PC-A as it is: its default gateway cannot be changed.");
+    CHECK(app.scenario().device(DeviceId{1})->gateway->to_string() == "192.168.1.1");
+
+    // PC-B is the one to repair; then the goals are met, and remembered.
+    press(ui, "PC-B, 192.168.2.20/24");
+    CHECK(ui->global<UiInspector>().get_lock_note().empty());
+    type(ui, "Default gateway", "192.168.2.1");
+    press(ui, "Apply the configuration");
+    CHECK(lab.get_progress() == slint::SharedString("The network changed since the last check: press Check again."));
+    press(ui, "Check the goals");
+    CHECK(app.verdicts().size() == 2 && netsim::lab::all_met(app.verdicts()) && lab.get_solved());
+    CHECK(status(ui) == "Every goal is met: The missing gateway is solved.");
+    CHECK(resend::load_settings(state).solved_labs == std::vector<std::string>{"missing-gateway"});
+    // The moment: the goals just met glow, "Lab solved!" plays over the
+    // canvas, and the panel offers to play again what the check saw.
+    settle(ui);
+    CHECK(lab.get_celebration_serial() == 1);
+    CHECK(lab.get_celebration() >= 0);
+    CHECK(shown(ui, "Lab solved: The missing gateway"));
+    CHECK(!app.played().empty() && app.played().back().kind == resend::CueKind::Win);
+    CHECK(lab.get_goals()->row_data(0)->fresh && lab.get_goals()->row_data(1)->fresh);
+    press(ui, "Check the goals");  // again: nothing new is met, nothing glows, no second moment
+    CHECK(!lab.get_goals()->row_data(0)->fresh && lab.get_celebration_serial() == 1);
+    press(ui, "Play again what the check saw");
+    CHECK(status(ui) == "PC-A pings 192.168.2.20 again, as the check did.");
+    CHECK(app.simulation().pings().size() == 1 && running(ui));
+    for (int frame = 0; frame < 2000 && running(ui); ++frame) app.advance_playback(100ms);
+    CHECK(app.simulation().pings()[0].state == netsim::PingState::Succeeded);
+
+    // The solution takes the network's place, and gives it back.
+    const auto mine = app.workspace().design();
+    press(ui, "Show the solution");
+    CHECK(dialog(ui) == "confirm");
+    ui->global<UiApp>().invoke_answer("show");
+    CHECK(lab.get_showing_solution() && app.scenario() == app.lab()->solution.network);
+    press(ui, "Back to my network");
+    CHECK(!lab.get_showing_solution() && app.workspace().design() == mine && app.workspace().modified());
+    CHECK(lab.get_solved());
+
+    // Hints, one at a time.
+    CHECK(lab.get_hints()->row_count() == 0 && lab.get_hint_count() == 2);
+    press(ui, "Show a hint");
+    CHECK(lab.get_hints()->row_count() == 1 && shown(ui, "Ping PC-B from PC-A and follow the frames in the timeline: does the request arrive?"));
+
+    // The first lab: devices come out of their boxes, in one undo step.
+    lab.invoke_open_lab(0);
+    CHECK(dialog(ui) == "confirm");  // the repaired network is not saved
+    ui->global<UiApp>().invoke_answer("discard");
+    CHECK(app.lab() && app.lab()->id == "first-network" && app.scenario().devices.empty());
+    ui->global<UiApp>().invoke_add_device("host");
+    ui->global<UiApp>().invoke_add_device("router");
+    const auto& devices = app.scenario().devices;
+    CHECK(devices.size() == 2 && !devices[0].ports[0].ipv4);
+    CHECK(std::none_of(devices[1].ports.begin(), devices[1].ports.end(), [](const auto& port) { return port.admin_up; }));
+    press(ui, "Undo Add a router");
+    CHECK(app.scenario().devices.size() == 1);
+    press(ui, "Check the goals");
+    // The new host is PC-1 until it is named. (The goals are below the
+    // steps, out of the panel's view: read from its model.)
+    const auto goal = *lab.get_goals()->row_data(0);
+    CHECK(goal.state == slint::SharedString("unmet") && goal.detail == slint::SharedString("There is no device named PC-A yet."));
+
+    // The library ticks what is solved; leaving keeps the network.
+    lab.invoke_show_library();
+    CHECK(lab.get_library()->row_count() == app.library().size());
+    CHECK(lab.get_library()->row_data(2)->solved && !lab.get_library()->row_data(0)->solved);
+    press(ui, "Leave the lab, keeping the network");
+    CHECK(!lab.get_active() && !app.lab() && app.scenario().devices.size() == 1);
+    CHECK(!exists(ui, "Check the goals"));
+}
+
+// The exit check of M7: first-network from an empty canvas, as a learner
+// does it, through the build bar, the cards and the inspector.
+void first_lab_through_the_interface(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    // The router's inspector is long: only what is in view can be found.
+    ui->window().set_size(slint::LogicalSize({1600, 1800}));
+    settle(ui);
+    const auto& lab = ui->global<UiLab>();
+    lab.invoke_open_lab(0);
+    CHECK(app.lab() && app.lab()->id == "first-network" && app.scenario().devices.empty());
+    for (const auto* kind : {"Host", "Host", "Switch", "Switch", "Router"}) press(ui, std::string("Add ") + kind);
+    CHECK(app.scenario().devices.size() == 5);
+
+    const auto configure = [&](const std::string& card, const std::string& name, const std::string& address) {
+        press(ui, card);
+        type(ui, "Name", name);
+        if (!address.empty()) {
+            type(ui, "IPv4 address", address);
+            type(ui, "Prefix length", "24");
+        }
+        press(ui, "Apply the configuration");
+    };
+    configure("PC-1, no IPv4 address", "PC-A", "192.168.1.10");
+    configure("PC-2, no IPv4 address", "PC-B", "192.168.2.10");
+    configure("Switch-3, 8 Ethernet ports", "Switch-1", "");
+    configure("Switch-4, 8 Ethernet ports", "Switch-2", "");
+    configure("Router-5, no IPv4 address", "Router", "");
+    const auto cable = [&](const std::string& a, const std::string& b) {
+        press(ui, "Connect " + a);
+        press(ui, "Connect " + b);
+    };
+    cable("PC-A", "Switch-1");
+    cable("Switch-1", "Router");
+    cable("Router", "Switch-2");
+    cable("Switch-2", "PC-B");
+    CHECK(app.scenario().links.size() == 4);
+    press(ui, "Router, no IPv4 address");
+    type(ui, "IPv4 address of Port 1", "192.168.1.1/24");
+    type(ui, "IPv4 address of Port 2", "192.168.2.1/24");
+    press(ui, "Apply the configuration");
+    press(ui, "Port 1");
+    press(ui, "Port 2");
+    const auto* router = app.scenario().device_named("Router");
+    CHECK(router && router->ports[0].admin_up && router->ports[1].admin_up && !router->ports[2].admin_up);
+
+    // Addresses and ports right, no gateways: the ping finds no route.
+    press(ui, "Check the goals");
+    const auto& verdicts = app.verdicts();
+    CHECK(verdicts.size() == 5);
+    for (std::size_t i = 0; i < 4; ++i) CHECK(verdicts[i].met);
+    CHECK(!verdicts[4].met && verdicts[4].finding == netsim::lab::Finding::NoReply && verdicts[4].reason == netsim::Reason::NoRoute);
+    CHECK(lab.get_goals()->row_data(4)->detail ==
+          slint::SharedString("PC-A does not reach 192.168.2.10: PC-A's request has no route: PC-A has no default gateway."));
+
+    // With the gateways it is met.
+    for (const auto& [card, gateway] : {std::pair{"PC-A, 192.168.1.10/24", "192.168.1.1"}, std::pair{"PC-B, 192.168.2.10/24", "192.168.2.1"}}) {
+        press(ui, card);
+        type(ui, "Default gateway", gateway);
+        press(ui, "Apply the configuration");
+    }
+    press(ui, "Check the goals");
+    CHECK(netsim::lab::all_met(app.verdicts()) && lab.get_solved());
+    ui->window().set_size(slint::LogicalSize({1100, 760}));
+    fresh(app);
+}
+
+// The HUD says who sends, answers every action where it can be seen, names
+// its buttons with their keys, and in a narrow window shows one drawer at a
+// time.
+void hud_is_clear(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    settle(ui);
+    const auto& run = ui->global<UiRun>();
+    const auto& hud = ui->global<UiApp>();
+    const auto& lab = ui->global<UiLab>();
+    // The selected host sends; with a switch selected nothing does.
+    CHECK(run.get_source() == slint::SharedString("PC-A") && run.get_can_ping());
+    press(ui, "Switch-01, 8 Ethernet ports");
+    CHECK(run.get_source().empty() && !run.get_can_ping());
+    press(ui, "PC-A, 192.168.1.10/24");
+
+    // A ping that cannot start says why in a toast; a change the canvas
+    // shows by itself raises none.
+    auto toasts = hud.get_toast_serial();
+    run.set_target("not an address");
+    run.invoke_ping();
+    CHECK(hud.get_toast_serial() == toasts + 1 && !status(ui).empty() && hud.get_toast() == hud.get_status());
+    run.set_target("192.168.1.20");
+    toasts = hud.get_toast_serial();
+    app.set_theme("picnic");
+    app.set_theme("blueberry");
+    CHECK(hud.get_toast_serial() == toasts);
+
+    // A button that shows only an icon says what it does, and its key, once
+    // the pointer is on it.
+    const auto& tip = ui->global<UiTip>();
+    const auto reset = element(ui, "Reset the simulation");
+    const auto at = reset.absolute_position();
+    ui->window().dispatch_pointer_move_event(slint::LogicalPosition({at.x + reset.size().width / 2, at.y + reset.size().height / 2}));
+    settle(ui);
+    CHECK(tip.get_wanted() && tip.get_text() == slint::SharedString("Reset the simulation") && tip.get_keys() == slint::SharedString("R"));
+    ui->window().dispatch_pointer_exit_event();
+    settle(ui);
+    CHECK(!tip.get_wanted());
+
+    // Too narrow for the lab and the inspector with a network between them:
+    // the lab that opens folds the inspector, each one opened folds the
+    // other, and a wide window has both again.
+    ui->window().set_size(slint::LogicalSize({948, 1020}));
+    settle(ui);
+    CHECK(hud.get_inspector_open());
+    lab.invoke_open_lab(0);
+    settle(ui);
+    CHECK(lab.get_active() && lab.get_open() && !hud.get_inspector_open());
+    // No goal glows as just met before any check.
+    for (std::size_t row = 0; row < lab.get_goals()->row_count(); ++row) {
+        const auto goal = *lab.get_goals()->row_data(row);
+        CHECK(!goal.fresh && goal.state == slint::SharedString("open"));
+    }
+    press(ui, "Show the inspector");
+    settle(ui);
+    CHECK(hud.get_inspector_open() && !lab.get_open());
+    press(ui, "Show the lab");
+    settle(ui);
+    CHECK(lab.get_open() && !hud.get_inspector_open());
+    ui->window().set_size(slint::LogicalSize({1360, 900}));
+    settle(ui);
+    CHECK(lab.get_open() && hud.get_inspector_open());
+    lab.invoke_leave();
+    ui->window().set_size(slint::LogicalSize({1100, 760}));
+    settle(ui);
+    fresh(app);
+}
+
+// The Terminal tab (M8) as the mock-up draws it: the commands in a row of
+// buttons no taller than a button, and one screen that holds what was
+// printed and, at its foot, the line typed on.
+void terminal_is_one_screen(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    settle(ui);
+    const auto& terminal = ui->global<UiTerminal>();
+    terminal.invoke_open();
+    settle(ui);
+    CHECK(ui->global<UiInspector>().get_tab() == 2 && terminal.get_available());
+    const auto screen = element(ui, "Terminal screen");
+    const auto menu = element(ui, "ip commands");
+    const auto clear = element(ui, "Clear the terminal");
+    CHECK(menu.size().height <= 34 && clear.size().height <= 34 && menu.size().width < 100);
+    CHECK(menu.absolute_position().y + menu.size().height <= screen.absolute_position().y);
+    CHECK(clear.absolute_position().x > menu.absolute_position().x + menu.size().width);
+    CHECK(inside(element(ui, "Command line"), screen));
+    CHECK(center(element(ui, "Command line")).y > center(screen).y);
+
+    // A command stands after its prompt, over what it printed; one resend
+    // does not know prints why, and what to type instead.
+    const auto blocks = terminal.get_blocks();
+    CHECK(blocks->row_count() == 0);
+    terminal.invoke_run("ip route");
+    terminal.invoke_run("frobnicate");
+    settle(ui);
+    CHECK(blocks->row_count() == 5);
+    if (blocks->row_count() == 5) {
+        const auto typed = *blocks->row_data(0);
+        CHECK(typed.kind == slint::SharedString("command") && typed.prompt == slint::SharedString("root@PC-A:~#") &&
+              typed.text == slint::SharedString("ip route"));
+        CHECK(blocks->row_data(1)->kind == slint::SharedString("output"));
+        CHECK(blocks->row_data(3)->kind == slint::SharedString("error"));
+        CHECK(blocks->row_data(4)->kind == slint::SharedString("note"));
+    }
+    const std::string printed(terminal.get_screen());
+    CHECK(printed.starts_with("root@PC-A:~# ip route\n") && printed.find("frobnicate: command not found") != std::string::npos);
+
+    // A family's menu is no wider than a menu; a command with nothing to
+    // fill in runs when chosen.
+    press(ui, "ip commands");
+    settle(ui);
+    CHECK(element(ui, "Commands of ip").size().width <= 330);
+    press(ui, "ip link");
+    settle(ui);
+    CHECK(blocks->row_count() == 7 && blocks->row_data(5)->text == slint::SharedString("ip link") && !exists(ui, "Commands of ip"));
+
+    // More than the screen holds: the line stays on it. Clear empties the
+    // screen and keeps what is being typed.
+    for (int times = 0; times < 12; ++times) terminal.invoke_run("ip address");
+    settle(ui);
+    CHECK(inside(element(ui, "Command line"), element(ui, "Terminal screen")));
+    terminal.set_line("ip a");
+    press(ui, "Clear the terminal");
+    settle(ui);
+    CHECK(blocks->row_count() == 0 && terminal.get_screen().empty() && terminal.get_line() == slint::SharedString("ip a"));
+    terminal.set_line("");
+    ui->global<UiInspector>().set_tab(0);
+    fresh(app);
+}
+
+// A panel is as tall inside as what it holds, so that its last line can be
+// scrolled to: a router's settings in a lab, whose notes wrap, and a lab
+// with every hint shown.
+void panels_scroll_to_their_end(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    const auto& hud = ui->global<UiApp>();
+    const auto& lab = ui->global<UiLab>();
+    const bool events = hud.get_timeline_open();
+    ui->window().set_size(slint::LogicalSize({1360, 900}));
+    hud.set_timeline_open(true);
+    CHECK(app.open_file(fs::path(RESEND_SOURCE_DIR) / "labs" / "static-routes.json"));
+    settle(ui);
+    CHECK(app.select_device("R1"));
+    hud.set_inspector_open(true);
+    ui->global<UiInspector>().set_tab(0);
+    while (lab.get_hints()->row_count() < static_cast<std::size_t>(lab.get_hint_count())) lab.invoke_next_hint();
+    settle(ui);
+    const auto bottom = [](const ElementHandle& item) { return item.absolute_position().y + item.size().height; };
+    // Wheels each panel to its end: what is past a panel's edge is not in
+    // the tree the tests see.
+    const auto views = ElementHandle::find_by_element_id(ui, "Scroll::flick");
+    for (const auto& view : views) {
+        // The phase of a mouse wheel: a touchpad's gesture has a start and an end.
+        ui->window().dispatch_pointer_scroll_event(center(view), 0, -100000, slint::cbindgen_private::types::TouchPhase::Cancelled);
+        settle(ui);
+    }
+    ui->window().dispatch_pointer_exit_event();
+    // `last` shows whole in the view it is in.
+    const auto shown_whole = [&](const ElementHandle& last, float margin) {
+        for (const auto& view : views) {
+            const auto x = last.absolute_position().x;
+            if (x >= view.absolute_position().x && x < view.absolute_position().x + view.size().width)
+                return last.absolute_position().y >= view.absolute_position().y && bottom(last) + margin <= bottom(view) + 0.5f;
+        }
+        return false;
+    };
+    const auto notes = ElementHandle::find_by_accessible_label(ui, "0.0.0.0/0 is the default route, for every address no other route matches.");
+    CHECK(notes.size() == 1);
+    if (notes.size() == 1) {
+        CHECK(notes[0].size().height > 20);  // on two lines
+        CHECK(shown_whole(notes[0], 14));
+    }
+    const auto hints = ElementHandle::find_by_element_type_name(ui, "HintRow");
+    CHECK(hints.size() == static_cast<std::size_t>(lab.get_hint_count()) && hints.size() > 0);
+    if (hints.size() > 0) CHECK(shown_whole(hints[hints.size() - 1], 12));
+
+    lab.invoke_leave();
+    hud.set_timeline_open(events);
+    ui->window().set_size(slint::LogicalSize({1100, 760}));
+    settle(ui);
+    fresh(app);
+}
+
+// Every dialog keeps its buttons a button high, has the keyboard while it
+// is open and closes with Escape.
+void dialogs_close_with_escape(const Ui& ui, resend::AppController& app) {
+    fresh(app);
+    settle(ui);
+    const auto& state = ui->global<UiApp>();
+    const auto escape = slint::SharedString(slint::platform::key_codes::Escape);
+    // No button takes the spare height of its dialog, or of a panel.
+    const auto buttons_fit = [&] {
+        int seen = 0;
+        bool fit = true;
+        for (const auto& button : ElementHandle::find_by_element_type_name(ui, "Action")) {
+            ++seen;
+            if (button.size().height > 36) {
+                fit = false;
+                const auto label = button.accessible_label();
+                std::cerr << "A button " << button.size().height << " px high: " << (label ? std::string_view(*label) : std::string_view("?")) << '\n';
+            }
+        }
+        return fit && seen > 0;
+    };
+    const auto closes = [&](std::string_view name) {
+        if (dialog(ui) != name) return false;
+        if (!buttons_fit()) return false;
+        key(ui, escape);
+        settle(ui);
+        return dialog(ui).empty();
+    };
+
+    // The labs: the list has the room, Close is a button.
+    ui->global<UiLab>().invoke_show_library();
+    CHECK(exists(ui, "Your first network"));
+    const auto close = element(ui, "Close");
+    CHECK(close.size().height <= 34);
+    for (const auto& item : controls(ui, "Labs"))
+        if (item.accessible_role() == AccessibleRole::List) CHECK(item.size().height > 300 && close.absolute_position().y > item.absolute_position().y + item.size().height);
+    CHECK(closes("labs"));
+    // The focus is the canvas's again: G opens the library once more.
+    key(ui, "g");
+    CHECK(closes("labs"));
+
+    // No key reaches the network under a dialog.
+    CHECK(app.select_device("PC-B"));
+    const auto devices = app.scenario().devices.size();
+    state.invoke_show_keys();
+    CHECK(exists(ui, "Keyboard shortcuts"));
+    key(ui, slint::platform::key_codes::Delete);
+    key(ui, "1");
+    CHECK(app.scenario().devices.size() == devices && dialog(ui) == "keys");
+    CHECK(closes("keys"));
+
+    state.invoke_about();
+    CHECK(exists(ui, "About resend"));
+    CHECK(closes("about"));
+    // The dialog has the keyboard: Tab goes to its own button, not to a
+    // card of the network behind it.
+    state.invoke_about();
+    CHECK(exists(ui, "About resend"));
+    key(ui, slint::platform::key_codes::Tab);
+    key(ui, " ");
+    settle(ui);
+    CHECK(dialog(ui).empty());
+
+    // A dialog with a field: what is typed goes to it, and Escape still closes.
+    state.invoke_show_commands();
+    CHECK(exists(ui, "Search the actions"));
+    key(ui, "z");
+    CHECK(state.get_command_filter() == slint::SharedString("z"));
+    CHECK(closes("commands"));
+    state.invoke_open_document();
+    CHECK(exists(ui, "Files"));
+    CHECK(closes("open"));
+    state.invoke_save_as();
+    CHECK(exists(ui, "File name"));
+    const auto name = state.get_file_name();
+    key(ui, "z");
+    CHECK(state.get_file_name() != name);
+    CHECK(closes("save"));
+
+    // A question: Escape is its Cancel, and nothing is lost.
+    press(ui, "Add Host");
+    CHECK(app.workspace().modified());
+    state.invoke_new_document();
+    CHECK(dialog(ui) == "confirm" && exists(ui, "Cancel"));
+    CHECK(closes("confirm"));
+    CHECK(app.workspace().modified() && app.scenario().devices.size() == devices + 1);
+    fresh(app);
+
+    // The first run's choices.
+    state.set_dialog("welcome");
+    CHECK(exists(ui, "Welcome to resend"));
+    CHECK(closes("welcome"));
 }
 
 void set_environment(const char* name, const fs::path& value) {
@@ -947,7 +1627,9 @@ int main() {
     auto ui = AppWindow::create();
     ui->window().set_size(slint::LogicalSize({1100, 760}));
     {
-        resend::AppController app(ui, {state, "en"});
+        resend::AppController app(ui, {state});
+        // The timeline opens into its events, which most tests read.
+        ui->global<UiApp>().set_timeline_open(true);
         ui->show();
 
         initial_view_shows_whole_network(ui);
@@ -960,6 +1642,7 @@ int main() {
         timeline_filters(ui, app);
         scrubber_travels_and_locks(ui, app);
         drops_and_playback_controls(ui, app, state);
+        sound_on_and_off(ui, app, state);
         packets_move_on_the_canvas(ui, app);
         flood_copies_travel_together(ui, app);
         pings_overlap_and_count(ui, app);
@@ -970,8 +1653,18 @@ int main() {
         save_and_reopen(ui, app, home);
         unsaved_changes_are_asked_about(ui, app);
         autosave_and_recovery(ui, app, state);
-        language(ui, app, state);
         panels_fold(ui);
+        canvas_is_the_stage(ui, app);
+        themes_move_nothing(ui, app);
+        palette_has_every_action(ui, app);
+        tables_cut_nothing(ui, app);
+        context_menu(ui, app);
+        labs(ui, app, state);
+        first_lab_through_the_interface(ui, app);
+        hud_is_clear(ui, app);
+        terminal_is_one_screen(ui, app);
+        panels_scroll_to_their_end(ui, app);
+        dialogs_close_with_escape(ui, app);
         about_dialog(ui);
     }
     fs::remove_all(root);

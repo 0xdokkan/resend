@@ -135,7 +135,12 @@ void validation_rules() {
     CHECK(has(broken([](Scenario& s) { s.devices[0].name = "tab\there"; }), Problem::InvalidName));
     CHECK(has(broken([](Scenario& s) { s.devices[0].name = std::string(49, 'x'); }), Problem::InvalidName));
     CHECK(has(broken([](Scenario& s) { s.devices[2].ports.pop_back(); }), Problem::WrongPortCount, "Switch-01"));
-    CHECK(has(broken([](Scenario& s) { s.devices[0].ports[0].ipv4.reset(); }), Problem::MissingAddress, "PC-A"));
+    {
+        // Since format 3 a host may have no address: valid, it just sends no IPv4.
+        auto bare = netsim::sample_lan();
+        bare.devices[0].ports[0].ipv4.reset();
+        CHECK(netsim::validate(bare).empty());
+    }
     CHECK(has(broken([](Scenario& s) { s.devices[0].ports[0].ipv4 = netsim::Ipv4Prefix::parse("192.168.1.0/24"); }),
               Problem::InvalidHostAddress, "PC-A 192.168.1.0/24"));
     CHECK(has(broken([](Scenario& s) { s.devices[0].ports[0].ipv4 = netsim::Ipv4Prefix::parse("192.168.1.255/24"); }),
@@ -538,8 +543,11 @@ void scenario_file_errors() {
     CHECK(failure("[]") == "file: expected an object");
     CHECK(failure(R"({"format": "other", "version": 1})") == "format: this is not a resend scenario file");
     CHECK(failure(R"({"version": 1})") == "file: missing member \"format\"");
-    CHECK(failure(R"({"format": "resend-scenario", "version": 3, "devices": [], "links": []})") ==
-          "version: this file needs a newer version of resend (format 3)");
+    CHECK(failure(R"({"format": "resend-scenario", "version": 4, "devices": [], "links": []})") ==
+          "version: this file needs a newer version of resend (format 4)");
+    // A host without an address needs format 3.
+    CHECK(failure(R"({"format": "resend-scenario", "version": 2, "devices": [{"id": 1, "kind": "host", "name": "A"}], "links": []})") ==
+          "devices[0].ports[0]: a host needs an IPv4 address in files before format version 3");
     CHECK(failure(R"({"format": "resend-scenario", "version": 0})") == "file.version: expected a whole number from 1 to 2147483647");
     CHECK(failure(head + R"("devices": [], "links": [], "extra": 1})") == "file: unknown member \"extra\"");
     CHECK(failure(head + R"("links": []})") == "file: missing member \"devices\"");
@@ -673,7 +681,9 @@ void routing_configuration() {
     CHECK(made(netsim::SetAddress{PortRef{router, 0}, std::nullopt}) == Problem::None);
     CHECK(made(netsim::SetAddress{PortRef{router, 0}, prefix("192.168.1.1/24")}) == Problem::None);
     CHECK(made(netsim::SetAddress{PortRef{router, 4}, prefix("10.0.0.1/24")}) == Problem::NoSuchPort);
-    CHECK(made(netsim::SetAddress{PortRef{DeviceId{1}, 0}, std::nullopt}) == Problem::MissingAddress);
+    CHECK(made(netsim::SetAddress{PortRef{DeviceId{1}, 0}, std::nullopt}) == Problem::None);
+    CHECK(!scenario.device(DeviceId{1})->ports[0].ipv4);
+    CHECK(made(netsim::SetAddress{PortRef{DeviceId{1}, 0}, prefix("192.168.1.10/24")}) == Problem::None);
     CHECK(made(netsim::SetAddress{PortRef{router, 1}, prefix("10.0.0.0/24")}) == Problem::InvalidHostAddress);
     // Ports: more, fewer, but never fewer than 2 nor one that has a cable.
     const auto* current = scenario.device(router);
@@ -697,6 +707,14 @@ void routing_configuration() {
     std::string error;
     const auto again = netsim::scenario_from_json(text, error);
     CHECK(again.has_value() && *again == scenario);
+    // A host without an address: written as version 3, read back the same;
+    // with every host addressed the file stays at version 2.
+    auto bare = scenario;
+    bare.devices[0].ports[0].ipv4.reset();
+    const auto bare_text = netsim::scenario_to_json(bare);
+    CHECK(bare_text.find("\"version\": 3") != std::string::npos);
+    const auto bare_again = netsim::scenario_from_json(bare_text, error);
+    CHECK(bare_again.has_value() && *bare_again == bare);
     // Version 1 files still open, without routers.
     const auto old = netsim::scenario_from_json(R"({"format": "resend-scenario", "version": 1, "devices": [], "links": []})", error);
     CHECK(old.has_value());

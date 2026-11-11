@@ -127,6 +127,30 @@ std::optional<netsim::Scenario> read_scenario_file(const fs::path& path, std::st
     return scenario;
 }
 
+bool is_lab_file(const fs::path& path) {
+    const auto text = read_text(path);
+    netsim::json::Error ignored;
+    const auto root = text ? netsim::json::parse(*text, ignored) : std::nullopt;
+    const auto* format = root ? root->find("format") : nullptr;
+    return format && format->string() && *format->string() == "resend-lab";
+}
+
+std::optional<netsim::lab::Lab> read_lab_file(const fs::path& path, std::string& error) {
+    const auto text = read_text(path);
+    if (!text) {
+        error = tr("cannot open the file");
+        return std::nullopt;
+    }
+    auto lab = netsim::lab::lab_from_json(*text, error);
+    if (!lab) return std::nullopt;
+    if (const auto issues = netsim::lab::validate(*lab); !issues.empty()) {
+        error = issues.front();
+        return std::nullopt;
+    }
+    lab->id = path.stem().string();
+    return lab;
+}
+
 bool write_scenario_file(const fs::path& path, const netsim::Scenario& scenario, std::string& error) {
     return write_text(path, netsim::scenario_to_json(scenario), error);
 }
@@ -165,15 +189,34 @@ Settings load_settings(const fs::path& directory) {
     netsim::json::Error ignored;
     const auto root = text ? netsim::json::parse(*text, ignored) : std::nullopt;
     if (!root) return settings;
-    if (const auto* language = root->find("language"); language && language->string()) settings.language = *language->string();
-    if (const auto* reduced = root->find("reduced-motion"); reduced && reduced->boolean()) settings.reduced_motion = *reduced->boolean();
+    // Before effects had three levels, reduced motion was a switch.
+    if (const auto* reduced = root->find("reduced-motion"); reduced && reduced->boolean() && *reduced->boolean()) settings.effects = "reduced";
+    if (const auto* effects = root->find("effects"); effects && effects->string() &&
+        (*effects->string() == "full" || *effects->string() == "reduced" || *effects->string() == "off"))
+        settings.effects = *effects->string();
+    if (const auto* sound = root->find("sound"); sound && sound->boolean()) settings.sound = *sound->boolean();
+    if (const auto* volume = root->find("volume"); volume && volume->string() &&
+        (*volume->string() == "quiet" || *volume->string() == "medium" || *volume->string() == "loud"))
+        settings.volume = *volume->string();
+    if (const auto* theme = root->find("theme"); theme && theme->string()) settings.theme = *theme->string();
+    if (const auto* welcomed = root->find("welcomed"); welcomed && welcomed->boolean()) settings.welcomed = *welcomed->boolean();
+    if (const auto* solved = root->find("solved-labs"); solved && solved->array_items())
+        for (const auto& item : *solved->array_items())
+            if (item.string() && std::find(settings.solved_labs.begin(), settings.solved_labs.end(), *item.string()) == settings.solved_labs.end())
+                settings.solved_labs.push_back(*item.string());
     return settings;
 }
 
 bool save_settings(const fs::path& directory, const Settings& settings) {
     auto root = netsim::json::Value::object();
-    root.set("language", settings.language);
-    root.set("reduced-motion", settings.reduced_motion);
+    root.set("effects", settings.effects);
+    root.set("sound", settings.sound);
+    root.set("volume", settings.volume);
+    root.set("theme", settings.theme);
+    root.set("welcomed", settings.welcomed);
+    auto solved = netsim::json::Value::array();
+    for (const auto& id : settings.solved_labs) solved.push(id);
+    root.set("solved-labs", std::move(solved));
     std::error_code ignored;
     fs::create_directories(directory, ignored);
     std::string error;

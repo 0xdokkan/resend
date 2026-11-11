@@ -5,10 +5,16 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The release workflow runs the whole of CI and publishes its packages.
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   linux-gui:
-    # Ubuntu 22.04 ships glibc 2.35, the minimum required by the prebuilt Slint SDK.
+    # Ubuntu 22.04 ships glibc 2.35, the minimum required by the prebuilt Slint
+    # SDK: what is built here runs on it and on every newer distribution.
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
@@ -19,7 +25,7 @@ jobs:
       - uses: actions/cache@v5
         with:
           path: .deps
-          key: slint-sdk-${{ hashFiles('scripts/fetch-slint.sh') }}
+          key: linux-deps-${{ hashFiles('scripts/fetch-slint.sh', 'scripts/make-appimage.sh') }}
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DRESEND_BUILD_SPIKES=ON -DSlint_DIR="$(bash scripts/fetch-slint.sh)"
       - name: Build
@@ -34,6 +40,95 @@ jobs:
         with:
           name: linux-captures
           path: linux-captures
+          if-no-files-found: ignore
+      - name: Package (tar.gz and AppImage)
+        run: |
+          (cd build && cpack -G TGZ)
+          mkdir -p dist
+          mv build/resend-*-linux-x86_64.tar.gz build/resend-*-linux-x86_64.tar.gz.sha256 dist/
+          bash scripts/make-appimage.sh build dist
+          cat dist/resend-*.AppImage.sha256 dist/resend-*.tar.gz.sha256
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-packages
+          path: dist/
+          if-no-files-found: error
+
+  linux-smoke:
+    # The packages start and render on clean systems that have only what a
+    # desktop has. The software renderer needs no GPU, so a virtual X server
+    # is enough.
+    needs: linux-gui
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['ubuntu:22.04', 'ubuntu:24.04', 'fedora:42']
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install what a desktop has, and a virtual X server
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends xvfb libfontconfig1 libfreetype6 \
+              libgbm1 libxkbcommon0 libxkbcommon-x11-0 libx11-xcb1 libxcb-shm0 libxcursor1 libxrandr2 libxi6 libegl1 libgl1 \
+              desktop-file-utils appstream
+          else
+            dnf install -y xorg-x11-server-Xvfb fontconfig freetype mesa-libgbm libxkbcommon libxkbcommon-x11 libX11-xcb \
+              libXcursor libXrandr libXi libglvnd-egl libglvnd-glx tar gzip findutils desktop-file-utils appstream
+          fi
+      - uses: actions/download-artifact@v8
+        with:
+          name: linux-packages
+          path: dist
+      - name: Start the virtual X server
+        run: |
+          Xvfb :99 -screen 0 1600x1000x24 >/tmp/xvfb.log 2>&1 &
+          echo DISPLAY=:99 >> "$GITHUB_ENV"
+          sleep 2
+      - name: The AppImage renders a snapshot
+        env:
+          SLINT_BACKEND: winit-software
+        run: |
+          chmod +x dist/resend-*.AppImage
+          dist/resend-*.AppImage --appimage-extract-and-run --snapshot appimage.ppm
+          test "$(head -c 2 appimage.ppm)" = P6
+          dist/resend-*.AppImage --appimage-extract-and-run --help | grep -q -- --snapshot
+      - name: The tar.gz renders a snapshot, with the system's libinput
+        env:
+          SLINT_BACKEND: winit-software
+        run: |
+          if command -v apt-get >/dev/null; then
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libinput10 libudev1
+          else
+            dnf install -y libinput systemd-libs
+          fi
+          mkdir unpacked
+          tar -xzf dist/resend-*-linux-x86_64.tar.gz -C unpacked
+          unpacked/resend-*/bin/resend --snapshot tar.ppm
+          test "$(head -c 2 tar.ppm)" = P6
+          unpacked/resend-*/bin/resend-cli 192.168.1.20
+      - name: The app runs without a sound device
+        env:
+          SLINT_BACKEND: winit-software
+        run: |
+          # No sound library is installed here: resend must start silent and
+          # keep running until it is stopped.
+          status=0
+          timeout 5 unpacked/resend-*/bin/resend > run.log 2>&1 || status=$?
+          cat run.log
+          test "$status" = 124
+      - name: The desktop file and the AppStream metadata are valid
+        run: |
+          desktop-file-validate packaging/linux/io.github._0xdokkan.resend.desktop
+          appstreamcli validate --no-net packaging/linux/io.github._0xdokkan.resend.metainfo.xml
+      - name: Keep the snapshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-${{ strategy.job-index }}
+          path: '*.ppm'
           if-no-files-found: ignore
 
   linux-sanitizers:
@@ -61,7 +156,7 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
   windows-core:
-    # Engine, CLI and tests only: keeps the core portable to MSVC from day one.
+    # Engine, CLI and tests without Slint: the core stays portable on its own.
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v5
@@ -71,3 +166,65 @@ jobs:
         run: cmake --build build --config Release
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
+
+  windows-gui:
+    # The whole app with MSVC and the official Slint SDK, its tests (the
+    # regression tests check the same trace hashes as on Linux), a snapshot
+    # and the packages: a portable zip and an installer.
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
+        with:
+          path: .deps
+          key: windows-deps-${{ hashFiles('scripts/fetch-slint.ps1') }}
+      - name: Install the Slint SDK
+        shell: pwsh
+        run: |
+          $sdk = ./scripts/fetch-slint.ps1
+          "SLINT_PREFIX=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$env:SLINT_PREFIX"
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Render a snapshot
+        shell: bash
+        env:
+          SLINT_BACKEND: winit-software
+        run: |
+          build/Release/resend.exe --snapshot windows.ppm
+          test "$(head -c 2 windows.ppm)" = P6
+      - name: Package (zip and installer)
+        shell: bash
+        run: |
+          command -v makensis >/dev/null || export PATH="$PATH:/c/Program Files (x86)/NSIS"
+          (cd build && cpack -C Release)
+          mkdir -p dist
+          mv build/resend-*-windows-x64.* dist/
+          ls -l dist
+      - name: The zip carries what a clean Windows lacks, and starts
+        shell: bash
+        env:
+          SLINT_BACKEND: winit-software
+        run: |
+          mkdir unpacked
+          unzip -q dist/resend-*-windows-x64.zip -d unpacked
+          for dll in slint_cpp.dll vcruntime140.dll msvcp140.dll; do
+            test -f unpacked/resend-*/bin/$dll || { echo "missing $dll"; exit 1; }
+          done
+          unpacked/resend-*/bin/resend.exe --snapshot zip.ppm
+          test "$(head -c 2 zip.ppm)" = P6
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-packages
+          path: dist/
+          if-no-files-found: error
+      - name: Keep the snapshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-snapshots
+          path: '*.ppm'
+          if-no-files-found: ignore

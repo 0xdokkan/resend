@@ -1,0 +1,52 @@
+# a ping across a router, at 1x, 60 frames a second: the records' cues, then what is heard
+frame 1  0.277 ms
+  ask #1;
+  heard: ask;
+frame 36  10.000 ms
+  hop 0 #2;
+  heard: hop 0;
+frame 72  20.000 ms
+  hop 1 #6; answer #8;
+  heard: hop 1; answer;
+frame 108  30.000 ms
+  hop 2 #9;
+  heard: hop 2;
+frame 144  40.000 ms
+  hop 3 #13;
+  heard: hop 3;
+frame 180  50.000 ms
+  hop 4 #16;
+  heard: hop 4;
+frame 216  60.000 ms
+  hop 5 #19; ask #21;
+  heard: hop 5; ask;
+frame 252  70.000 ms
+  hop 6 #22;
+  heard: hop 6;
+frame 288  80.000 ms
+  hop 7 #26; answer #28;
+  heard: hop 7; answer;
+frame 324  90.000 ms
+  hop 0 #29;
+  heard: hop 0;
+frame 360  100.000 ms
+  hop 1 #33;
+  heard: hop 1;
+frame 396  110.000 ms
+  hop 2 #36;
+  heard: hop 2;
+frame 432  120.000 ms
+  hop 3 #39;
+  heard: hop 3;
+frame 468  130.000 ms
+  hop 4 #41;
+  heard: hop 4;
+frame 504  140.000 ms
+  hop 5 #44;
+  heard: hop 5;
+frame 540  150.000 ms
+  hop 6 #47;
+  heard: hop 6;
+frame 576  160.000 ms
+  hop 7 #50; resolve #52;
+  heard: hop 7; resolve;

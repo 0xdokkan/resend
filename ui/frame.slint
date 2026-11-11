@@ -1,6 +1,5 @@
-import { ScrollView } from "std-widgets.slint";
-import { Theme } from "theme.slint";
-import { Caption } from "widgets.slint";
+import { Theme, Type } from "theme.slint";
+import { Caption, Scroll } from "widgets.slint";
 
 // A row of the field list: a layer's title, or one of its fields.
 export struct FieldRow {
@@ -24,82 +23,86 @@ export global UiFrame {
     callback select-byte(int);
 }
 
+// The fields and the bytes, side by side. A component of its own, not a
+// layout written under the `if`: Slint 1.18 measures a wrapped text written
+// straight under an `if` as one line.
+component FrameParts inherits HorizontalLayout {
+    spacing: 12px;
+    VerticalLayout {
+        horizontal-stretch: 1;
+        min-width: 200px;
+        spacing: 6px;
+        Caption { text: UiFrame.title; overflow: elide; }
+        if UiFrame.selection != "": Text { text: UiFrame.selection; color: Theme.ink; font-size: Type.small; wrap: word-wrap; }
+        Scroll {
+            VerticalLayout {
+                alignment: start;
+                padding-right: 12px;
+                for row[i] in UiFrame.rows: Rectangle {
+                    height: 22px;
+                    background: UiFrame.selected-row == i ? Theme.accent.chip : row-touch.has-hover && !row.header ? Theme.hover : transparent;
+                    HorizontalLayout {
+                        padding-left: row.header ? 4px : 14px; padding-right: 6px; spacing: 8px;
+                        Text {
+                            text: row.label;
+                            color: UiFrame.selected-row == i ? Theme.accent.chip-ink : row.header ? Theme.link.text : Theme.muted;
+                            font-family: row.header ? Type.ui : Type.text;
+                            font-size: Type.small; font-weight: row.header ? 600 : 400;
+                            vertical-alignment: center;
+                            width: row.header ? self.preferred-width : 118px;
+                            overflow: elide;
+                        }
+                        if !row.header: Text {
+                            text: row.meaning == "" ? row.value : row.value + "  (" + row.meaning + ")";
+                            color: UiFrame.selected-row == i ? Theme.accent.chip-ink : Theme.ink;
+                            font-family: Type.mono; font-size: Type.small; vertical-alignment: center; overflow: elide;
+                            horizontal-stretch: 1;
+                        }
+                    }
+                    accessible-role: button;
+                    accessible-label: row.header ? row.label : row.label + ": " + row.value;
+                    accessible-action-default => { if !row.header { UiFrame.select-row(i); } }
+                    row-touch := TouchArea { enabled: !row.header; clicked => { UiFrame.select-row(i); } }
+                }
+            }
+        }
+    }
+    // Bytes: 16 a row, the selected field's highlighted.
+    VerticalLayout {
+        spacing: 6px;
+        Caption { text: @tr("BYTES"); }
+        Scroll {
+            width: 16 * 20px + 56px;
+            VerticalLayout {
+                alignment: start;
+                spacing: 2px;
+                for line in UiFrame.hex: HorizontalLayout {
+                    alignment: start;
+                    spacing: 1px;
+                    Text { text: line.offset; width: 38px; color: Theme.muted; font-family: Type.mono; font-size: Type.small; vertical-alignment: center; }
+                    for byte in line.bytes: Rectangle {
+                        property <bool> chosen: byte.index >= UiFrame.selected-offset && byte.index < UiFrame.selected-offset + UiFrame.selected-length;
+                        width: 19px; height: 19px;
+                        background: self.chosen ? Theme.accent.base : byte-touch.has-hover ? Theme.hover : transparent;
+                        Text {
+                            text: byte.text;
+                            color: parent.chosen ? Theme.on-accent : Theme.ink;
+                            font-family: Type.mono; font-size: Type.small;
+                            horizontal-alignment: center; vertical-alignment: center;
+                        }
+                        byte-touch := TouchArea { clicked => { UiFrame.select-byte(byte.index); } }
+                    }
+                }
+            }
+        }
+    }
+}
+
 export component FrameView inherits Rectangle {
     if UiFrame.rows.length == 0: Text {
         text: @tr("Select an event or a packet to see its frame, field by field.");
-        color: Theme.muted; font-size: 12px; wrap: word-wrap;
+        color: Theme.muted; font-size: Type.small; wrap: word-wrap;
         horizontal-alignment: center; vertical-alignment: center;
     }
-    if UiFrame.rows.length > 0: HorizontalLayout {
-        spacing: 12px;
-        VerticalLayout {
-            horizontal-stretch: 1;
-            min-width: 220px;
-            spacing: 6px;
-            Caption { text: UiFrame.title; overflow: elide; }
-            if UiFrame.selection != "": Text { text: UiFrame.selection; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
-            ScrollView {
-                content-width: self.visible-width;
-                horizontal-scrollbar-policy: always-off;
-                VerticalLayout {
-                    alignment: start;
-                    for row[i] in UiFrame.rows: Rectangle {
-                        height: 20px;
-                        border-radius: 4px;
-                        background: UiFrame.selected-row == i ? Theme.selection : row-touch.has-hover && !row.header ? #1c2a3b : transparent;
-                        HorizontalLayout {
-                            padding-left: row.header ? 4px : 14px; padding-right: 6px; spacing: 8px;
-                            Text {
-                                text: row.label;
-                                color: row.header ? Theme.blue : Theme.muted;
-                                font-size: 11px; font-weight: row.header ? 600 : 400;
-                                vertical-alignment: center;
-                                width: row.header ? self.preferred-width : 118px;
-                                overflow: elide;
-                            }
-                            if !row.header: Text {
-                                text: row.meaning == "" ? row.value : row.value + "  (" + row.meaning + ")";
-                                color: Theme.ink; font-size: 11px; vertical-alignment: center; overflow: elide;
-                                horizontal-stretch: 1;
-                            }
-                        }
-                        accessible-role: button;
-                        accessible-label: row.header ? row.label : row.label + ": " + row.value;
-                        accessible-action-default => { if !row.header { UiFrame.select-row(i); } }
-                        row-touch := TouchArea { enabled: !row.header; clicked => { UiFrame.select-row(i); } }
-                    }
-                }
-            }
-        }
-        // Bytes: 16 a row, the selected field's highlighted.
-        VerticalLayout {
-            spacing: 6px;
-            Caption { text: @tr("BYTES"); }
-            ScrollView {
-                width: 16 * 18px + 52px;
-                horizontal-scrollbar-policy: always-off;
-                VerticalLayout {
-                    alignment: start;
-                    spacing: 2px;
-                    for line in UiFrame.hex: HorizontalLayout {
-                        spacing: 1px;
-                        Text { text: line.offset; width: 34px; color: Theme.muted; font-size: 10px; font-family: "monospace"; vertical-alignment: center; }
-                        for byte in line.bytes: Rectangle {
-                            property <bool> chosen: byte.index >= UiFrame.selected-offset && byte.index < UiFrame.selected-offset + UiFrame.selected-length;
-                            width: 17px; height: 17px;
-                            border-radius: 3px;
-                            background: self.chosen ? Theme.mint : byte-touch.has-hover ? Theme.hover : transparent;
-                            Text {
-                                text: byte.text;
-                                color: parent.chosen ? #10231e : Theme.ink;
-                                font-size: 10px; font-family: "monospace";
-                                horizontal-alignment: center; vertical-alignment: center;
-                            }
-                            byte-touch := TouchArea { clicked => { UiFrame.select-byte(byte.index); } }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    if UiFrame.rows.length > 0: FrameParts { }
 }

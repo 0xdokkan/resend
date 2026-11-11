@@ -157,6 +157,9 @@ std::string loss_detail(const Simulation& simulation, Reason reason, const PingS
                   "to keep the latest.", {std::to_string(arp_queue_limit)});
     case Reason::DeviceDown:
         return tr("The PC was powered off or removed: its pings stop and their requests get no reply.");
+    case Reason::NoAddress:
+        return tr("The PC has no IPv4 address, so it has nothing to send the request from: nothing leaves it, not even an ARP "
+                  "request. Give it an address and a prefix length in the inspector.");
     default:
         return tr("The MAC is known but no Echo Reply arrived. Check the subnet and the return path too, and whether "
                   "the cached MAC still belongs to that address.");
@@ -173,6 +176,7 @@ std::string loss_summary(Reason reason) {
     case Reason::ArpUnresolved: return tr("ARP resolution timed out");
     case Reason::ArpQueueFull: return tr("ARP queue full");
     case Reason::DeviceDown: return tr("the PC is off");
+    case Reason::NoAddress: return tr("no IPv4 address");
     default: return tr("reply timed out");
     }
 }
@@ -180,7 +184,8 @@ std::string loss_summary(Reason reason) {
 std::string loss_protocol(Reason reason) {
     switch (reason) {
     case Reason::NoRoute:
-    case Reason::GatewayOffLink: return "IPv4";
+    case Reason::GatewayOffLink:
+    case Reason::NoAddress: return "IPv4";
     case Reason::ArpUnresolved:
     case Reason::ArpQueueFull: return "ARP";
     default: return "ICMP";
@@ -801,6 +806,7 @@ std::string describe(Problem problem) {
         return tr("A route goes to a network, with no host bits set, through a unicast next hop; only routers have routes.");
     case Problem::DuplicateRoute: return tr("Two routes go to the same network.");
     case Problem::TooManyRoutes: return tr("A router holds at most 32 static routes.");
+    case Problem::Locked: return tr("The lab keeps this as it gave it.");
     case Problem::SourceNotHost: return tr("Select a PC as the ping source.");
     case Problem::SourcePoweredOff: return tr("The source PC is powered off.");
     case Problem::InvalidDestination: return tr("Enter a valid unicast IPv4 address.");
@@ -829,7 +835,7 @@ std::string describe(Reason reason) {
     case Reason::NetUnreachable: return tr("a router has no route to the destination");
     case Reason::HostUnreachable: return tr("the last router got no ARP reply from the destination");
     case Reason::GatewayOffLink: return tr("the default gateway is not on the local subnet");
-    case Reason::NoAddress: return tr("the router port has no IPv4 address");
+    case Reason::NoAddress: return tr("the device has no IPv4 address on that port");
     case Reason::UnmatchedError: return tr("no request is waiting for this ICMP error");
     case Reason::DirectedBroadcast: return tr("routers do not forward to a network's broadcast address");
     }

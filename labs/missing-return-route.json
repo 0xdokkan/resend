@@ -1,0 +1,255 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "troubleshooting",
+  "topic": "Routing",
+  "title": "No way back",
+  "brief": "PC-A's pings to PC-C at 10.3.0.10 time out. R1 is configured as it should be. Find what stops the replies and repair it.",
+  "network": {
+    "devices": [
+      {
+        "id": 1,
+        "kind": "host",
+        "name": "PC-A",
+        "x": 80,
+        "y": 90,
+        "gateway": "10.1.0.1",
+        "ports": [
+          {
+            "ipv4": "10.1.0.10/24"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "router",
+        "name": "R1",
+        "x": 80,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "10.1.0.1/24"
+          },
+          {
+            "ipv4": "10.12.0.1/30"
+          }
+        ],
+        "routes": [
+          {
+            "destination": "10.3.0.0/24",
+            "via": "10.12.0.2"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "router",
+        "name": "R2",
+        "x": 580,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "10.12.0.2/30"
+          },
+          {
+            "ipv4": "10.3.0.1/24"
+          }
+        ],
+        "routes": []
+      },
+      {
+        "id": 4,
+        "kind": "host",
+        "name": "PC-C",
+        "x": 580,
+        "y": 90,
+        "gateway": "10.3.0.1",
+        "ports": [
+          {
+            "ipv4": "10.3.0.10/24"
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "a": {
+          "device": 1,
+          "port": 1
+        },
+        "b": {
+          "device": 2,
+          "port": 1
+        }
+      },
+      {
+        "id": 2,
+        "a": {
+          "device": 2,
+          "port": 2
+        },
+        "b": {
+          "device": 3,
+          "port": 1
+        }
+      },
+      {
+        "id": 3,
+        "a": {
+          "device": 3,
+          "port": 2
+        },
+        "b": {
+          "device": 4,
+          "port": 1
+        }
+      }
+    ]
+  },
+  "locks": [
+    {
+      "device": "PC-A"
+    },
+    {
+      "device": "PC-C"
+    },
+    {
+      "device": "R1"
+    }
+  ],
+  "goals": [
+    {
+      "id": "reach",
+      "kind": "reach",
+      "text": "PC-A reaches PC-C at 10.3.0.10",
+      "from": "PC-A",
+      "to": "10.3.0.10"
+    },
+    {
+      "id": "path",
+      "kind": "path",
+      "text": "The traceroute from PC-A to PC-C answers from R1, R2 and PC-C",
+      "from": "PC-A",
+      "to": "10.3.0.10",
+      "hops": [
+        "10.1.0.1",
+        "10.12.0.2",
+        "10.3.0.10"
+      ]
+    }
+  ],
+  "hints": [
+    "Does the request reach PC-C? Follow it in the timeline.",
+    "Look at R2's routing table: which networks can it send a datagram to?"
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 1,
+          "kind": "host",
+          "name": "PC-A",
+          "x": 80,
+          "y": 90,
+          "gateway": "10.1.0.1",
+          "ports": [
+            {
+              "ipv4": "10.1.0.10/24"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "kind": "router",
+          "name": "R1",
+          "x": 80,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "10.1.0.1/24"
+            },
+            {
+              "ipv4": "10.12.0.1/30"
+            }
+          ],
+          "routes": [
+            {
+              "destination": "10.3.0.0/24",
+              "via": "10.12.0.2"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "router",
+          "name": "R2",
+          "x": 580,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "10.12.0.2/30"
+            },
+            {
+              "ipv4": "10.3.0.1/24"
+            }
+          ],
+          "routes": [
+            {
+              "destination": "10.1.0.0/24",
+              "via": "10.12.0.1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "kind": "host",
+          "name": "PC-C",
+          "x": 580,
+          "y": 90,
+          "gateway": "10.3.0.1",
+          "ports": [
+            {
+              "ipv4": "10.3.0.10/24"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 1,
+            "port": 1
+          },
+          "b": {
+            "device": 2,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 2,
+            "port": 2
+          },
+          "b": {
+            "device": 3,
+            "port": 1
+          }
+        },
+        {
+          "id": 3,
+          "a": {
+            "device": 3,
+            "port": 2
+          },
+          "b": {
+            "device": 4,
+            "port": 1
+          }
+        }
+      ]
+    }
+  }
+}

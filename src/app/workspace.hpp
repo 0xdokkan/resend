@@ -2,6 +2,7 @@
 
 #include "app/history.hpp"
 #include "app/playback.hpp"
+#include "lab/lab.hpp"
 #include "scenario/edit.hpp"
 #include "sim/simulation.hpp"
 
@@ -31,8 +32,12 @@ struct Outcome {
     netsim::Problem problem = netsim::Problem::None;
     // Commands lie ahead of the instant shown: it is in the past.
     bool in_past = false;
+    // With Problem::Locked: the lock of the lab that refused the change.
+    std::optional<netsim::lab::DeviceSettings> lock{};
     bool ok() const { return netsim::ok(problem) && !in_past; }
 };
+// Why a change was refused, in words: the problem, or the lab's lock.
+std::string why_refused(const Outcome& outcome);
 
 // The network being edited, the simulation running it and what the user
 // did to them, without any Slint type, so tests drive it as the interface
@@ -75,6 +80,11 @@ public:
     void reset();
     // Another network, e.g. a file opened: a new simulation and no history.
     void replace(netsim::Scenario scenario);
+    // The lab being done, or nothing: its locks refuse edits with
+    // Problem::Locked, and the devices added start as it says, in the same
+    // step. The lab must outlive its use here.
+    void set_lab(const netsim::lab::Lab* lab) { lab_ = lab; }
+    const netsim::lab::Lab* lab() const { return lab_; }
 
     std::optional<netsim::SimTime> next_event_time() const override;
     void run_until(netsim::SimTime time) override;
@@ -97,7 +107,9 @@ private:
     bool untouched() const;
     void rebuild(netsim::Scenario scenario);
     // Checks edits whose ids are resolved against the latest network.
-    netsim::Problem check(const std::vector<netsim::Edit>& edits) const;
+    Outcome check(const std::vector<netsim::Edit>& edits) const;
+    // The lab's lock that stops `edit` on `before`, as an outcome.
+    std::optional<Outcome> refused(const netsim::Scenario& before, const netsim::Edit& edit) const;
     // Makes checked edits: on a new simulation if nothing has happened yet,
     // as commands at the current instant otherwise.
     void commit(const std::vector<netsim::Edit>& edits);
@@ -115,6 +127,7 @@ private:
     netsim::SimTime horizon_{};
     std::uint64_t generation_ = 0;
     std::uint64_t saved_ = 0;
+    const netsim::lab::Lab* lab_ = nullptr;
 };
 
 } // namespace resend

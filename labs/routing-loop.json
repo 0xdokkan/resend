@@ -1,0 +1,261 @@
+{
+  "format": "resend-lab",
+  "version": 1,
+  "kind": "troubleshooting",
+  "topic": "Routing",
+  "title": "Round and round",
+  "brief": "Each router sends what it does not know to the other one, with a default route. PC-A's pings to PC-C at 10.3.0.10 never arrive. Repair the network without changing R2's routes.",
+  "network": {
+    "devices": [
+      {
+        "id": 1,
+        "kind": "host",
+        "name": "PC-A",
+        "x": 80,
+        "y": 90,
+        "gateway": "10.1.0.1",
+        "ports": [
+          {
+            "ipv4": "10.1.0.10/24"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "router",
+        "name": "R1",
+        "x": 80,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "10.1.0.1/24"
+          },
+          {
+            "ipv4": "10.12.0.1/30"
+          }
+        ],
+        "routes": [
+          {
+            "destination": "0.0.0.0/0",
+            "via": "10.12.0.2"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "router",
+        "name": "R2",
+        "x": 580,
+        "y": 300,
+        "ports": [
+          {
+            "ipv4": "10.12.0.2/30"
+          },
+          {
+            "ipv4": "10.30.0.1/24"
+          }
+        ],
+        "routes": [
+          {
+            "destination": "0.0.0.0/0",
+            "via": "10.12.0.1"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "kind": "host",
+        "name": "PC-C",
+        "x": 580,
+        "y": 90,
+        "gateway": "10.3.0.1",
+        "ports": [
+          {
+            "ipv4": "10.3.0.10/24"
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "id": 1,
+        "a": {
+          "device": 1,
+          "port": 1
+        },
+        "b": {
+          "device": 2,
+          "port": 1
+        }
+      },
+      {
+        "id": 2,
+        "a": {
+          "device": 2,
+          "port": 2
+        },
+        "b": {
+          "device": 3,
+          "port": 1
+        }
+      },
+      {
+        "id": 3,
+        "a": {
+          "device": 3,
+          "port": 2
+        },
+        "b": {
+          "device": 4,
+          "port": 1
+        }
+      }
+    ]
+  },
+  "locks": [
+    {
+      "device": "PC-A"
+    },
+    {
+      "device": "PC-C"
+    },
+    {
+      "device": "R1"
+    }
+  ],
+  "goals": [
+    {
+      "id": "reach",
+      "kind": "reach",
+      "text": "PC-A reaches PC-C at 10.3.0.10",
+      "from": "PC-A",
+      "to": "10.3.0.10"
+    },
+    {
+      "id": "kept",
+      "kind": "kept",
+      "text": "R2's default route stays as it is",
+      "devices": [
+        {
+          "device": "R2",
+          "settings": [
+            "routes"
+          ]
+        }
+      ]
+    }
+  ],
+  "hints": [
+    "Run a traceroute from PC-A: which addresses answer, and how many times?",
+    "A router with no route for a destination of its own LAN uses its default route. Is 10.3.0.0/24 one of R2's networks?"
+  ],
+  "solution": {
+    "network": {
+      "devices": [
+        {
+          "id": 1,
+          "kind": "host",
+          "name": "PC-A",
+          "x": 80,
+          "y": 90,
+          "gateway": "10.1.0.1",
+          "ports": [
+            {
+              "ipv4": "10.1.0.10/24"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "kind": "router",
+          "name": "R1",
+          "x": 80,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "10.1.0.1/24"
+            },
+            {
+              "ipv4": "10.12.0.1/30"
+            }
+          ],
+          "routes": [
+            {
+              "destination": "0.0.0.0/0",
+              "via": "10.12.0.2"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "router",
+          "name": "R2",
+          "x": 580,
+          "y": 300,
+          "ports": [
+            {
+              "ipv4": "10.12.0.2/30"
+            },
+            {
+              "ipv4": "10.3.0.1/24"
+            }
+          ],
+          "routes": [
+            {
+              "destination": "0.0.0.0/0",
+              "via": "10.12.0.1"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "kind": "host",
+          "name": "PC-C",
+          "x": 580,
+          "y": 90,
+          "gateway": "10.3.0.1",
+          "ports": [
+            {
+              "ipv4": "10.3.0.10/24"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "id": 1,
+          "a": {
+            "device": 1,
+            "port": 1
+          },
+          "b": {
+            "device": 2,
+            "port": 1
+          }
+        },
+        {
+          "id": 2,
+          "a": {
+            "device": 2,
+            "port": 2
+          },
+          "b": {
+            "device": 3,
+            "port": 1
+          }
+        },
+        {
+          "id": 3,
+          "a": {
+            "device": 3,
+            "port": 2
+          },
+          "b": {
+            "device": 4,
+            "port": 1
+          }
+        }
+      ]
+    }
+  }
+}

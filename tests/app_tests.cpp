@@ -58,10 +58,15 @@ void playback_follows_simulated_time() {
     // The rest of the ping: seven more hops.
     for (int i = 0; i < 7; ++i) CHECK(playback.tick(600ms));
     CHECK(playback.now() == 80ms);
-    CHECK(succeeded(engine));
-    CHECK(!playback.tick(1s));  // nothing left: playback stops by itself
-    CHECK(!playback.playing() && playback.finished());
-    CHECK(playback.now() == 80ms);
+    CHECK(succeeded(engine) && playback.finished());
+    // Nothing left: the afterglow plays out at the normal pace, 12 ms in
+    // 720 ms, so that markers and effects end; then playback stops by itself.
+    CHECK(playback.tick(360ms) && playback.playing() && playback.now() == 86ms);
+    CHECK(playback.tick(1s) && !playback.playing());
+    CHECK(playback.now() == 92ms && !playback.tick(1s));
+    CHECK(engine.trace().records().back().time == 80ms);  // and adds nothing to the trace
+    playback.play();
+    CHECK(!playback.playing());  // played out: Run has nothing left to do
 }
 
 void speed_and_steps() {
@@ -117,7 +122,7 @@ void uneven_ticks_land_on_events() {
         CHECK(!engine.next_event_time() || *engine.next_event_time() > playback.now());
     }
     CHECK(succeeded(engine) && playback.finished() && !playback.playing());
-    CHECK(playback.now() == 80ms);
+    CHECK(playback.now() == 80ms + PlaybackController::afterglow);
 
     // The same with steps.
     auto stepped = sample_ping();
@@ -138,14 +143,23 @@ void idle_gaps_are_compressed() {
     unplugged.links[0].up = false;
     auto engine = sample_ping(unplugged);
     PlaybackController playback(engine);
+    const auto close_to = [](netsim::SimTime a, netsim::SimTime b) { return a - b < 1us && b - a < 1us; };
     playback.play();
+    // The drop first plays out at the normal pace: 12 ms in 720 ms.
+    playback.tick(720ms);
+    CHECK(playback.now() == PlaybackController::afterglow);
+    // Then the rest of the 1 s wait lasts 800 ms at 1×.
     playback.tick(400ms);
-    CHECK(playback.now() == 500ms);  // a 1 s wait lasts 800 ms at 1×
+    CHECK(close_to(playback.now(), 12ms + 494ms));
     playback.tick(400ms);
     CHECK(playback.now() == 1s);
     CHECK(engine.trace().records().back().kind == netsim::TraceKind::FrameDropped);  // second attempt at 1 s
-    playback.tick(1600ms);
-    CHECK(playback.now() == 3s && playback.finished() && !playback.playing());
+    playback.tick(1520ms);
+    CHECK(close_to(playback.now(), 2s));
+    playback.tick(1520ms);
+    CHECK(close_to(playback.now(), 3s) && playback.finished() && playback.playing());
+    playback.tick(1s);  // the afterglow of the last record
+    CHECK(playback.now() == 3s + PlaybackController::afterglow && !playback.playing());
     CHECK(!succeeded(engine));
 
     // Short idle gaps keep the normal pace: compression only speeds up.
@@ -254,6 +268,7 @@ void scene_at_fifteen_ms() {
     CHECK(near(scene.markers[0].anchor, {310 + 80, 280}));
     CHECK(scene.markers[0].opacity == 1.0f);
     CHECK(scene.port_activity.empty());  // the switch's ports lit at 10 ms, 5 ms ago
+    CHECK(scene.device_activity.empty());  // and it sent then
 
     playback.seek(17ms);
     const auto later = resend::build_scene(engine.scenario(), engine, playback);
@@ -272,6 +287,12 @@ void scene_decisions() {
     CHECK(scene.markers[0].text == "learn PC-B → p2");
     CHECK(scene.markers[1].text == "forward → p1");
     CHECK(scene.port_activity.size() == 1 && (scene.port_activity[0] == std::pair{3, 0b11U}));
+    // It received the reply and sent it on at once: sending shows.
+    CHECK(scene.device_activity.size() == 1 && (scene.device_activity[0] == std::pair{3, resend::look::DeviceState::Sending}));
+    playback.seek(32ms);
+    CHECK(resend::build_scene(engine.scenario(), engine, playback).device_activity.size() == 1);
+    playback.seek(35ms);
+    CHECK(resend::build_scene(engine.scenario(), engine, playback).device_activity.empty());
 
     playback.seek(40ms);
     scene = resend::build_scene(engine.scenario(), engine, playback);
@@ -291,6 +312,10 @@ void scene_decisions() {
     watch.seek(20ms);
     scene = resend::build_scene(off.scenario(), off, watch);
     CHECK(scene.markers.size() == 1 && scene.markers[0].text == "× device off" && scene.markers[0].device == 2);
+    // A drop that is a problem puts its device in error, for as long as its marker.
+    CHECK(std::ranges::count(scene.device_activity, std::pair{2, resend::look::DeviceState::Error}) == 1);
+    CHECK(resend::is_problem(netsim::Reason::TtlExceeded) && !resend::is_problem(netsim::Reason::NotForUs) &&
+          !resend::is_problem(netsim::Reason::ArpForOtherHost) && !resend::is_problem(netsim::Reason::Ipv4NotForUs));
     watch.seek(3s);
     scene = resend::build_scene(off.scenario(), off, watch);
     CHECK(scene.markers.size() == 2 && scene.markers[0].text == "ARP timeout" && scene.markers[1].text == "× ping: no ARP reply");
@@ -311,7 +336,7 @@ void scene_with_live_changes() {
     // A device edit leaves a chip of its own on the device.
     CHECK(engine.apply(netsim::SetPowered{netsim::DeviceId{2}, false}) == netsim::Problem::None);
     scene = resend::build_scene(engine.scenario(), engine, playback);
-    CHECK(scene.markers.back().text == "⏻ powered off" && scene.markers.back().tone == resend::Tone::Edit);
+    CHECK(scene.markers.back().text == "powered off" && scene.markers.back().icon == "power" && scene.markers.back().tone == resend::Tone::Edit);
     CHECK(engine.apply(netsim::SetAddress{{netsim::DeviceId{2}, 0}, *netsim::Ipv4Prefix::parse("192.168.1.21/24")}) ==
           netsim::Problem::None);
     scene = resend::build_scene(engine.scenario(), engine, playback);
@@ -360,7 +385,7 @@ void scene_of_a_storm() {
     CHECK(playback.now() == guard->time);
     const auto scene = resend::build_scene(engine.scenario(), engine, playback);
     CHECK(std::any_of(scene.markers.begin(), scene.markers.end(), [](const auto& marker) {
-        return marker.text == "⚠ storm stopped" && marker.tone == resend::Tone::Guard;
+        return marker.text == "storm stopped" && marker.icon == "warning" && marker.tone == resend::Tone::Guard;
     }));
     CHECK(std::none_of(scene.packets.begin(), scene.packets.end(), [&](const auto& packet) {
         return packet.pdu == static_cast<int>(guard->pdu->value);

@@ -1,21 +1,22 @@
 # Simulation core
 
-This document describes how resend simulates a network: the scenario that describes it, the simulation that runs it, the trace that records every step and the explanations derived from the trace, and the workspace through which the app changes, replays and undoes a run. It also lists the rules that keep the results deterministic. The plan for what comes next is in [`roadmap.md`](roadmap.md); the scenario file format is in [`scenario-format.md`](scenario-format.md).
+This document describes how resend simulates a network: the scenario that describes it, the simulation that runs it, the trace that records every step and the explanations derived from the trace, the labs whose goals are checked on it, and the workspace through which the app changes, replays and undoes a run. It also lists the rules that keep the results deterministic. The plan for what comes next is in [`roadmap.md`](roadmap.md); the scenario file format is in [`scenario-format.md`](scenario-format.md), the lab file format in [`lab-format.md`](lab-format.md).
 
 ## Layers
 
 | Path | Contents |
 |---|---|
-| `src/core/` | Values with no behaviour: `Ipv4Address`, `Ipv4Prefix`, `MacAddress`, typed ids (`DeviceId`, `LinkId`, `PduId`), `SimTime` and durations, a seeded `Rng`, a strict JSON reader and writer, the `Problem` codes, and the translation catalogs (`text::`) |
+| `src/core/` | Values with no behaviour: `Ipv4Address`, `Ipv4Prefix`, `MacAddress`, typed ids (`DeviceId`, `LinkId`, `PduId`), `SimTime` and durations, a seeded `Rng`, a strict JSON reader and writer, the `Problem` codes, and `text::tr()`, through which every text for people goes |
 | `src/scenario/` | What the user builds, saves and shares: `Scenario`, `validate()`, editing operations and their inverses (`edit::`) and the JSON format |
 | `src/sim/` | The simulation: scheduler, layered frames, trace, the cables (`Medium`), the nodes (host, switch, router), their modules and the routing table |
 | `src/wire/` | Frames as bytes (Ethernet II, ARP, IPv4, ICMP), their fields as Wireshark shows them, and pcap captures |
-| `src/explain/` | Text for people: events built from the records, and descriptions of problems and reasons |
+| `src/explain/` | Text for people: events built from the records, descriptions of problems and reasons, and the words of the labs' verdicts and locks |
+| `src/lab/` | Labs: reading and writing lab files, checking goals on probes of a network, locks; no text and no Slint |
 | `src/app/` | The workspace (commands, replay, undo), the canvas controller, playback, what the canvas shows at an instant, event filters and files; no Slint dependency |
-| `src/app_controller.*`, `src/app_inspector.cpp`, `src/app_documents.cpp`, `ui/` | The Slint interface |
-| `src/cli.cpp` | `resend-cli`, which runs a scenario, applies changes at given times, and prints the explanations or the trace or writes a capture |
+| `src/app_controller.*`, `src/app_inspector.cpp`, `src/app_documents.cpp`, `src/app_lab.cpp`, `ui/` | The Slint interface |
+| `src/cli.cpp` | `resend-cli`, which runs a scenario, applies changes at given times, and prints the explanations or the trace or writes a capture; it also checks a network against a lab, and a lab against its solution |
 
-Dependencies point downwards only: `core` depends on nothing, `scenario` on `core`, `sim` on both, `explain` and `wire` on `sim`, and the app on everything below it. `src/sim/` contains no user-facing text; everything else writes its texts in English and passes them through `text::tr()` (see [Explanations](#explanations)).
+Dependencies point downwards only: `core` depends on nothing, `scenario` on `core`, `sim` on both, `explain` and `wire` on `sim`, `lab` on `sim` and `explain`, and the app on everything below it. One exception: `explain/lab_explain.cpp` words the verdicts of `lab`, which in turn uses `explain`'s names of reasons and its descriptions of problems; both are in `resend_core`. `src/sim/` and `src/lab/` contain no user-facing text; everything else writes its texts in English and passes them through `text::tr()` (see [Explanations](#explanations)).
 
 ```
 ┌──────────────────────────── app (Slint + C++) ───────────────────────────┐
@@ -289,9 +290,21 @@ The app does not change the simulation directly: a `Workspace` (`src/app/workspa
 
 `describe(Problem)` and `describe(Reason)` explain refusals and failures; `name()` gives the identifiers printed by `resend-cli --trace`, which are never translated. The short labels on the canvas ("flood ×2", "× not my MAC") are part of the app (`src/app/scene.cpp`).
 
-Every text is written in English and passed through `text::tr()` (`src/core/text.hpp`), with `{0}`, `{1}`... for the values: `tr("{0} powered off", {name})`. `tr()` looks the English text up in the catalog of the current language, the same gettext `.po` files in `translations/` that Slint bundles into the interface, built into the program; a text without a translation stays in English. Plurals are chosen in the code, with a text for each form. The CLI never changes the language, so its output, which the tests compare with golden files, is always English. CTest `translations` checks that every text, in the C++ code, in the `.slint` files and in the titles and notes of the examples, has a translation in every built-in language with the same placeholders.
+Every text is written in English and passed through `text::tr()` (`src/core/text.hpp`), with `{0}`, `{1}`... for the values: `tr("{0} powered off", {name})`; the interface's texts are `@tr()` in the `.slint` files. resend is in English only, so `tr()` only puts the values in; keeping every text behind it keeps them easy to find. Plurals are chosen in the code, with a text for each form.
 
 Until milestone M2 the prototype's engine wrote its own texts. The new core reproduced them exactly, record by record, frame by frame and text by text, in fourteen scenarios before that engine was removed; the same scenarios are now the regression tests.
+
+## Labs
+
+A lab (`src/lab/lab.hpp`, file format in [`lab-format.md`](lab-format.md)) is a network to start from, goals, locks, optional steps and hints, and a solution. `lab::check()` decides each goal on the learner's current network and returns a `Verdict`: met or not, a `Finding` that says why not, and the records that decided it. `explain::verdict_text()` turns it into a sentence from those records.
+
+- `reach`, `path` and `answer` goals run on a **probe**: a new `Simulation` of the network, from time zero with empty tables, which starts one ping or traceroute and runs until it ends, then for as long as a router keeps asking with ARP (`arp_retry_interval × (arp_attempts + 1)`), so that the records show where its requests stopped; at most 200,000 events, for a network that never stops sending. The evidence is the probe's telling records: datagrams and frames stopped for a problem (the drops that are normal on a LAN, a frame not for this host, are left out, as are a traceroute's own Time Exceeded) and the ping's outcome. A probe never touches the learner's run, so the same network always gets the same verdict, in the app and in `resend-cli`, however warm the caches of the run on screen.
+- `config` and `kept` goals read the network itself; `kept` compares settings with the network the lab gave, by device name.
+- `observed` goals look for a record in the learner's own run, such as an ARP request sent by a device: they need the run, and are not met without one.
+
+Locks: `lab::locked()` maps an edit to the devices and settings it touches (a cable is its two devices', removing a device touches its neighbours' cables, positions are never locked) and returns the lock that stops it. The workspace asks before every edit of a step, so a refused step changes nothing, the trace included, and refuses with `Problem::Locked`. With a lab set, a device added starts as the lab says (`lab::new_device_edits()`: a host without its address, a router with its ports disabled), in the same undo step.
+
+`lab::verify()` is what CTest `labs-verify-*` runs for every lab: the lab is valid, at least one goal is unmet as given, and every goal is met on the solution's network after its commands, without breaking a lock.
 
 ## Determinism rules
 
@@ -302,14 +315,14 @@ Given the same scenario and the same commands at the same times, the trace must 
 - Unordered containers are used only for lookup, never iterated in an order that could affect the result. The scheduler, for example, uses an `unordered_map` only to find the time of an entry being cancelled.
 - Random numbers: `Rng` uses `std::mt19937_64`, whose output the standard fixes, and derives ranges itself, because the `std::uniform_*_distribution` classes give different values on libstdc++, libc++ and MSVC.
 - Going back in time replays the run on a new simulation; it never restores a copy, so a replay that differed from the run would show up in the tests.
-- Playback speed and animations read the simulation; they never drive it. `playback_never_changes_the_result` in `tests/app_tests.cpp` plays the same ping at 0.25× and 4×, with small and large ticks, and compares the traces.
+- Playback speed and animations read the simulation; they never drive it. `playback_never_changes_the_result` in `tests/app_tests.cpp` plays the same ping at 0.25× and 4×, with small and large ticks, and compares the traces. The canvas's effects (`src/app/effects.cpp`) are a function of the trace and the instant shown, as the packets are: `dragging_gives_what_playing_gave` in `tests/effects_tests.cpp` compares the scene at each instant of a playback with the one a jump to it gives. Sound only listens too: the cues (`src/app/cues.cpp`) are read from the records the playback has just shown, and `sound_leaves_the_trace_alone` in `tests/sound_tests.cpp` compares the traces of runs heard and not heard.
 - `random_topologies` in `tests/sim_tests.cpp` builds 1,000 random loop-free networks with random faults and pings, and `random_live_networks` in `tests/live_tests.cpp` 300 networks, loops included, edited at random while they run. Each hashes everything recorded into one number, which must match a constant on every CI platform and compiler. The constants change only when the model does, and then on purpose. Tests draw random numbers one per statement, since compilers evaluate function arguments in different orders.
 
 ## Tests
 
 | Test | What it checks |
 |---|---|
-| `tests/core_tests.cpp` | Addresses, prefixes, ids, the scheduler, durations, `.po` catalogs and `tr()` |
+| `tests/core_tests.cpp` | Addresses, prefixes, ids, the scheduler, durations and `tr()` |
 | `tests/scenario_tests.cpp` | The JSON reader and writer, `Rng`, every validation rule, the edits and their exact inverses, the example files byte for byte, errors in files |
 | `tests/sim_tests.cpp` | Concurrent pings, shared ARP resolutions, refused pings, carrier and delays, episodes, /31 and /32, the lesson of each example file, the 1,000-network hash |
 | `tests/live_tests.cpp` | Edits while running (cables, delays, ports, power, removal, ids), ARP states, expiry, the merge rule and the queue, MAC ageing, replies that resolve the sender, the ping application, late replies, the storm guard, and conservation of frames at every step of 300 random edited networks |
@@ -317,10 +330,13 @@ Given the same scenario and the same commands at the same times, the trace must 
 | `tests/wire_tests.cpp` | Checksums, known frames byte for byte, round trips, ICMP errors and their quotes, refused bytes, pcap files, the fields of known frames |
 | `tests/regression_tests.cpp` | Thirty scenarios, the prototype's fourteen, nine for live faults and seven with routers, against the golden files in `tests/golden/`; `RESEND_UPDATE_GOLDEN=1` rewrites them after an intended change, to be reviewed in the diff |
 | `tests/app_tests.cpp` | Playback and what the canvas shows, edits and storms included |
+| `tests/effects_tests.cpp` | The effects: each from a record of one table, with a marker or an event beside it; the same when dragged to as when played; at most 64; full, reduced and off |
+| `tests/sound_tests.cpp` | The cues: five networks against `tests/golden/cues/`; a ping ends on its resolve or never plays it; the same trace heard or not; one chord per flood; eight voices that never clip; each cue seen on the canvas |
 | `tests/canvas_tests.cpp` | The canvas controller: view, hit testing, dragging, cables, removal, refusals in the past |
 | `tests/workspace_tests.cpp` | Edits before and after the first event, gestures, commands, travel in time, event filters, 50 random commands and their undos |
 | `tests/files_tests.cpp` | Saving and opening byte for byte, the built-in examples, autosave and recovery, the state folder, the file dialog's listing |
-| `tests/translation_tests.cpp` | Every text translated in every built-in language, with the same placeholders, and no unused entries |
+| `tests/lab_tests.cpp` | Every lab of `labs/` built in, read, written back and verified; errors in lab files; locks in the workspace, the trace included; verdicts that follow the network alone; new devices in a lab; observed goals and answers; the verdicts' words |
+| CTest `labs-verify-*` | Each lab, unsolved as given and solved by its solution, through `resend-cli --verify` |
 | `tests/gui_tests.cpp` | The interface on Slint's testing backend |
 | CTest `cli-*` | `resend-cli` exit codes and output, scenario files, concurrent pings, timed changes, loops, routers, ICMP errors and traceroute |
 | CTest `pcap-wireshark-expert` | Captures checked by `tshark -z expert`; skipped when tshark is missing |

@@ -13,7 +13,7 @@ enum class Problem : std::uint8_t {
     InvalidDeviceId,
     InvalidName,
     WrongPortCount,       // a host has 1 port, a switch 8, a router 2 to 8
-    MissingAddress,       // a host port without an IPv4 address
+    MissingAddress,       // a host port without an IPv4 address: refused before scenario format 3, unused since
     InvalidHostAddress,   // network, broadcast, loopback, multicast, /0
     InvalidPrefix,        // a prefix length outside 1..32
     AddressOnSwitch,      // a switch port with an IPv4 address
@@ -42,6 +42,8 @@ enum class Problem : std::uint8_t {
     InvalidRoute,         // host bits in the destination, a next hop that is not unicast, or not on a router
     DuplicateRoute,       // two routes of a router to the same destination
     TooManyRoutes,
+    // Labs
+    Locked,               // the lab keeps the device or the setting as it gave it
 };
 
 constexpr bool ok(Problem problem) { return problem == Problem::None; }
